@@ -37,11 +37,11 @@ v1.x는 Authentik을 IdP로 사용하여 Flow Executor API, LDAP Outpost 등 복
 
 ---
 
-## Phase 2: 서비스 컨테이너 편입 + 리버스 프록시 분리
+## Phase 2: 서비스 컨테이너 편입
 
-**목표**: 외부 VM/네이티브 서비스를 Docker Compose로 통합하고, 리버스 프록시를 공용으로 분리하여 Hyper-V VM 전체 퇴역.
+**목표**: 외부 VM/네이티브 서비스를 Docker Compose로 통합하여 단일 `docker compose up`으로 전체 스택 구동. Hyper-V VM 전체 퇴역.
 
-### 배경 — 현재 인프라 구조
+### 배경 — 현재 인프라 구조 (namgun.or.kr 환경)
 
 ```
 192.168.0.50  — 물리 서버 (Windows, Hyper-V + WSL2)
@@ -55,37 +55,55 @@ v2.0 이후: **Hyper-V VM 전멸, WSL2 Docker로 통합.**
 
 ```
 192.168.0.50  — 물리 서버
-  └→ WSL2 Docker — 전부 (nginx-proxy + workspace + 외부 서비스)
+  └→ WSL2 Docker — 전부
 ```
 
 NAT 변경: 라우터 포트포워딩 목적지 `192.168.0.150` → `192.168.0.50`
 
-### 2-1. 리버스 프록시 분리 (nginx-proxy)
+### 2-1. Nginx + 배포/운영 환경 분리
 
-namgun-workspace의 nginx와 **외부 서비스(RustDesk, Game Panel 등)**의 프록시를 분리한다.
+**배포 환경 (setup.sh 사용자)** — workspace만 설치하는 깨끗한 서버:
+- nginx가 docker-compose.yml에 **코어 컨테이너로 포함**
+- workspace 서비스만 프록시 (frontend, backend, stalwart, livekit, gitea)
+- 추가 설정 불필요
+
+**운영 환경 (namgun.or.kr)** — workspace 외 서비스도 운영하는 서버:
+- nginx-proxy를 **별도 compose로 분리**하여 workspace + 외부 서비스 통합 프록시
+- `EXTERNAL_PROXY=true` 환경변수로 workspace 내장 nginx 비활성화
 
 ```
-/mnt/d/docker/
-  ├── nginx-proxy/                          # 공용 리버스 프록시 (진입점)
-  │    ├── docker-compose.yml
-  │    └── conf.d/
-  │         ├── workspace.conf              # → namgun-workspace
-  │         ├── gitea.conf                  # → Gitea
-  │         ├── rustdesk.conf               # → RustDesk Pro
-  │         └── game-panel.conf             # → Game Panel
-  ├── namgun-workspace/docker-compose.yml   # 워크스페이스 본체
-  ├── rustdesk/docker-compose.yml           # RustDesk (독립)
-  └── game-panel/docker-compose.yml         # Game Panel (독립)
+# 배포 환경 (기본)
+namgun-workspace/docker-compose.yml
+  └→ nginx 포함 (80, 443)
+
+# 운영 환경 (namgun.or.kr)
+nginx-proxy/docker-compose.yml          # 공용 프록시
+  ├→ workspace.conf
+  ├→ rustdesk.conf
+  └→ game-panel.conf
+namgun-workspace/docker-compose.yml     # EXTERNAL_PROXY=true → nginx 비활성화
+rustdesk/docker-compose.yml             # 독립
+game-panel/docker-compose.yml           # 독립
 ```
 
-- [ ] `nginx-proxy` docker-compose 작성 (80, 443 바인드, TLS 종단)
-- [ ] Let's Encrypt 자동 갱신 (certbot 사이드카 또는 acme-companion)
-- [ ] 기존 .150 Nginx 설정을 conf.d로 마이그레이션
-- [ ] Docker 네트워크: `proxy-net` (외부) — 모든 서비스가 공유하는 프록시 네트워크
-- [ ] namgun-workspace의 nginx 컨테이너는 **제거** (공용 프록시가 대체)
+- [ ] workspace docker-compose에 nginx 컨테이너 포함 (기본값)
+- [ ] `EXTERNAL_PROXY=true` 시 nginx 컨테이너 비활성화 (`profiles` 활용)
+- [ ] namgun.or.kr 전용: nginx-proxy 별도 compose 작성
+- [ ] Let's Encrypt 자동 갱신 (certbot 사이드카)
 - [ ] 기존 Hyper-V VM (.150) Nginx 퇴역
 
-### 2-2. Stalwart 컨테이너화
+### 2-2. Gitea 코어 편입
+
+Gitea를 workspace 코어 컨테이너로 편입하여, 배포 시 Git 기능이 즉시 동작하도록 한다.
+
+- [ ] Gitea 컨테이너 추가 (`gitea/gitea`, MIT 라이선스)
+- [ ] PostgreSQL 공유 (별도 database)
+- [ ] 포털 OAuth Provider → Gitea SSO 자동 연동
+- [ ] `setup.sh`에서 Gitea OAuth Application 자동 등록
+- [ ] Git SSH 포트 설정 (22 또는 2222)
+- [ ] 기존 Gitea 데이터 마이그레이션 가이드 (namgun.or.kr 환경)
+
+### 2-3. Stalwart 컨테이너화
 
 - [ ] Stalwart 공식 Docker 이미지 사용 (`stalwartlabs/mail-server`)
 - [ ] `config.toml` 템플릿 작성 (환경변수 치환)
@@ -108,13 +126,12 @@ namgun-workspace의 nginx와 **외부 서비스(RustDesk, Game Panel 등)**의 �
 
 ### 완료 기준
 
-- 공용 nginx-proxy가 모든 서비스의 단일 진입점
-- `docker compose up` 한 번으로 Stalwart + LiveKit 포함 워크스페이스 기동
-- **Hyper-V VM 전체 퇴역** (.150, .250, BBB) — 물리 서버 .50만 남음
-- NAT 포트포워딩 목적지: .50 단일
+- **배포 환경**: `docker compose up` 한 번으로 nginx + Gitea + Stalwart + LiveKit 포함 전체 스택 기동
+- **운영 환경 (namgun.or.kr)**: Hyper-V VM 전체 퇴역 (.150, .250, BBB), 물리 서버 .50만 남음
+- Gitea SSO 자동 연동 (포털 로그인으로 Gitea 접근)
 - 메일 송수신 + DKIM 서명 정상 동작
 - 2인 이상 화상회의 동작 (카메라, 마이크, 화면공유)
-- RustDesk, Game Panel, Gitea 기존과 동일하게 접근 가능
+- `EXTERNAL_PROXY=true` 시 외부 프록시 뒤에서 정상 동작
 
 ---
 

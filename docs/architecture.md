@@ -48,8 +48,8 @@
 │                  docker-compose.yml                       │
 │                                                           │
 │  ┌──────────────────────────────────────────────────┐    │
-│  │          nginx-proxy (공용, 별도 compose)          │    │
-│  │   TLS 종단, workspace + gitea/rustdesk/game 프록시 │    │
+│  │                    nginx                          │    │
+│  │      리버스 프록시, TLS 종단 (EXTERNAL_PROXY 시 생략) │    │
 │  └──────┬──────────┬──────────┬──────────────────────┘    │
 │         │          │          │                            │
 │  ┌──────┴───┐ ┌────┴─────┐ ┌─┴──────────┐               │
@@ -83,7 +83,7 @@
 - **Hyper-V VM 전멸** — .150(Nginx), .250(Stalwart), BBB VM 모두 퇴역
 - 물리 서버 .50 → WSL2 Docker 단일 호스트
 - 공용 nginx-proxy 분리 — workspace + 외부 서비스(Gitea, RustDesk, Game Panel) 통합 프록시
-- 6개 코어 컨테이너로 전체 스택 (v1.x 대비 Authentik 4개 + Nginx VM 제거)
+- 8개 코어 컨테이너로 전체 스택 (nginx, frontend, backend, postgres, redis, stalwart, livekit, gitea)
 - 자체 인증 → 외부 IdP 의존성 제거
 - 채팅/문서 → backend(FastAPI)에 내장, 추가 컨테이너 불필요
 - LiveKit → BBB VM 제거, Docker 컨테이너 1개로 교체
@@ -96,22 +96,18 @@
 
 ## 컨테이너 구성 상세
 
-### 공용 리버스 프록시 (별도 compose)
+### namgun-workspace 코어 (8개 컨테이너)
 
 | 컨테이너 | 이미지 | 포트 | 역할 |
 |-----------|--------|------|------|
-| **nginx-proxy** | `nginx:alpine` | 80, 443 | 공용 리버스 프록시, TLS 종단 (workspace + Gitea/RustDesk/Game Panel) |
-
-### namgun-workspace 코어 (6개 컨테이너)
-
-| 컨테이너 | 이미지 | 포트 | 역할 |
-|-----------|--------|------|------|
+| **nginx** | `nginx:alpine` | 80, 443 | 리버스 프록시, TLS 종단 (`EXTERNAL_PROXY=true` 시 비활성화) |
 | **frontend** | 자체 빌드 | 3000 (내부) | Nuxt 3 SSR, Vue 3 SPA |
 | **backend** | 자체 빌드 | 8000 (내부) | FastAPI, API Gateway, WebSocket (채팅 + 문서 공동편집) |
 | **postgres** | `postgres:16-alpine` | 5432 (내부) | 포털 DB + Stalwart SQL directory (단일 인스턴스) |
 | **redis** | `redis:7-alpine` | 6379 (내부) | 세션 캐시, WebSocket pub/sub, 레이트 리미팅 |
 | **stalwart** | `stalwartlabs/mail-server` | 25, 587, 993 | 메일 서버 (SMTP, IMAP, JMAP, Sieve) |
 | **livekit** | `livekit/livekit-server` | 7880, 7881, 7882/udp | WebRTC SFU (화상회의, 화면공유) |
+| **gitea** | `gitea/gitea` (MIT) | 3000 (내부), 22/2222 (SSH) | Git 호스팅, 저장소, 이슈, PR |
 
 ### 선택적 컨테이너
 
@@ -119,7 +115,6 @@
 |-----------|--------|--------|------|
 | **onlyoffice** | `onlyoffice/documentserver` (AGPL-3.0) | `ENABLE_OFFICE=true` | DOCX/XLSX/PPTX 웹 편집 + 동시 작업 (WOPI) |
 | **livekit-egress** | `livekit/egress` | `ENABLE_RECORDING=true` | 회의 녹화 |
-| **gitea** | `gitea/gitea` | `ENABLE_GITEA=true` | Git 호스팅 (외부 Gitea 사용 가능) |
 
 ---
 
@@ -174,6 +169,7 @@ Stalwart 메일 인증:
 | PostgreSQL | PostgreSQL License | BSD 계열 |
 | Redis | BSD-3-Clause (v7) | v7.4+는 RSALv2/SSPLv1, 호환성 확인 필요 |
 | Stalwart | AGPL-3.0 | 동일 라이선스 |
+| Gitea | MIT | |
 | ONLYOFFICE Docs CE | AGPL-3.0 | 동일 라이선스, 선택적 |
 | Tiptap | MIT | 마크다운 에디터 |
 | Yjs | MIT | CRDT 실시간 공동 편집 |
