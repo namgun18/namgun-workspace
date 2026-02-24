@@ -68,38 +68,57 @@ v1.x는 Authentik을 IdP로 사용하여 Flow Executor API, LDAP Outpost 등 복
 
 ---
 
-## Phase 3: 실시간 채팅 — Mattermost 편입
+## Phase 3: 실시간 채팅 (자체 구현)
 
-**목표**: Mattermost Team Edition을 Docker 컨테이너로 편입하여 Slack/Teams급 팀 메신저 제공.
+**목표**: FastAPI WebSocket 기반 팀 메신저를 자체 구현하여 Slack/Teams급 채팅 제공.
 
-### 배경
+### 배경 — 왜 Mattermost/Rocket.Chat이 아닌 자체 구현인가
 
-채팅을 자체 구현(WebSocket)하면 개발 비용이 크고, 검색/스레드/파일공유/알림 등 엔터프라이즈 기능을 재구현해야 한다.
-Mattermost Team Edition(MIT 라이선스)을 컨테이너로 편입하면:
-- 채널, DM, 스레드, 파일 공유, 검색, 웹훅 즉시 사용
-- PostgreSQL 공유 (별도 DB 불필요)
-- 포털 SSO 연동 (OpenID Connect)
-- 포털 UI에서 iframe 또는 API 통합
+타당성 검토 결과, 기존 오픈소스 메신저 솔루션은 namgun-workspace에 적합하지 않다:
+
+| 솔루션 | 탈락 사유 |
+|--------|-----------|
+| **Mattermost** | v11에서 무료 에디션 SSO(OIDC) 제거. v10 ESR은 2026.10 지원 종료. 별도 UI로 포털 통합 어려움 |
+| **Rocket.Chat** | MongoDB 필수 — "PostgreSQL 단일 DB" 원칙 위배. 추가 컨테이너 2개 필요 |
+
+자체 구현의 이점:
+- 추가 컨테이너 0개 (기존 FastAPI + Redis + PostgreSQL 활용)
+- 포털 UI와 완벽한 디자인 통일
+- 자체 인증과 동일 코드베이스 — 별도 SSO 연동 불필요
+- 외부 솔루션 라이선스 정책 변경 리스크 없음
+- 리소스 최소 (~256MB, Mattermost 대비 1/10)
 
 ### 작업 항목
 
-- [ ] Mattermost Team Edition 컨테이너 추가 (`mattermost/mattermost-team-edition`)
-- [ ] PostgreSQL 공유 설정 (별도 DB 스키마 또는 별도 database)
-- [ ] 포털 OAuth/OIDC Provider → Mattermost SSO 연동 (자동 계정 생성)
-- [ ] Nginx 리버스 프록시 경로 설정 (`/chat` → Mattermost)
-- [ ] 포털 UI 통합 (사이드바 채팅 위젯 또는 임베드)
-- [ ] Mattermost 기본 UI 커스터마이징 (브랜드 색상, 로고)
-- [ ] LiveKit 회의 중 채팅 연동 (Mattermost 채널 자동 생성)
-- [ ] 웹훅 연동 (Gitea 커밋/PR → 채팅 알림)
-- [ ] 파일 스토리지 통합 (Mattermost 첨부파일 → 포털 파일 서비스)
-- [ ] `setup.sh`에서 Mattermost 자동 설정 (관리자 계정, SSO, 기본 채널)
+#### Phase 3-1: 핵심 채팅 (3~4주)
+
+- [ ] DB 모델: `channels`, `messages`, `channel_members` 테이블
+- [ ] FastAPI WebSocket 엔드포인트 (`/ws/chat`)
+- [ ] Redis Pub/Sub 브로드캐스트 (다중 워커 지원)
+- [ ] 채널 CRUD API (공개/비공개/DM)
+- [ ] 실시간 메시지 송수신 + REST fallback
+- [ ] 파일 첨부 (기존 파일 서비스 연동)
+- [ ] 사용자 프레즌스 (온라인/오프라인, Redis 기반)
+- [ ] 프론트엔드 채팅 UI (Nuxt3, 채널 목록 + 메시지 뷰 + 입력)
+
+#### Phase 3-2: 확장 기능 (2~3주)
+
+- [ ] 스레드 (답글)
+- [ ] 이모지 리액션
+- [ ] @멘션 + 알림
+- [ ] 메시지 검색 (PostgreSQL FTS, `pg_trgm` + GIN 인덱스)
+- [ ] 읽음/안읽음 표시 (read receipts)
+- [ ] 메시지 수정/삭제
+- [ ] Gitea 웹훅 알림 (커밋/PR/이슈 → 채팅 채널)
+- [ ] LiveKit 회의 내 채팅 연동
 
 ### 완료 기준
 
-- 포털 로그인 후 채팅 즉시 사용 (별도 로그인 없음)
-- 채널, DM, 스레드, 파일 공유, 검색 동작
+- 팀 채널에서 실시간 메시지 송수신
+- DM, 스레드, 멘션, 검색 동작
+- 화상회의 중 채팅 가능
 - Gitea 이벤트 → 채팅 알림
-- 포털 UI와 시각적 통합 (통일된 네비게이션)
+- 오프라인 메시지 수신 (재접속 시 동기화)
 
 ---
 
@@ -179,7 +198,52 @@ BRAND_COLOR=#4F46E5
 
 ---
 
-## Phase 6: 운영 도구
+## Phase 6: 문서/메모 + 웹 오피스
+
+**목표**: 팀 위키/메모 기능을 자체 구현하고, 웹 오피스(ONLYOFFICE)를 선택적 컨테이너로 편입.
+
+### 배경 — 왜 AFFiNE/Outline이 아닌가
+
+| 솔루션 | 탈락 사유 |
+|--------|-----------|
+| **AFFiNE** | 셀프 호스팅 미성숙 (v0.26.x), 업그레이드 시 데이터 소실/SSO 깨짐 사례, 4코어+2~4GB 리소스, GraphQL 전용 API |
+| **Outline** | BSL-1.1 라이선스 — AGPL-3.0 프로젝트에 기본 포함 시 호환성 문제 |
+
+### 6-1. 문서/메모 (자체 구현)
+
+기존 FastAPI + PostgreSQL + Nuxt3에 마크다운 에디터를 추가한다. 추가 컨테이너 불필요.
+
+- [ ] DB 모델: `documents` 테이블 (title, content_md, folder_id, created_by, updated_at, is_public)
+- [ ] `folders` 테이블 (트리 구조, parent_id)
+- [ ] 문서 CRUD API + 폴더 관리
+- [ ] 마크다운 에디터 (Tiptap 또는 Milkdown — 둘 다 MIT)
+- [ ] 실시간 공동 편집 (Yjs + y-websocket, 기존 WebSocket 인프라 활용)
+- [ ] 문서 검색 (PostgreSQL FTS, `pg_trgm`)
+- [ ] 문서 공유 (팀 내 공유, 공개 링크)
+- [ ] 문서 내 @멘션 + 댓글
+- [ ] 포털 사이드바 "문서" 메뉴 추가
+
+### 6-2. 웹 오피스 (ONLYOFFICE Docs CE, 선택적)
+
+DOCX/XLSX/PPTX 웹 편집 + 실시간 동시 작업. `ENABLE_OFFICE=true` 환경변수로 활성화.
+
+- [ ] ONLYOFFICE Docs CE 컨테이너 추가 (`onlyoffice/documentserver`, AGPL-3.0 — 라이선스 완벽 호환)
+- [ ] WOPI 프로토콜 연동 (FastAPI WOPI 엔드포인트)
+- [ ] 파일 서비스 연동 (NFS/로컬 파일 → ONLYOFFICE로 열기)
+- [ ] 문서 동시 편집 (ONLYOFFICE 내장 기능)
+- [ ] 포털 UI에서 오피스 에디터 임베드 (iframe, JS SDK)
+- [ ] `docker-compose.yml`에서 `profiles: [office]`로 선택적 활성화
+- [ ] `setup.sh`에서 ONLYOFFICE 활성화 옵션
+
+### 완료 기준
+
+- 마크다운 문서 생성/편집/검색/공유 동작
+- 2인 이상 실시간 공동 편집 동작
+- (선택) ONLYOFFICE 활성화 시 DOCX/XLSX/PPTX 웹 편집 + 동시 작업
+
+---
+
+## Phase 7: 운영 도구
 
 **목표**: 프로덕션 운영에 필요한 업데이트, 백업, 모니터링 도구 제공.
 
@@ -217,7 +281,7 @@ BRAND_COLOR=#4F46E5
 
 ---
 
-## Phase 7: PWA + 모바일
+## Phase 8: PWA + 모바일
 
 **목표**: 네이티브 앱 없이 모바일에서도 워크스페이스를 쾌적하게 사용.
 
@@ -240,7 +304,7 @@ BRAND_COLOR=#4F46E5
 
 ---
 
-## Phase 8: 오픈코어 모델
+## Phase 9: 오픈코어 모델
 
 **목표**: 지속 가능한 프로젝트 운영을 위한 수익 모델 구축.
 
@@ -276,19 +340,20 @@ BRAND_COLOR=#4F46E5
 
 ## 타임라인 (예상)
 
-| Phase | 예상 기간 | 우선순위 |
-|-------|-----------|----------|
-| Phase 1 | 2-3주 | **Critical** |
-| Phase 2 | 3-4주 | **Critical** |
-| Phase 3 | 2-3주 | High |
-| Phase 4 | 1-2주 | **Critical** |
-| Phase 5 | 1-2주 | Medium |
-| Phase 6 | 2-3주 | High |
-| Phase 7 | 1-2주 | Medium |
-| Phase 8 | 2-3주 | Low |
+| Phase | 내용 | 예상 기간 | 우선순위 |
+|-------|------|-----------|----------|
+| Phase 1 | 자체 인증 전환 | 2-3주 | **Critical** |
+| Phase 2 | 서비스 컨테이너 편입 (Stalwart, LiveKit) | 3-4주 | **Critical** |
+| Phase 3 | 실시간 채팅 (자체 구현) | 5-7주 | High |
+| Phase 4 | 배포 자동화 (setup.sh) | 1-2주 | **Critical** |
+| Phase 5 | 화이트라벨링 + i18n | 1-2주 | Medium |
+| Phase 6 | 문서/메모 + 웹 오피스 (ONLYOFFICE) | 3-4주 | Medium |
+| Phase 7 | 운영 도구 | 2-3주 | High |
+| Phase 8 | PWA + 모바일 | 1-2주 | Medium |
+| Phase 9 | 오픈코어 모델 | 2-3주 | Low |
 
 > Phase 1~4는 v2.0 릴리즈의 최소 요건입니다.
-> Phase 5~8은 v2.1+ 에서 점진적으로 추가됩니다.
+> Phase 5~9는 v2.1+ 에서 점진적으로 추가됩니다.
 
 ---
 

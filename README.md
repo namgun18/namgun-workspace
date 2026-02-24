@@ -1,9 +1,9 @@
 # namgun-workspace
 
-> Self-hosted all-in-one workspace for startups — Mail, Video, Chat, Git, Files, Calendar
+> Self-hosted all-in-one workspace for startups — Mail, Video, Chat, Docs, Office, Git, Files, Calendar
 
 **namgun-workspace**는 소규모 팀을 위한 셀프 호스팅 올인원 워크스페이스입니다.
-하나의 `docker compose up`으로 메일, 화상회의, 실시간 채팅, Git, 파일 관리, 캘린더, 연락처를 모두 배포할 수 있습니다.
+하나의 `docker compose up`으로 메일, 화상회의, 채팅, 문서, 웹 오피스, Git, 파일 관리, 캘린더를 모두 배포할 수 있습니다.
 
 ## 비전
 
@@ -23,7 +23,9 @@ namgun-workspace는 다음 원칙으로 설계됩니다:
 | 인증 | Authentik (외부 IdP) | 자체 인증 (내장) |
 | 화상회의 | BigBlueButton (별도 VM) | LiveKit (Docker 컨테이너) |
 | 메일 | Stalwart (네이티브 설치) | Stalwart (Docker 편입) |
-| 채팅 | 없음 | Mattermost (채널, DM, 스레드, 검색) |
+| 채팅 | 없음 | 자체 구현 (WebSocket, 채널, DM, 스레드) |
+| 문서/메모 | 없음 | 자체 마크다운 위키 + 실시간 공동 편집 |
+| 웹 오피스 | 없음 | ONLYOFFICE Docs CE (선택적, DOCX/XLSX/PPTX) |
 | 배포 | 수동 설정 다수 | `setup.sh` 원클릭 자동화 |
 | 라이선스 | Private | AGPL-3.0 (오픈소스) |
 | 브랜딩 | "namgun" 하드코딩 | 화이트라벨 (환경변수) |
@@ -35,7 +37,7 @@ namgun-workspace는 다음 원칙으로 설계됩니다:
 docker compose up -d
 ```
 
-8개 컨테이너로 전체 스택 구동:
+7개 코어 컨테이너 + 1개 선택적 컨테이너로 전체 스택 구동:
 
 ```
 ┌───────────────────────────────────────────────────────┐
@@ -46,19 +48,22 @@ docker compose up -d
 │  │  nginx   │  │ frontend │  │ backend  │            │
 │  │ (proxy)  │  │ (Nuxt 3) │  │(FastAPI) │            │
 │  └────┬─────┘  └──────────┘  └────┬─────┘            │
-│       │                           │                    │
+│       │          채팅/문서/API      │                    │
 │  ┌────┴─────┐  ┌──────────┐  ┌───┴──────┐            │
 │  │ stalwart │  │  livekit  │  │ postgres │            │
 │  │  (mail)  │  │  (video)  │  │   (db)   │            │
 │  └──────────┘  └──────────┘  └──────────┘            │
 │                                                        │
-│  ┌──────────┐  ┌──────────┐                           │
-│  │mattermost│  │  redis   │                           │
-│  │  (chat)  │  │ (cache)  │                           │
-│  └──────────┘  └──────────┘                           │
+│  ┌──────────┐  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐              │
+│  │  redis   │    onlyoffice (선택적)                   │
+│  │ (cache)  │  │ DOCX/XLSX/PPTX 편집  │              │
+│  └──────────┘  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘              │
 │                                                        │
 └───────────────────────────────────────────────────────┘
 ```
+
+> 채팅, 문서/메모는 backend(FastAPI) 컨테이너에 내장. 추가 컨테이너 불필요.
+> ONLYOFFICE는 `ENABLE_OFFICE=true`로 선택적 활성화.
 
 ## 기술 스택
 
@@ -70,7 +75,9 @@ docker compose up -d
 | 데이터베이스 | PostgreSQL 16, Redis |
 | 메일 | Stalwart Mail Server (JMAP, SQL directory) |
 | 화상회의 | LiveKit (WebRTC SFU) |
-| 실시간 채팅 | Mattermost Team Edition (MIT) |
+| 실시간 채팅 | 자체 구현 (FastAPI WebSocket + Redis Pub/Sub) |
+| 문서/메모 | 자체 구현 (Tiptap/Milkdown 에디터 + Yjs 공동 편집) |
+| 웹 오피스 | ONLYOFFICE Docs CE (AGPL-3.0, 선택적) |
 | TLS | Let's Encrypt (자동 발급) |
 | 컨테이너 | Docker Compose |
 
@@ -92,12 +99,13 @@ cd namgun-workspace
 |-------|------|------|
 | Phase 1 | 자체 인증 전환 (Authentik 제거) | Planned |
 | Phase 2 | 서비스 컨테이너 편입 (Stalwart, LiveKit) | Planned |
-| Phase 3 | 실시간 채팅 (Mattermost) | Planned |
+| Phase 3 | 실시간 채팅 (자체 구현, WebSocket) | Planned |
 | Phase 4 | 배포 자동화 (setup.sh) | Planned |
 | Phase 5 | 화이트라벨링 + i18n | Planned |
-| Phase 6 | 운영 도구 (업데이트, 백업, 헬스체크) | Planned |
-| Phase 7 | PWA + 모바일 | Planned |
-| Phase 8 | 오픈코어 모델 | Planned |
+| Phase 6 | 문서/메모 + 웹 오피스 (ONLYOFFICE) | Planned |
+| Phase 7 | 운영 도구 (업데이트, 백업, 헬스체크) | Planned |
+| Phase 8 | PWA + 모바일 | Planned |
+| Phase 9 | 오픈코어 모델 | Planned |
 
 ## v1.x (namgun-portal)
 

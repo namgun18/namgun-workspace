@@ -63,23 +63,29 @@
 │              │ (단일 DB)  │                                │
 │              └───────────┘                                │
 │                                                           │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐              │
-│  │  livekit  │  │  redis   │  │ mattermost │              │
-│  │  (video)  │  │ (cache/  │  │   (chat)   │              │
-│  │  WebRTC   │  │  session/ │  │  Team Ed.  │              │
-│  │  SFU      │  │  pubsub)  │  │  MIT       │              │
-│  └──────────┘  └──────────┘  └────────────┘              │
+│  ┌──────────┐  ┌──────────┐                              │
+│  │  livekit  │  │  redis   │    * backend에 내장:         │
+│  │  (video)  │  │ (cache/  │      - 채팅 (WebSocket)     │
+│  │  WebRTC   │  │  session/ │      - 문서/메모 (Yjs)      │
+│  │  SFU      │  │  pubsub)  │                              │
+│  └──────────┘  └──────────┘                              │
+│                                                           │
+│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐                │
+│    onlyoffice (선택적, ENABLE_OFFICE=true)                 │
+│  │ DOCX/XLSX/PPTX 웹 편집 + 동시 작업  │                │
+│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘                │
 │                                                           │
 └──────────────────────────────────────────────────────────┘
 ```
 
 **v2.0 개선점**:
 - 단일 서버, 단일 `docker compose up`
-- 8개 컨테이너로 전체 스택 (v1.x 대비 Authentik 4개 제거, Mattermost 추가)
+- 7개 코어 컨테이너로 전체 스택 (v1.x 대비 Authentik 4개 제거)
 - 자체 인증 → 외부 IdP 의존성 제거
+- 채팅/문서 → backend(FastAPI)에 내장, 추가 컨테이너 불필요
 - LiveKit → BBB VM 제거, Docker 컨테이너 1개로 교체
-- Mattermost Team Edition → Slack/Teams급 채팅 내장
 - Stalwart Docker 편입 → 별도 서버 불필요
+- ONLYOFFICE → 선택적 컨테이너 (DOCX/XLSX/PPTX 웹 편집)
 - setup.sh 자동화 → 수동 설정 4개로 축소
 
 ---
@@ -90,19 +96,19 @@
 |-----------|--------|------|------|
 | **nginx** | `nginx:alpine` | 80, 443 | 리버스 프록시, TLS 종단, 정적 파일 서빙 |
 | **frontend** | 자체 빌드 | 3000 (내부) | Nuxt 3 SSR, Vue 3 SPA |
-| **backend** | 자체 빌드 | 8000 (내부) | FastAPI, API Gateway, WebSocket |
+| **backend** | 자체 빌드 | 8000 (내부) | FastAPI, API Gateway, WebSocket (채팅 + 문서 공동편집) |
 | **postgres** | `postgres:16-alpine` | 5432 (내부) | 포털 DB + Stalwart SQL directory (단일 인스턴스) |
 | **redis** | `redis:7-alpine` | 6379 (내부) | 세션 캐시, WebSocket pub/sub, 레이트 리미팅 |
 | **stalwart** | `stalwartlabs/mail-server` | 25, 587, 993, 4190 | 메일 서버 (SMTP, IMAP, JMAP, Sieve) |
 | **livekit** | `livekit/livekit-server` | 7880, 7881, 7882/udp | WebRTC SFU (화상회의, 화면공유) |
-| **mattermost** | `mattermost/mattermost-team-edition` | 8065 (내부) | 팀 채팅 (채널, DM, 스레드, 파일, 검색) |
 
 ### 선택적 컨테이너
 
-| 컨테이너 | 이미지 | 역할 |
-|-----------|--------|------|
-| **livekit-egress** | `livekit/egress` | 회의 녹화 (선택) |
-| **gitea** | `gitea/gitea` | Git 호스팅 (선택, 외부 Gitea 사용 가능) |
+| 컨테이너 | 이미지 | 활성화 | 역할 |
+|-----------|--------|--------|------|
+| **onlyoffice** | `onlyoffice/documentserver` (AGPL-3.0) | `ENABLE_OFFICE=true` | DOCX/XLSX/PPTX 웹 편집 + 동시 작업 (WOPI) |
+| **livekit-egress** | `livekit/egress` | `ENABLE_RECORDING=true` | 회의 녹화 |
+| **gitea** | `gitea/gitea` | `ENABLE_GITEA=true` | Git 호스팅 (외부 Gitea 사용 가능) |
 
 ---
 
@@ -157,7 +163,9 @@ Stalwart 메일 인증:
 | PostgreSQL | PostgreSQL License | BSD 계열 |
 | Redis | BSD-3-Clause (v7) | v7.4+는 RSALv2/SSPLv1, 호환성 확인 필요 |
 | Stalwart | AGPL-3.0 | 동일 라이선스 |
-| Mattermost Team Edition | MIT | 무료, 상용 가능 |
+| ONLYOFFICE Docs CE | AGPL-3.0 | 동일 라이선스, 선택적 |
+| Tiptap | MIT | 마크다운 에디터 |
+| Yjs | MIT | CRDT 실시간 공동 편집 |
 | LiveKit Server | Apache-2.0 | |
 | LiveKit Client SDK | Apache-2.0 | |
 | Nginx | BSD-2-Clause | |
