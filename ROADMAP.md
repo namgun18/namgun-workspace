@@ -37,20 +37,66 @@ v1.x는 Authentik을 IdP로 사용하여 Flow Executor API, LDAP Outpost 등 복
 
 ---
 
-## Phase 2: 서비스 컨테이너 편입
+## Phase 2: 서비스 컨테이너 편입 + 리버스 프록시 분리
 
-**목표**: 외부 VM/네이티브 서비스를 Docker Compose로 통합하여 단일 `docker compose up`으로 전체 스택 구동.
+**목표**: 외부 VM/네이티브 서비스를 Docker Compose로 통합하고, 리버스 프록시를 공용으로 분리하여 Hyper-V VM 전체 퇴역.
 
-### 2-1. Stalwart 컨테이너화
+### 배경 — 현재 인프라 구조
+
+```
+192.168.0.50  — 물리 서버 (Windows, Hyper-V + WSL2)
+  ├→ WSL2 Docker    — 포털, Authentik, Gitea, RustDesk, Game Panel
+  ├→ Hyper-V VM     — 192.168.0.150 (Rocky Linux, Nginx 리버스 프록시)
+  ├→ Hyper-V VM     — 192.168.0.250 (Rocky Linux, Stalwart, LDAP Outpost)
+  └→ Hyper-V VM     — BBB
+```
+
+v2.0 이후: **Hyper-V VM 전멸, WSL2 Docker로 통합.**
+
+```
+192.168.0.50  — 물리 서버
+  └→ WSL2 Docker — 전부 (nginx-proxy + workspace + 외부 서비스)
+```
+
+NAT 변경: 라우터 포트포워딩 목적지 `192.168.0.150` → `192.168.0.50`
+
+### 2-1. 리버스 프록시 분리 (nginx-proxy)
+
+namgun-workspace의 nginx와 **외부 서비스(RustDesk, Game Panel 등)**의 프록시를 분리한다.
+
+```
+/mnt/d/docker/
+  ├── nginx-proxy/                          # 공용 리버스 프록시 (진입점)
+  │    ├── docker-compose.yml
+  │    └── conf.d/
+  │         ├── workspace.conf              # → namgun-workspace
+  │         ├── gitea.conf                  # → Gitea
+  │         ├── rustdesk.conf               # → RustDesk Pro
+  │         └── game-panel.conf             # → Game Panel
+  ├── namgun-workspace/docker-compose.yml   # 워크스페이스 본체
+  ├── rustdesk/docker-compose.yml           # RustDesk (독립)
+  └── game-panel/docker-compose.yml         # Game Panel (독립)
+```
+
+- [ ] `nginx-proxy` docker-compose 작성 (80, 443 바인드, TLS 종단)
+- [ ] Let's Encrypt 자동 갱신 (certbot 사이드카 또는 acme-companion)
+- [ ] 기존 .150 Nginx 설정을 conf.d로 마이그레이션
+- [ ] Docker 네트워크: `proxy-net` (외부) — 모든 서비스가 공유하는 프록시 네트워크
+- [ ] namgun-workspace의 nginx 컨테이너는 **제거** (공용 프록시가 대체)
+- [ ] 기존 Hyper-V VM (.150) Nginx 퇴역
+
+### 2-2. Stalwart 컨테이너화
 
 - [ ] Stalwart 공식 Docker 이미지 사용 (`stalwartlabs/mail-server`)
 - [ ] `config.toml` 템플릿 작성 (환경변수 치환)
 - [ ] SQL directory 설정 (PostgreSQL users 테이블 참조)
 - [ ] DKIM 키 자동 생성 (`setup.sh`에서 `openssl` 호출)
-- [ ] Let's Encrypt TLS 연동 (Nginx 프록시 또는 Stalwart 내장 ACME)
+- [ ] TLS: nginx-proxy에서 종단 또는 Stalwart 내장 ACME
+- [ ] 메일 포트 직접 노출 (25, 587, 993 — HTTP 프록시 불가)
 - [ ] 기존 RocksDB 데이터 마이그레이션 가이드
+- [ ] Hyper-V VM (.250) 퇴역
 
-### 2-2. LiveKit 도입 (BBB 교체)
+### 2-3. LiveKit 도입 (BBB 교체)
 
 - [ ] LiveKit Server 컨테이너 추가 (`livekit/livekit-server`)
 - [ ] LiveKit SDK 연동 (프론트엔드: `livekit-client`, 백엔드: `livekit-api`)
@@ -58,13 +104,17 @@ v1.x는 Authentik을 IdP로 사용하여 Flow Executor API, LDAP Outpost 등 복
 - [ ] 화면공유, 카메라/마이크 제어
 - [ ] LiveKit Egress 컨테이너 (녹화, 선택적 활성화)
 - [ ] TURN 서버 설정 (NAT 환경 대응)
+- [ ] BBB Hyper-V VM 퇴역
 
 ### 완료 기준
 
-- `docker compose up` 한 번으로 Stalwart + LiveKit 포함 전체 스택 기동
-- BBB VM 제거 가능
+- 공용 nginx-proxy가 모든 서비스의 단일 진입점
+- `docker compose up` 한 번으로 Stalwart + LiveKit 포함 워크스페이스 기동
+- **Hyper-V VM 전체 퇴역** (.150, .250, BBB) — 물리 서버 .50만 남음
+- NAT 포트포워딩 목적지: .50 단일
 - 메일 송수신 + DKIM 서명 정상 동작
 - 2인 이상 화상회의 동작 (카메라, 마이크, 화면공유)
+- RustDesk, Game Panel, Gitea 기존과 동일하게 접근 가능
 
 ---
 

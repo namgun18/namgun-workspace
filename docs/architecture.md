@@ -48,14 +48,14 @@
 │                  docker-compose.yml                       │
 │                                                           │
 │  ┌──────────────────────────────────────────────────┐    │
-│  │                   nginx                           │    │
-│  │         (리버스 프록시, TLS 종단, 정적 파일)        │    │
+│  │          nginx-proxy (공용, 별도 compose)          │    │
+│  │   TLS 종단, workspace + gitea/rustdesk/game 프록시 │    │
 │  └──────┬──────────┬──────────┬──────────────────────┘    │
 │         │          │          │                            │
 │  ┌──────┴───┐ ┌────┴─────┐ ┌─┴──────────┐               │
 │  │ frontend │ │ backend  │ │  stalwart   │               │
 │  │ (Nuxt 3) │ │(FastAPI) │ │   (mail)    │               │
-│  │          │ │          │ │ SQL directory│               │
+│  │          │ │채팅/문서  │ │ SQL directory│               │
 │  └──────────┘ └────┬─────┘ └─────────────┘               │
 │                    │                                      │
 │              ┌─────┴─────┐                                │
@@ -80,26 +80,37 @@
 
 **v2.0 개선점**:
 - 단일 서버, 단일 `docker compose up`
-- 7개 코어 컨테이너로 전체 스택 (v1.x 대비 Authentik 4개 제거)
+- **Hyper-V VM 전멸** — .150(Nginx), .250(Stalwart), BBB VM 모두 퇴역
+- 물리 서버 .50 → WSL2 Docker 단일 호스트
+- 공용 nginx-proxy 분리 — workspace + 외부 서비스(Gitea, RustDesk, Game Panel) 통합 프록시
+- 6개 코어 컨테이너로 전체 스택 (v1.x 대비 Authentik 4개 + Nginx VM 제거)
 - 자체 인증 → 외부 IdP 의존성 제거
 - 채팅/문서 → backend(FastAPI)에 내장, 추가 컨테이너 불필요
 - LiveKit → BBB VM 제거, Docker 컨테이너 1개로 교체
-- Stalwart Docker 편입 → 별도 서버 불필요
+- Stalwart Docker 편입 → 별도 VM 불필요
 - ONLYOFFICE → 선택적 컨테이너 (DOCX/XLSX/PPTX 웹 편집)
+- NAT 포트포워딩 목적지: .150 → .50 단일
 - setup.sh 자동화 → 수동 설정 4개로 축소
 
 ---
 
 ## 컨테이너 구성 상세
 
+### 공용 리버스 프록시 (별도 compose)
+
 | 컨테이너 | 이미지 | 포트 | 역할 |
 |-----------|--------|------|------|
-| **nginx** | `nginx:alpine` | 80, 443 | 리버스 프록시, TLS 종단, 정적 파일 서빙 |
+| **nginx-proxy** | `nginx:alpine` | 80, 443 | 공용 리버스 프록시, TLS 종단 (workspace + Gitea/RustDesk/Game Panel) |
+
+### namgun-workspace 코어 (6개 컨테이너)
+
+| 컨테이너 | 이미지 | 포트 | 역할 |
+|-----------|--------|------|------|
 | **frontend** | 자체 빌드 | 3000 (내부) | Nuxt 3 SSR, Vue 3 SPA |
 | **backend** | 자체 빌드 | 8000 (내부) | FastAPI, API Gateway, WebSocket (채팅 + 문서 공동편집) |
 | **postgres** | `postgres:16-alpine` | 5432 (내부) | 포털 DB + Stalwart SQL directory (단일 인스턴스) |
 | **redis** | `redis:7-alpine` | 6379 (내부) | 세션 캐시, WebSocket pub/sub, 레이트 리미팅 |
-| **stalwart** | `stalwartlabs/mail-server` | 25, 587, 993, 4190 | 메일 서버 (SMTP, IMAP, JMAP, Sieve) |
+| **stalwart** | `stalwartlabs/mail-server` | 25, 587, 993 | 메일 서버 (SMTP, IMAP, JMAP, Sieve) |
 | **livekit** | `livekit/livekit-server` | 7880, 7881, 7882/udp | WebRTC SFU (화상회의, 화면공유) |
 
 ### 선택적 컨테이너

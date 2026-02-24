@@ -37,31 +37,37 @@ namgun-workspace는 다음 원칙으로 설계됩니다:
 docker compose up -d
 ```
 
-7개 코어 컨테이너 + 1개 선택적 컨테이너로 전체 스택 구동:
+6개 코어 컨테이너 + 선택적 컨테이너, 공용 리버스 프록시 분리:
 
 ```
-┌───────────────────────────────────────────────────────┐
-│                 docker-compose.yml                      │
+┌─────────────────────────────────────────────────────────────┐
+│  nginx-proxy (공용, 별도 compose)                             │
+│  ├→ namgun-workspace   ├→ gitea                             │
+│  ├→ rustdesk           └→ game-panel                        │
+└───────┬─────────────────────────────────────────────────────┘
+        │
+┌───────┴───────────────────────────────────────────────┐
+│          namgun-workspace/docker-compose.yml            │
 ├───────────────────────────────────────────────────────┤
 │                                                        │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐            │
-│  │  nginx   │  │ frontend │  │ backend  │            │
-│  │ (proxy)  │  │ (Nuxt 3) │  │(FastAPI) │            │
-│  └────┬─────┘  └──────────┘  └────┬─────┘            │
-│       │          채팅/문서/API      │                    │
-│  ┌────┴─────┐  ┌──────────┐  ┌───┴──────┐            │
-│  │ stalwart │  │  livekit  │  │ postgres │            │
-│  │  (mail)  │  │  (video)  │  │   (db)   │            │
-│  └──────────┘  └──────────┘  └──────────┘            │
+│  │ frontend │  │ backend  │  │ stalwart │            │
+│  │ (Nuxt 3) │  │(FastAPI) │  │  (mail)  │            │
+│  └──────────┘  └────┬─────┘  └──────────┘            │
+│                채팅/문서/API                             │
+│  ┌──────────┐  ┌──────────┐  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ┐    │
+│  │ postgres │  │  livekit  │    onlyoffice (선택)      │
+│  │   (db)   │  │  (video)  │  │ DOCX/XLSX/PPTX  │    │
+│  └──────────┘  └──────────┘  └ ─ ─ ─ ─ ─ ─ ─ ─ ┘    │
 │                                                        │
-│  ┌──────────┐  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐              │
-│  │  redis   │    onlyoffice (선택적)                   │
-│  │ (cache)  │  │ DOCX/XLSX/PPTX 편집  │              │
-│  └──────────┘  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘              │
+│  ┌──────────┐                                          │
+│  │  redis   │                                          │
+│  └──────────┘                                          │
 │                                                        │
 └───────────────────────────────────────────────────────┘
 ```
 
+> nginx-proxy는 공용 리버스 프록시 (별도 compose). workspace 외 서비스(Gitea, RustDesk 등)도 프록시.
 > 채팅, 문서/메모는 backend(FastAPI) 컨테이너에 내장. 추가 컨테이너 불필요.
 > ONLYOFFICE는 `ENABLE_OFFICE=true`로 선택적 활성화.
 
@@ -98,7 +104,7 @@ cd namgun-workspace
 | Phase | 내용 | 상태 |
 |-------|------|------|
 | Phase 1 | 자체 인증 전환 (Authentik 제거) | Planned |
-| Phase 2 | 서비스 컨테이너 편입 (Stalwart, LiveKit) | Planned |
+| Phase 2 | 서비스 컨테이너 편입 + 프록시 분리 (VM 전멸) | Planned |
 | Phase 3 | 실시간 채팅 (자체 구현, WebSocket) | Planned |
 | Phase 4 | 배포 자동화 (setup.sh) | Planned |
 | Phase 5 | 화이트라벨링 + i18n | Planned |
