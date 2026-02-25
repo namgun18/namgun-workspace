@@ -10,6 +10,7 @@ const emit = defineEmits<{
 
 // 초기화 상태
 const phase = ref<'requesting' | 'ready' | 'denied' | 'no-device'>('requesting')
+const permissionRequesting = ref(false)
 
 // 장치 목록
 const cameras = ref<MediaDeviceInfo[]>([])
@@ -56,11 +57,8 @@ const permissionGuide = computed(() => {
 async function requestPermissions() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-    // 권한 승인됨 → 스트림으로 바로 미리보기
+    // 권한 승인됨
     previewStream.value = stream
-    if (videoEl.value) {
-      videoEl.value.srcObject = stream
-    }
     startMicLevel(stream)
 
     // 권한 획득 후 장치 목록 열거 (label 포함)
@@ -78,7 +76,12 @@ async function requestPermissions() {
       if (settings.deviceId) selectedMicId.value = settings.deviceId
     }
 
+    // phase 전환 → 템플릿이 렌더링된 후 video 연결
     phase.value = 'ready'
+    await nextTick()
+    if (videoEl.value) {
+      videoEl.value.srcObject = stream
+    }
   } catch (err: any) {
     if (err.name === 'NotAllowedError') {
       phase.value = 'denied'
@@ -255,7 +258,7 @@ function handleJoin() {
 
 onMounted(() => {
   browserName.value = detectBrowser()
-  requestPermissions()
+  // 자동 호출하지 않음 — 사용자 클릭(제스처)으로 권한 요청
 })
 
 onBeforeUnmount(() => {
@@ -271,11 +274,37 @@ onBeforeUnmount(() => {
         <p class="text-sm text-muted-foreground mt-1">회의 참여 전 장치를 확인하세요</p>
       </div>
 
-      <!-- 권한 요청 중 -->
-      <div v-if="phase === 'requesting'" class="text-center py-16">
-        <div class="inline-block h-10 w-10 animate-spin rounded-full border-4 border-primary border-r-transparent mb-4" />
-        <p class="text-muted-foreground">카메라/마이크 권한을 요청하고 있습니다...</p>
-        <p class="text-xs text-muted-foreground mt-2">브라우저의 권한 팝업에서 "허용"을 눌러주세요</p>
+      <!-- 권한 요청 전/중 -->
+      <div v-if="phase === 'requesting'" class="max-w-md mx-auto">
+        <div class="rounded-lg border bg-card p-8 text-center">
+          <div class="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-primary">
+              <path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="1" y="6" rx="2" ry="2" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">장치 권한이 필요합니다</h3>
+          <p class="text-sm text-muted-foreground mb-6">
+            카메라와 마이크를 사용하려면 브라우저 권한을 허용해 주세요.
+          </p>
+          <div v-if="!permissionRequesting" class="flex justify-center gap-3">
+            <button
+              @click="emit('cancel')"
+              class="px-4 py-2.5 text-sm rounded-md border hover:bg-accent transition-colors"
+            >
+              취소
+            </button>
+            <button
+              @click="permissionRequesting = true; requestPermissions()"
+              class="px-6 py-2.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              카메라/마이크 허용
+            </button>
+          </div>
+          <div v-else class="py-2">
+            <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent mb-3" />
+            <p class="text-sm text-muted-foreground">브라우저의 권한 팝업에서 "허용"을 눌러주세요</p>
+          </div>
+        </div>
       </div>
 
       <!-- 권한 거부됨 -->
@@ -291,7 +320,7 @@ onBeforeUnmount(() => {
               <p class="text-sm text-muted-foreground mb-3">{{ permissionGuide }}</p>
               <div class="flex gap-2">
                 <button
-                  @click="phase = 'requesting'; requestPermissions()"
+                  @click="phase = 'requesting'; permissionRequesting = false"
                   class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   다시 시도
