@@ -1,0 +1,160 @@
+## ===========================================
+## namgun-workspace — Docker Compose
+## ===========================================
+## 8 core containers: postgres, redis, backend, frontend, nginx, stalwart, gitea, livekit
+## ===========================================
+
+services:
+  # ─── 1. PostgreSQL 16 (workspace + gitea + stalwart 공유) ───
+  postgres:
+    image: postgres:16-alpine
+    container_name: ws-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-workspace}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: workspace
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-workspace}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ─── 2. Redis 7 ───
+  redis:
+    image: redis:7-alpine
+    container_name: ws-redis
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ─── 3. Backend (FastAPI) ───
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ws-backend
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - storage-data:/storage
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ─── 4. Frontend (Nuxt 3 SSR) ───
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ws-frontend
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  # ─── 5. Nginx (TLS 종단) ───
+  nginx:
+    image: nginx:alpine
+    container_name: ws-nginx
+    profiles: ["default"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot-data:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+
+  # ─── 6. Stalwart Mail ───
+  stalwart:
+    image: stalwartlabs/mail-server:latest
+    container_name: ws-stalwart
+    ports:
+      - "25:25"
+      - "587:587"
+      - "993:993"
+    volumes:
+      - stalwart-data:/opt/stalwart-mail
+      - ./stalwart/config.toml:/opt/stalwart-mail/etc/config.toml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── 7. Gitea ───
+  gitea:
+    image: gitea/gitea:latest
+    container_name: ws-gitea
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${GIT_SSH_PORT:-2222}:22"
+    volumes:
+      - gitea-data:/data
+    environment:
+      GITEA__database__DB_TYPE: postgres
+      GITEA__database__HOST: postgres:5432
+      GITEA__database__NAME: gitea
+      GITEA__database__USER: ${DB_USER:-workspace}
+      GITEA__database__PASSWD: ${DB_PASSWORD}
+      GITEA__server__ROOT_URL: ${APP_URL:-http://localhost}/git/
+      GITEA__server__SSH_PORT: ${GIT_SSH_PORT:-2222}
+      GITEA__server__SSH_DOMAIN: ${DOMAIN:-localhost}
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  # ─── 8. LiveKit ───
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: ws-livekit
+    ports:
+      - "7882:7882/udp"
+    expose:
+      - "7880"
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    name: ws-postgres-data
+  redis-data:
+    name: ws-redis-data
+  storage-data:
+    name: ws-storage-data
+  stalwart-data:
+    name: ws-stalwart-data
+  gitea-data:
+    name: ws-gitea-data
+  certbot-data:
+    name: ws-certbot-data
+  certbot-webroot:
+    name: ws-certbot-webroot

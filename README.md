@@ -101,8 +101,8 @@ cd namgun-workspace
 
 | Phase | 내용 | 상태 |
 |-------|------|------|
-| Phase 1 | 자체 인증 | Planned |
-| Phase 2 | 서비스 컨테이너 구성 (Nginx, Gitea, Stalwart, LiveKit) | Planned |
+| Phase 1 | 자체 인증 | Done |
+| Phase 2 | 서비스 컨테이너 구성 (Nginx, Gitea, Stalwart, LiveKit) | Done |
 | Phase 3 | 실시간 채팅 (자체 구현) | Planned |
 | Phase 4 | 배포 자동화 (setup.sh) | Planned |
 | Phase 5 | 화이트라벨링 + i18n | Planned |

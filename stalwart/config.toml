@@ -1,0 +1,72 @@
+# namgun-workspace — Stalwart Mail Server Configuration
+# SQL directory: PostgreSQL users 테이블에서 직접 인증
+# 상세 설정은 Stalwart 웹 관리콘솔에서 추가 구성
+
+[server]
+hostname = "${DOMAIN}"
+
+[server.listener."smtp"]
+bind = ["[::]:25"]
+protocol = "smtp"
+
+[server.listener."submission"]
+bind = ["[::]:587"]
+protocol = "smtp"
+tls.implicit = false
+
+[server.listener."imaptls"]
+bind = ["[::]:993"]
+protocol = "imap"
+tls.implicit = true
+
+[server.listener."http"]
+bind = ["[::]:8080"]
+protocol = "http"
+
+# ─── Storage ───
+
+[store."postgresql"]
+type = "postgresql"
+url = "postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/workspace"
+
+[storage]
+data = "postgresql"
+fts = "postgresql"
+blob = "postgresql"
+lookup = "postgresql"
+directory = "sql"
+
+# ─── SQL Directory (workspace users 테이블 참조) ───
+
+[directory."sql"]
+type = "sql"
+store = "postgresql"
+
+[directory."sql".columns]
+class = "'individual'"
+secret = "password_hash"
+email = "email"
+name = "display_name"
+
+# username으로 계정 조회
+[directory."sql".query]
+name = "SELECT username, 'individual' AS class, password_hash AS secret, display_name AS description, 0 AS quota FROM users WHERE username = $1 AND is_active = true"
+members = "SELECT '' WHERE 1=0"
+recipients = "SELECT username FROM users WHERE email = $1 AND is_active = true"
+emails = "SELECT email FROM users WHERE username = $1"
+verify = "SELECT email FROM users WHERE email LIKE '%' || $1 || '%' AND is_active = true LIMIT 5"
+expand = "SELECT '' WHERE 1=0"
+domains = "SELECT '' WHERE 1=0"
+
+# ─── Authentication ───
+
+[authentication]
+fallback-admin.user = "${STALWART_ADMIN_USER}"
+fallback-admin.secret = "${STALWART_ADMIN_PASSWORD}"
+
+# ─── TLS (Phase 4에서 certbot 또는 ACME 활성화) ───
+# 현재는 TLS 없이 내부 통신용
+
+[certificate."default"]
+cert = "file:///opt/stalwart-mail/etc/certs/fullchain.pem"
+private-key = "file:///opt/stalwart-mail/etc/certs/privkey.pem"
