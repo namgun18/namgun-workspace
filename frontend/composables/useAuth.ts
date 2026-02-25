@@ -86,6 +86,16 @@ export const useAuth = () => {
     })
   }
 
+  const uploadAvatar = async (file: File): Promise<void> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    await $fetch('/api/auth/avatar', {
+      method: 'POST',
+      body: formData,
+    })
+    await fetchUser()
+  }
+
   return {
     user,
     loading,
@@ -96,5 +106,6 @@ export const useAuth = () => {
     updateProfile,
     changePassword,
     forgotPassword,
+    uploadAvatar,
   }
 }

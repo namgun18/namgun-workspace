@@ -23,6 +23,13 @@ export interface MessageSender {
   avatar_url: string | null
 }
 
+export interface ReadByUser {
+  id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+}
+
 export interface ChatMessage {
   id: string
   channel_id: string
@@ -34,6 +41,7 @@ export interface ChatMessage {
   is_deleted: boolean
   created_at: string
   updated_at: string
+  read_by?: ReadByUser[]
 }
 
 export interface ChannelMember {
@@ -402,6 +410,36 @@ export function useChat() {
         break
       }
 
+      case 'message_read': {
+        const readUserId = data.user_id as string
+        const readMessageId = data.message_id as string
+        if (data.channel_id !== selectedChannelId.value) break
+        if (readUserId === user.value?.id) break
+
+        const reader: ReadByUser = {
+          id: readUserId,
+          username: data.username,
+          display_name: data.username,
+          avatar_url: data.avatar_url || null,
+        }
+
+        // Find the read message's created_at to update all messages up to that point
+        const readMsg = messages.value.find(m => m.id === readMessageId)
+        if (!readMsg) break
+
+        const readTs = readMsg.created_at
+        messages.value = messages.value.map(m => {
+          if (m.created_at <= readTs && m.sender?.id !== readUserId) {
+            const existing = m.read_by || []
+            if (!existing.find(r => r.id === readUserId)) {
+              return { ...m, read_by: [...existing, reader] }
+            }
+          }
+          return m
+        })
+        break
+      }
+
       case 'channel_update':
         // Refresh channel list
         fetchChannels()
@@ -472,7 +510,10 @@ export function useChat() {
   function getDMDisplayName(channel: Channel): string {
     if (!user.value) return channel.name
     const names = channel.name.split(',')
-    return names.find(n => n !== user.value!.username) || channel.name
+    const otherUsername = names.find(n => n !== user.value!.username) || channel.name
+    // Look up display_name from allUsers
+    const otherUser = allUsers.value.find(u => u.username === otherUsername)
+    return otherUser?.display_name || otherUsername
   }
 
   // ─── Init ───

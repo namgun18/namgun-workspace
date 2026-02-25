@@ -188,7 +188,7 @@ async def upload_file(
             f.write(chunk)
 
     fs.invalidate_cache(real_dir)
-    return {"ok": True, "name": safe_name, "size": written}
+    return {"ok": True, "name": safe_name, "size": written, "path": f"{vp}/{safe_name}"}
 
 
 # ─── Mkdir ───

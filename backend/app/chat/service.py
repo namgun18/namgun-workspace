@@ -307,7 +307,53 @@ async def get_messages(
     if not after:
         rows = list(reversed(rows))
 
-    return [_message_to_dict(msg, user) for msg, user in rows], has_more
+    # Build read_by map: member → last_read created_at
+    read_by_map = await _build_read_by_map(db, channel_id)
+
+    result = []
+    for msg, user in rows:
+        d = _message_to_dict(msg, user)
+        # Compute who has read this message (exclude sender)
+        readers = []
+        for member_info, read_up_to in read_by_map:
+            if read_up_to and read_up_to >= msg.created_at:
+                if member_info["id"] != (msg.sender_id or ""):
+                    readers.append(member_info)
+        d["read_by"] = readers
+        result.append(d)
+
+    return result, has_more
+
+
+async def _build_read_by_map(
+    db: AsyncSession, channel_id: str
+) -> list[tuple[dict, datetime | None]]:
+    """Return [(user_info_dict, last_read_created_at), ...] for all channel members."""
+    member_rows = (
+        await db.execute(
+            select(ChannelMember, User)
+            .join(User, ChannelMember.user_id == User.id)
+            .where(ChannelMember.channel_id == channel_id)
+        )
+    ).all()
+
+    result = []
+    for cm, u in member_rows:
+        read_ts = None
+        if cm.last_read_message_id:
+            last_msg = await db.get(Message, cm.last_read_message_id)
+            if last_msg:
+                read_ts = last_msg.created_at
+        result.append((
+            {
+                "id": u.id,
+                "username": u.username,
+                "display_name": u.display_name,
+                "avatar_url": u.avatar_url,
+            },
+            read_ts,
+        ))
+    return result
 
 
 async def update_message(

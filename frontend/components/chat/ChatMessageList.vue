@@ -24,6 +24,12 @@ function shouldGroup(msg: ChatMessage, prev: ChatMessage | null): boolean {
   return diff < 60000 // 1 minute
 }
 
+function isLastInGroup(idx: number): boolean {
+  const next = idx < props.messages.length - 1 ? props.messages[idx + 1] : null
+  if (!next) return true
+  return !shouldGroup(next, props.messages[idx])
+}
+
 function scrollToBottom() {
   nextTick(() => {
     if (listRef.value) {
@@ -85,12 +91,14 @@ onMounted(scrollToBottom)
           :message="msg"
           :grouped="shouldGroup(msg, idx > 0 ? messages[idx - 1] : null)"
           :is-own="msg.sender?.id === user?.id"
+          :is-last-in-group="isLastInGroup(idx)"
         />
         <ChatMessage
           v-else
           :message="msg"
           :grouped="shouldGroup(msg, idx > 0 ? messages[idx - 1] : null)"
           :is-own="msg.sender?.id === user?.id"
+          :is-last-in-group="isLastInGroup(idx)"
         />
       </div>
 

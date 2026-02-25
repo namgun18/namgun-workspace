@@ -240,6 +240,16 @@ async def chat_ws(ws: WebSocket):
                 if channel_id and message_id:
                     async with async_session() as db:
                         await service.mark_read(db, channel_id, user_id, message_id)
+                        u = await db.get(User, user_id)
+                        avatar = u.avatar_url if u else None
+                    await manager.publish_to_channel(channel_id, {
+                        "type": "message_read",
+                        "channel_id": channel_id,
+                        "user_id": user_id,
+                        "username": display_name or username,
+                        "avatar_url": avatar,
+                        "message_id": message_id,
+                    })
 
             else:
                 await ws.send_json({"type": "error", "detail": f"Unknown type: {msg_type}"})

@@ -5,6 +5,7 @@ const props = defineProps<{
   message: ChatMessage
   grouped: boolean
   isOwn: boolean
+  isLastInGroup?: boolean
 }>()
 
 const { deleteMessage, editMessage } = useChat()
@@ -12,6 +13,14 @@ const { deleteMessage, editMessage } = useChat()
 const showActions = ref(false)
 const editing = ref(false)
 const editContent = ref('')
+
+const readReceipts = computed(() => {
+  if (!props.isLastInGroup) return []
+  return props.message.read_by || []
+})
+
+const visibleReaders = computed(() => readReceipts.value.slice(0, 5))
+const extraReaderCount = computed(() => Math.max(0, readReceipts.value.length - 5))
 
 const formattedTime = computed(() => {
   const d = new Date(props.message.created_at)
@@ -130,6 +139,23 @@ async function onDelete() {
           {{ message.content }}
           <span v-if="message.is_edited" class="text-[10px] text-muted-foreground ml-1">(수정됨)</span>
         </p>
+      </div>
+    </div>
+
+    <!-- Read receipts -->
+    <div v-if="visibleReaders.length > 0" class="flex justify-end mt-0.5 mr-1 gap-[-2px]">
+      <div class="flex -space-x-1" :title="readReceipts.map(r => r.display_name || r.username).join(', ')">
+        <UiAvatar
+          v-for="reader in visibleReaders"
+          :key="reader.id"
+          :src="reader.avatar_url"
+          :alt="reader.display_name || reader.username"
+          :fallback="(reader.display_name || reader.username || '?').charAt(0).toUpperCase()"
+          class="h-4 w-4 ring-1 ring-background text-[8px]"
+        />
+        <span v-if="extraReaderCount > 0" class="inline-flex items-center justify-center h-4 min-w-4 px-0.5 rounded-full bg-muted text-[8px] text-muted-foreground ring-1 ring-background">
+          +{{ extraReaderCount }}
+        </span>
       </div>
     </div>
 

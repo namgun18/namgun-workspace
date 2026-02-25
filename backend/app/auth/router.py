@@ -2,9 +2,10 @@
 
 import secrets
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -205,6 +206,66 @@ async def update_profile(
     await db.commit()
     await db.refresh(user)
     return {"message": "프로필이 수정되었습니다"}
+
+
+# ── POST /api/auth/avatar — 아바타 업로드 ────────────────────
+
+AVATAR_DIR = Path(settings.storage_root) / "avatars"
+AVATAR_MAX_BYTES = 5 * 1024 * 1024
+AVATAR_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
+@router.post("/avatar")
+async def upload_avatar(
+    file: UploadFile,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload or replace user profile avatar."""
+    if file.content_type not in AVATAR_ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail="jpg/png/webp/gif 이미지만 허용됩니다")
+
+    data = await file.read()
+    if len(data) > AVATAR_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="이미지 크기는 5MB 이하여야 합니다")
+
+    import asyncio
+    from io import BytesIO
+
+    def _resize(raw: bytes) -> bytes:
+        from PIL import Image
+        img = Image.open(BytesIO(raw))
+        img = img.convert("RGB")
+        img.thumbnail((256, 256), Image.LANCZOS)
+        buf = BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        return buf.getvalue()
+
+    resized = await asyncio.to_thread(_resize, data)
+
+    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{user.id}.jpg"
+    (AVATAR_DIR / filename).write_bytes(resized)
+
+    user.avatar_url = f"/api/auth/avatar/{filename}"
+    await db.commit()
+
+    return {"avatar_url": user.avatar_url}
+
+
+# ── GET /api/auth/avatar/{filename} — 아바타 서빙 ────────────
+
+
+@router.get("/avatar/{filename}")
+async def serve_avatar(filename: str):
+    """Serve avatar image file."""
+    import re
+    if not re.match(r'^[\w-]+\.jpg$', filename):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    path = AVATAR_DIR / filename
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    return FileResponse(str(path), media_type="image/jpeg")
 
 
 # ── POST /api/auth/change-password — 비밀번호 변경 ──────────

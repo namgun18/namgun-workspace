@@ -3,8 +3,29 @@ import type { Signature } from '~/composables/useMailSignature'
 
 definePageMeta({ layout: 'default' })
 
-const { user, updateProfile, changePassword } = useAuth()
+const { user, updateProfile, changePassword, uploadAvatar } = useAuth()
 const { signatures, loading: sigLoading, fetchSignatures, createSignature, updateSignature, deleteSignature } = useMailSignature()
+
+// Avatar
+const avatarInput = ref<HTMLInputElement | null>(null)
+const avatarUploading = ref(false)
+const avatarError = ref('')
+
+async function handleAvatarChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  avatarError.value = ''
+  avatarUploading.value = true
+  try {
+    await uploadAvatar(file)
+  } catch (err: any) {
+    avatarError.value = err?.data?.detail || '아바타 업로드에 실패했습니다.'
+  } finally {
+    avatarUploading.value = false
+    if (target) target.value = ''
+  }
+}
 
 // Profile form
 const profileForm = reactive({
@@ -183,6 +204,29 @@ async function handlePasswordSubmit() {
       <!-- Profile section -->
       <div class="rounded-lg border bg-card p-6 space-y-4">
         <h2 class="text-lg font-semibold">사용자 정보</h2>
+
+        <!-- Avatar -->
+        <div class="flex items-center gap-4">
+          <UiAvatar
+            :src="user?.avatar_url"
+            :alt="user?.display_name || user?.username || ''"
+            :fallback="(user?.display_name || user?.username || '?').charAt(0).toUpperCase()"
+            class="h-16 w-16 text-xl"
+          />
+          <div>
+            <button
+              type="button"
+              @click="avatarInput?.click()"
+              :disabled="avatarUploading"
+              class="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {{ avatarUploading ? '업로드 중...' : '아바타 변경' }}
+            </button>
+            <p class="mt-1 text-xs text-muted-foreground">JPG, PNG, WebP, GIF / 최대 5MB</p>
+            <p v-if="avatarError" class="text-xs text-destructive mt-0.5">{{ avatarError }}</p>
+          </div>
+          <input ref="avatarInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" @change="handleAvatarChange" />
+        </div>
 
         <form @submit.prevent="handleProfileSubmit" class="space-y-4">
           <div>

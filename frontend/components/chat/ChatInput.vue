@@ -54,6 +54,7 @@ async function onFileSelected(e: Event) {
       path: result.path,
       name: result.name,
       size: result.size,
+      mime_type: file.type || null,
     })
 
     emit('send', file.name, 'file', fileMeta)

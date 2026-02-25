@@ -709,6 +709,10 @@ const demoChatMessages: Record<string, any> = {
         file_meta: null, is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 75600000).toISOString(),
         updated_at: new Date(Date.now() - 75600000).toISOString(),
+        read_by: [
+          { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
+          { id: 'user-003', username: 'younghee', display_name: '이영희', avatar_url: null },
+        ],
       },
       {
         id: 'cm-006', channel_id: 'ch-general',
@@ -717,6 +721,9 @@ const demoChatMessages: Record<string, any> = {
         file_meta: null, is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 7200000).toISOString(),
         updated_at: new Date(Date.now() - 7200000).toISOString(),
+        read_by: [
+          { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
+        ],
       },
       {
         id: 'cm-007', channel_id: 'ch-general',
@@ -725,6 +732,10 @@ const demoChatMessages: Record<string, any> = {
         file_meta: null, is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 3600000).toISOString(),
         updated_at: new Date(Date.now() - 3600000).toISOString(),
+        read_by: [
+          { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
+          { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
+        ],
       },
     ],
     has_more: false,
@@ -785,6 +796,7 @@ const demoChatMembers: Record<string, any[]> = {
 export function getMockResponse(method: string, path: string, query?: Record<string, string>): any {
   // Auth
   if (path === '/api/auth/me') return demoUser
+  if (path === '/api/auth/avatar' && method === 'POST') return { avatar_url: '/api/auth/avatar/demo.jpg' }
 
   // Mail
   if (path === '/api/mail/mailboxes') return demoMailboxes
