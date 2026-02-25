@@ -1,13 +1,19 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
-const { init, cleanup, showMemberPanel } = useChat()
+const { init, cleanup, showMemberPanel, selectChannel } = useChat()
+const route = useRoute()
 
 const showMobileSidebar = ref(false)
 const showCreateModal = ref(false)
 
-onMounted(() => {
-  init()
+onMounted(async () => {
+  await init()
+  // Deep link: ?channel=ch-xxx
+  const channelId = route.query.channel as string | undefined
+  if (channelId) {
+    selectChannel(channelId)
+  }
 })
 
 onUnmounted(() => {

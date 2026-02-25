@@ -791,6 +791,41 @@ const demoChatMembers: Record<string, any[]> = {
   ],
 }
 
+// ─── Notifications ───
+
+export const demoNotifications = [
+  {
+    id: 'notif-001',
+    user_id: 'demo-user-001',
+    type: 'mention',
+    title: '김철수님이 회원님을 멘션했습니다',
+    body: '@demo 서버 점검 시간 확인 부탁드려요',
+    link: '/chat?channel=ch-general',
+    is_read: false,
+    created_at: new Date(Date.now() - 1800000).toISOString(),
+  },
+  {
+    id: 'notif-002',
+    user_id: 'demo-user-001',
+    type: 'mention',
+    title: '이영희님이 회원님을 멘션했습니다',
+    body: '@demo Phase 3-2 PR 리뷰 가능하신가요?',
+    link: '/chat?channel=ch-dev',
+    is_read: false,
+    created_at: new Date(Date.now() - 7200000).toISOString(),
+  },
+  {
+    id: 'notif-003',
+    user_id: 'demo-user-001',
+    type: 'mention',
+    title: '김철수님이 회원님을 멘션했습니다',
+    body: '@demo 배포 완료 확인했습니다',
+    link: '/chat?channel=ch-dev',
+    is_read: true,
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+]
+
 // ─── Route → Mock Response Map ───
 
 export function getMockResponse(method: string, path: string, query?: Record<string, string>): any {
@@ -851,6 +886,14 @@ export function getMockResponse(method: string, path: string, query?: Record<str
   if (path === '/api/git/repos') return demoRepos
   if (path.startsWith('/api/git')) return {}
 
+
+  // Chat Notifications
+  if (path === '/api/chat/notifications' && method === 'GET') {
+    const unread = demoNotifications.filter(n => !n.is_read).length
+    return { notifications: demoNotifications, unread_count: unread }
+  }
+  if (path === '/api/chat/notifications/read' && method === 'POST') return { ok: true, updated: 1 }
+  if (path === '/api/chat/notifications/read-all' && method === 'POST') return { ok: true, updated: 2 }
 
   // Chat
   if (path === '/api/chat/channels' && method === 'GET') return demoChatChannels

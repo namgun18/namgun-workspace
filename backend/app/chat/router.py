@@ -17,6 +17,7 @@ from app.chat.schemas import (
     MessageListResponse,
     MessageResponse,
     MessageUpdate,
+    NotificationReadRequest,
 )
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -247,6 +248,41 @@ async def get_presence(
     from app.chat.presence import get_online_users
     online = await get_online_users()
     return {"online_user_ids": list(online)}
+
+
+# ─── User Search ───
+
+# ─── Notifications ───
+
+@router.get("/notifications")
+async def list_notifications(
+    unread_only: bool = Query(False),
+    limit: int = Query(50, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    notifications = await service.get_notifications(db, user.id, limit=limit, unread_only=unread_only)
+    unread_count = await service.get_unread_notification_count(db, user.id)
+    return {"notifications": notifications, "unread_count": unread_count}
+
+
+@router.post("/notifications/read")
+async def mark_notifications_read(
+    body: NotificationReadRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    count = await service.mark_notifications_read(db, user.id, body.notification_ids)
+    return {"ok": True, "updated": count}
+
+
+@router.post("/notifications/read-all")
+async def mark_all_notifications_read(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    count = await service.mark_notifications_read(db, user.id)
+    return {"ok": True, "updated": count}
 
 
 # ─── User Search ───

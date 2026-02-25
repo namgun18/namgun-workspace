@@ -20,6 +20,7 @@ router = APIRouter()
 PUBSUB_MSG = "chat:channel:{}"
 PUBSUB_PRESENCE = "chat:presence"
 PUBSUB_TYPING = "chat:typing:{}"
+PUBSUB_NOTIFICATION = "chat:notification:{}"
 
 
 class ConnectionManager:
@@ -54,6 +55,10 @@ class ConnectionManager:
         r = await get_redis()
         await r.publish(PUBSUB_TYPING.format(channel_id), json.dumps(data))
 
+    async def publish_notification(self, user_id: str, data: dict):
+        r = await get_redis()
+        await r.publish(PUBSUB_NOTIFICATION.format(user_id), json.dumps(data))
+
     async def _subscribe_loop(self):
         """Background subscriber that routes Pub/Sub messages to local WS connections."""
         r = await get_redis()
@@ -71,6 +76,7 @@ class ConnectionManager:
                     for ch in chs:
                         needed.add(PUBSUB_MSG.format(ch))
                         needed.add(PUBSUB_TYPING.format(ch))
+                    needed.add(PUBSUB_NOTIFICATION.format(uid))
 
                 to_sub = needed - subscribed_channels
                 to_unsub = subscribed_channels - needed
@@ -123,6 +129,14 @@ class ConnectionManager:
                                 await ws.send_json(data)
                             except Exception:
                                 pass
+                elif channel_name.startswith("chat:notification:"):
+                    target_uid = channel_name.split(":", 2)[2]
+                    ws = self.active.get(target_uid)
+                    if ws:
+                        try:
+                            await ws.send_json(data)
+                        except Exception:
+                            pass
 
         except asyncio.CancelledError:
             pass
@@ -218,6 +232,18 @@ async def chat_ws(ws: WebSocket):
                         db, channel_id, user_id, content,
                         message_type=message_type, file_meta=file_meta,
                     )
+
+                    # Process @mentions
+                    mentioned = service.parse_mentions(content)
+                    if mentioned:
+                        notifs = await service.create_notifications_for_mentions(
+                            db, msg, channel_id, user_id, mentioned,
+                        )
+                        for notif in notifs:
+                            await manager.publish_notification(notif["user_id"], {
+                                "type": "notification",
+                                "notification": notif,
+                            })
 
                 await manager.publish_to_channel(channel_id, {
                     "type": "new_message",

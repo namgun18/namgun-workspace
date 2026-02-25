@@ -27,6 +27,33 @@ const formattedTime = computed(() => {
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 })
 
+interface ContentPart {
+  type: 'text' | 'mention'
+  value: string
+}
+
+const renderedContent = computed<ContentPart[]>(() => {
+  const text = props.message.content
+  const parts: ContentPart[] = []
+  const regex = /@(\w+)/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', value: text.slice(lastIndex, match.index) })
+    }
+    parts.push({ type: 'mention', value: match[0] })
+    lastIndex = regex.lastIndex
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({ type: 'text', value: text.slice(lastIndex) })
+  }
+
+  return parts.length > 0 ? parts : [{ type: 'text', value: text }]
+})
+
 const formattedDate = computed(() => {
   const d = new Date(props.message.created_at)
   const today = new Date()
@@ -108,7 +135,10 @@ async function onDelete() {
         </div>
 
         <p v-else class="text-sm whitespace-pre-wrap break-words">
-          {{ message.content }}
+          <template v-for="(part, idx) in renderedContent" :key="idx">
+            <span v-if="part.type === 'mention'" class="text-primary font-medium">{{ part.value }}</span>
+            <template v-else>{{ part.value }}</template>
+          </template>
           <span v-if="message.is_edited" class="text-[10px] text-muted-foreground ml-1">(수정됨)</span>
         </p>
       </div>
@@ -136,7 +166,10 @@ async function onDelete() {
           </div>
         </div>
         <p v-else class="text-sm whitespace-pre-wrap break-words">
-          {{ message.content }}
+          <template v-for="(part, idx) in renderedContent" :key="idx">
+            <span v-if="part.type === 'mention'" class="text-primary font-medium">{{ part.value }}</span>
+            <template v-else>{{ part.value }}</template>
+          </template>
           <span v-if="message.is_edited" class="text-[10px] text-muted-foreground ml-1">(수정됨)</span>
         </p>
       </div>

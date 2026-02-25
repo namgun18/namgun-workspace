@@ -1,13 +1,14 @@
 """Chat business logic — channel/message/member CRUD."""
 
 import json
+import re
 import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Channel, ChannelMember, Message, User
+from app.db.models import Channel, ChannelMember, Message, Notification, User
 
 
 # ─── Channel ───
@@ -474,6 +475,138 @@ async def search_users(
         }
         for u in rows
     ]
+
+
+# ─── Helpers ───
+
+# ─── Mentions & Notifications ───
+
+MENTION_RE = re.compile(r'(?:^|(?<=\s))@(\w+)')
+
+
+def parse_mentions(content: str) -> list[str]:
+    """Extract unique usernames from @mentions in message content."""
+    return list(dict.fromkeys(MENTION_RE.findall(content)))
+
+
+async def create_notifications_for_mentions(
+    db: AsyncSession,
+    msg_dict: dict,
+    channel_id: str,
+    sender_id: str,
+    usernames: list[str],
+) -> list[dict]:
+    """Create Notification rows for valid mentions. Returns list of notification dicts."""
+    if not usernames:
+        return []
+
+    # Get channel member user IDs
+    member_rows = (
+        await db.execute(
+            select(ChannelMember.user_id).where(ChannelMember.channel_id == channel_id)
+        )
+    ).scalars().all()
+    member_ids = set(member_rows)
+
+    # Look up mentioned users by username
+    mentioned_users = (
+        await db.execute(
+            select(User).where(
+                User.username.in_(usernames),
+                User.is_active == True,  # noqa: E712
+            )
+        )
+    ).scalars().all()
+
+    sender = await db.get(User, sender_id)
+    sender_name = (sender.display_name or sender.username) if sender else "알 수 없음"
+
+    notifications = []
+    for u in mentioned_users:
+        # Skip sender, skip non-members
+        if u.id == sender_id or u.id not in member_ids:
+            continue
+
+        notif = Notification(
+            id=str(uuid.uuid4()),
+            user_id=u.id,
+            type="mention",
+            title=f"{sender_name}님이 회원님을 멘션했습니다",
+            body=msg_dict.get("content", "")[:200],
+            link=f"/chat?channel={channel_id}",
+        )
+        db.add(notif)
+        notifications.append({
+            "id": notif.id,
+            "user_id": notif.user_id,
+            "type": notif.type,
+            "title": notif.title,
+            "body": notif.body,
+            "link": notif.link,
+            "is_read": False,
+            "created_at": notif.created_at.isoformat() if notif.created_at else datetime.now(timezone.utc).isoformat(),
+        })
+
+    if notifications:
+        await db.commit()
+
+    return notifications
+
+
+async def get_notifications(
+    db: AsyncSession,
+    user_id: str,
+    limit: int = 50,
+    unread_only: bool = False,
+) -> list[dict]:
+    q = select(Notification).where(Notification.user_id == user_id)
+    if unread_only:
+        q = q.where(Notification.is_read == False)  # noqa: E712
+    q = q.order_by(Notification.created_at.desc()).limit(limit)
+    rows = (await db.execute(q)).scalars().all()
+    return [
+        {
+            "id": n.id,
+            "user_id": n.user_id,
+            "type": n.type,
+            "title": n.title,
+            "body": n.body,
+            "link": n.link,
+            "is_read": n.is_read,
+            "created_at": n.created_at.isoformat(),
+        }
+        for n in rows
+    ]
+
+
+async def get_unread_notification_count(db: AsyncSession, user_id: str) -> int:
+    result = await db.execute(
+        select(func.count(Notification.id)).where(
+            Notification.user_id == user_id,
+            Notification.is_read == False,  # noqa: E712
+        )
+    )
+    return result.scalar() or 0
+
+
+async def mark_notifications_read(
+    db: AsyncSession,
+    user_id: str,
+    notification_ids: list[str] | None = None,
+) -> int:
+    q = (
+        update(Notification)
+        .where(
+            Notification.user_id == user_id,
+            Notification.is_read == False,  # noqa: E712
+        )
+        .values(is_read=True)
+    )
+    if notification_ids:
+        q = q.where(Notification.id.in_(notification_ids))
+    result = await db.execute(q)
+    await db.commit()
+    return result.rowcount
 
 
 # ─── Helpers ───

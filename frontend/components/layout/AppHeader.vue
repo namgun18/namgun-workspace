@@ -4,6 +4,55 @@ const colorMode = useColorMode()
 const route = useRoute()
 const mobileMenuOpen = ref(false)
 
+const { notifications, unreadCount, showDropdown, markAsRead, markAllAsRead } = useNotifications()
+
+const bellRef = ref<HTMLElement | null>(null)
+
+function toggleNotifications() {
+  showDropdown.value = !showDropdown.value
+}
+
+function onClickOutsideNotifications(e: Event) {
+  if (bellRef.value && !bellRef.value.contains(e.target as Node)) {
+    showDropdown.value = false
+  }
+}
+
+function formatNotifTime(iso: string) {
+  const d = new Date(iso)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return '방금'
+  if (diffMin < 60) return `${diffMin}분 전`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `${diffHr}시간 전`
+  const diffDay = Math.floor(diffHr / 24)
+  return `${diffDay}일 전`
+}
+
+async function onNotificationClick(notif: any) {
+  if (!notif.is_read) {
+    await markAsRead([notif.id])
+  }
+  showDropdown.value = false
+  if (notif.link) {
+    navigateTo(notif.link)
+  }
+}
+
+onMounted(() => {
+  if (import.meta.client) {
+    document.addEventListener('click', onClickOutsideNotifications)
+  }
+})
+
+onUnmounted(() => {
+  if (import.meta.client) {
+    document.removeEventListener('click', onClickOutsideNotifications)
+  }
+})
+
 function toggleDark() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
 }
@@ -106,6 +155,64 @@ function toggleDark() {
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
+
+        <!-- Notification bell -->
+        <div v-if="user" ref="bellRef" class="relative">
+          <button
+            @click="toggleNotifications"
+            class="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-accent transition-colors relative"
+            title="알림"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span
+              v-if="unreadCount > 0"
+              class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full"
+            >
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          </button>
+
+          <!-- Notification dropdown -->
+          <div
+            v-if="showDropdown"
+            class="absolute right-0 top-full mt-1 w-80 bg-popover border rounded-lg shadow-lg z-50 overflow-hidden"
+          >
+            <div class="flex items-center justify-between px-3 py-2 border-b">
+              <span class="text-sm font-semibold">알림</span>
+              <button
+                v-if="unreadCount > 0"
+                @click="markAllAsRead"
+                class="text-xs text-primary hover:underline"
+              >
+                모두 읽음
+              </button>
+            </div>
+            <div class="max-h-80 overflow-y-auto">
+              <div v-if="notifications.length === 0" class="px-3 py-6 text-center text-sm text-muted-foreground">
+                알림이 없습니다
+              </div>
+              <div
+                v-for="notif in notifications"
+                :key="notif.id"
+                @click="onNotificationClick(notif)"
+                class="px-3 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors border-b last:border-b-0"
+                :class="notif.is_read ? 'opacity-60' : ''"
+              >
+                <div class="flex items-start gap-2">
+                  <div v-if="!notif.is_read" class="mt-1.5 w-2 h-2 rounded-full bg-primary shrink-0" />
+                  <div v-else class="mt-1.5 w-2 h-2 shrink-0" />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate">{{ notif.title }}</p>
+                    <p class="text-xs text-muted-foreground truncate mt-0.5">{{ notif.body }}</p>
+                    <p class="text-[10px] text-muted-foreground mt-1">{{ formatNotifTime(notif.created_at) }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- Dark mode toggle (ClientOnly: SSR은 colorMode 감지 불가 → v-if 불일치 방지) -->
         <button

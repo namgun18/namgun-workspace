@@ -106,3 +106,9 @@ class UserSearchResult(BaseModel):
     username: str
     display_name: str | None
     avatar_url: str | None
+
+
+# ─── Notifications ───
+
+class NotificationReadRequest(BaseModel):
+    notification_ids: list[str] | None = None

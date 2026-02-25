@@ -440,6 +440,12 @@ export function useChat() {
         break
       }
 
+      case 'notification': {
+        const { handleNotificationEvent } = useNotifications()
+        handleNotificationEvent(data.notification)
+        break
+      }
+
       case 'channel_update':
         // Refresh channel list
         fetchChannels()
@@ -521,7 +527,9 @@ export function useChat() {
   async function init() {
     if (_initialized) return
     _initialized = true
-    await Promise.all([fetchChannels(), fetchPresence(), fetchAllUsers()])
+    const { fetchNotifications, requestBrowserPermission } = useNotifications()
+    await Promise.all([fetchChannels(), fetchPresence(), fetchAllUsers(), fetchNotifications()])
+    requestBrowserPermission()
     connectWS()
   }
 
