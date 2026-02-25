@@ -1,10 +1,19 @@
 """Meetings (LiveKit) API router — 호스트 승인 + 공유링크 참여."""
 
+import logging
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.deps import get_current_user
+from app.config import get_settings
 from app.db.models import User
 from app.meetings import livekit, store
+from app.meetings.invite import (
+    create_calendar_event,
+    generate_ics,
+    send_invite_email,
+)
 from app.meetings.schemas import (
     JoinRequestCreate,
     JoinRequestResponse,
@@ -18,6 +27,9 @@ from app.meetings.schemas import (
     TokenRequest,
     TokenResponse,
 )
+
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
 router = APIRouter(prefix="/api/meetings", tags=["meetings"])
 
@@ -53,7 +65,7 @@ async def get_rooms(user: User = Depends(get_current_user)):
 
 @router.post("/rooms", response_model=RoomInfo, status_code=201)
 async def create_room(body: RoomCreate, user: User = Depends(get_current_user)):
-    """회의실 생성 → 호스트가 됨."""
+    """회의실 생성 → 호스트가 됨 + 참가자 초대."""
     _check_configured()
     room = await livekit.create_room(
         name=body.name,
@@ -65,6 +77,72 @@ async def create_room(body: RoomCreate, user: User = Depends(get_current_user)):
         host_username=user.username,
         host_display_name=user.display_name or user.username,
     )
+
+    # ── 참가자 초대 (best-effort) ──
+    if body.invitees:
+        join_url = f"{settings.app_url}/meetings/join/{meta.share_token}"
+        host_name = user.display_name or user.username
+        host_email = user.email or f"{user.username}@{settings.domain}"
+
+        if body.scheduled_at:
+            try:
+                scheduled = datetime.fromisoformat(body.scheduled_at)
+                if scheduled.tzinfo is None:
+                    scheduled = scheduled.replace(tzinfo=timezone.utc)
+            except ValueError:
+                scheduled = datetime.now(timezone.utc)
+        else:
+            scheduled = datetime.now(timezone.utc)
+
+        duration = body.duration_minutes
+
+        ics = generate_ics(
+            summary=body.name,
+            description=f"회의 참여: {join_url}",
+            location=join_url,
+            start=scheduled,
+            end=scheduled + timedelta(minutes=duration),
+            organizer_name=host_name,
+            organizer_email=host_email,
+        )
+
+        for inv in body.invitees:
+            # Determine recipient email
+            if inv.type == "internal":
+                to_email = f"{inv.username}@{settings.domain}" if inv.username else inv.email
+            else:
+                to_email = inv.email
+
+            if not to_email:
+                continue
+
+            # a. Send invite email (ICS attached)
+            try:
+                await send_invite_email(
+                    to_email=to_email,
+                    meeting_name=body.name,
+                    host_name=host_name,
+                    join_url=join_url,
+                    scheduled_at=scheduled,
+                    duration_minutes=duration,
+                    ics_content=ics,
+                )
+            except Exception:
+                logger.warning("Failed to send invite email to %s", to_email, exc_info=True)
+
+            # b. Internal user → create calendar event
+            if inv.type == "internal" and inv.username:
+                try:
+                    await create_calendar_event(
+                        username=inv.username,
+                        meeting_name=body.name,
+                        join_url=join_url,
+                        scheduled_at=scheduled,
+                        duration_minutes=duration,
+                    )
+                except Exception:
+                    logger.warning("Failed to create calendar event for %s", inv.username, exc_info=True)
+
     return RoomInfo(
         **room,
         share_token=meta.share_token,

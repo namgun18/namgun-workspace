@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -301,6 +301,41 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
         pass
 
     return {"message": "비밀번호가 재설정되었습니다. 로그인해주세요."}
+
+
+# ── GET /api/auth/users/search — 사용자 검색 ─────────────────
+
+
+@router.get("/users/search")
+async def search_users(
+    q: str = Query(..., min_length=1, max_length=50),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Search active users by username or display_name (for meeting invitations etc.)."""
+    pattern = f"%{q}%"
+    result = await db.execute(
+        select(User)
+        .where(
+            User.is_active == True,  # noqa: E712
+            User.id != user.id,
+            or_(
+                User.username.ilike(pattern),
+                User.display_name.ilike(pattern),
+            ),
+        )
+        .limit(10)
+    )
+    users = result.scalars().all()
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "display_name": u.display_name or u.username,
+            "email": u.email,
+        }
+        for u in users
+    ]
 
 
 # ── Email helpers ────────────────────────────────────────────

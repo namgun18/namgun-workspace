@@ -12,8 +12,6 @@ const {
 } = useMeetings()
 
 const showCreateModal = ref(false)
-const newRoomName = ref('')
-const creating = ref(false)
 
 onMounted(() => {
   fetchRooms()
@@ -29,19 +27,22 @@ function openMeetingWindow(roomName: string, shareToken: string, isHost: boolean
   window.open(url, `meeting-${roomName}`, 'width=1280,height=800')
 }
 
-async function handleCreate() {
-  if (!newRoomName.value.trim()) return
-  creating.value = true
+async function handleCreate(payload: {
+  name: string
+  invitees: Array<{ type: string; user_id?: string; username?: string; display_name?: string; email?: string }>
+  scheduled_at: string | null
+  duration_minutes: number
+}) {
   try {
-    const room = await createRoom(newRoomName.value.trim())
+    const room = await createRoom(payload.name, {
+      invitees: payload.invitees,
+      scheduled_at: payload.scheduled_at,
+      duration_minutes: payload.duration_minutes,
+    })
     showCreateModal.value = false
-    newRoomName.value = ''
-    // 생성 후 바로 새 창에서 참여 (동기적으로 window.open)
     openMeetingWindow(room.name, room.share_token, room.is_host)
   } catch (e: any) {
     alert(e?.data?.detail || '회의실 생성 실패')
-  } finally {
-    creating.value = false
   }
 }
 
@@ -90,45 +91,12 @@ async function handleDelete(name: string) {
         @delete="handleDelete"
       />
 
-      <!-- 회의실 생성 모달 -->
-      <Teleport to="body">
-        <div
-          v-if="showCreateModal"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          @click.self="showCreateModal = false"
-        >
-          <div class="bg-background rounded-lg border shadow-lg w-full max-w-sm mx-4 p-6">
-            <h3 class="text-lg font-semibold mb-4">새 회의실</h3>
-            <form @submit.prevent="handleCreate">
-              <label class="block text-sm font-medium mb-1.5">회의실 이름</label>
-              <input
-                v-model="newRoomName"
-                type="text"
-                placeholder="예: 주간회의"
-                class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                autofocus
-              />
-              <p class="text-xs text-muted-foreground mt-2">최대 10명까지 참여할 수 있습니다</p>
-              <div class="flex justify-end gap-2 mt-5">
-                <button
-                  type="button"
-                  @click="showCreateModal = false"
-                  class="px-4 py-2 text-sm rounded-md border hover:bg-accent transition-colors"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  :disabled="creating || !newRoomName.trim()"
-                  class="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-                >
-                  {{ creating ? '생성 중...' : '생성 및 참여' }}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </Teleport>
+      <!-- 회의실 생성/초대 모달 -->
+      <MeetingsInviteModal
+        v-if="showCreateModal"
+        @close="showCreateModal = false"
+        @create="handleCreate"
+      />
     </div>
   </ClientOnly>
 </template>

@@ -79,10 +79,23 @@ export const useMeetings = () => {
     }
   }
 
-  const createRoom = async (name: string): Promise<RoomInfo> => {
+  const createRoom = async (
+    name: string,
+    opts?: {
+      invitees?: Array<{ type: string; user_id?: string; username?: string; display_name?: string; email?: string }>
+      scheduled_at?: string | null
+      duration_minutes?: number
+    },
+  ): Promise<RoomInfo> => {
     const data = await $fetch<RoomInfo>('/api/meetings/rooms', {
       method: 'POST',
-      body: { name, max_participants: 10 },
+      body: {
+        name,
+        max_participants: 10,
+        invitees: opts?.invitees || [],
+        scheduled_at: opts?.scheduled_at || null,
+        duration_minutes: opts?.duration_minutes || 60,
+      },
       credentials: 'include',
     })
     await fetchRooms()

@@ -1,11 +1,24 @@
 from pydantic import BaseModel
 
 
+# ─── 참가자 초대 ───
+
+class InviteeItem(BaseModel):
+    type: str  # "internal" | "external"
+    user_id: str | None = None
+    username: str | None = None
+    display_name: str | None = None
+    email: str | None = None  # external일 때
+
+
 # ─── 인증 사용자 (로비) ───
 
 class RoomCreate(BaseModel):
     name: str
     max_participants: int = 10
+    invitees: list[InviteeItem] = []
+    scheduled_at: str | None = None  # ISO 8601 (없으면 즉시)
+    duration_minutes: int = 60
 
 
 class RoomInfo(BaseModel):
