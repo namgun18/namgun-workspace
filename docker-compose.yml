@@ -158,6 +158,7 @@ volumes:
     name: ws-redis-data
   storage-vol:
     name: ${STORAGE_VOLUME:-ws-storage-data}
+    external: true
   stalwart-data:
     name: ws-stalwart-data
   gitea-data:
