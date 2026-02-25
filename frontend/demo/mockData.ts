@@ -695,6 +695,9 @@ export function getMockResponse(method: string, path: string, query?: Record<str
   if (path.startsWith('/api/git')) return {}
 
 
+  // Meetings
+  if (path === '/api/meetings/rooms') return { rooms: [] }
+
   // Admin
   if (path === '/api/admin/users/pending') return []
   if (path === '/api/admin/users') return demoAdminUsers
