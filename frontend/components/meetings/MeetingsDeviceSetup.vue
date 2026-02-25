@@ -11,6 +11,7 @@ const emit = defineEmits<{
 // 초기화 상태
 const phase = ref<'requesting' | 'ready' | 'denied' | 'no-device'>('requesting')
 const permissionRequesting = ref(false)
+const debugInfo = ref('')
 
 // 장치 목록
 const cameras = ref<MediaDeviceInfo[]>([])
@@ -55,11 +56,49 @@ const permissionGuide = computed(() => {
 
 // ── 1단계: 권한 요청 (getUserMedia 호출 → 브라우저 권한 팝업) ──
 async function requestPermissions() {
+  permissionRequesting.value = true
+  debugInfo.value = ''
+
+  // 환경 체크
+  if (!navigator.mediaDevices) {
+    debugInfo.value = 'navigator.mediaDevices 없음 (HTTPS 필요)'
+    phase.value = 'no-device'
+    cameraOn.value = false
+    micOn.value = false
+    return
+  }
+
+  if (!navigator.mediaDevices.getUserMedia) {
+    debugInfo.value = 'getUserMedia 미지원 브라우저'
+    phase.value = 'no-device'
+    cameraOn.value = false
+    micOn.value = false
+    return
+  }
+
+  debugInfo.value = 'getUserMedia 호출 중...'
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    // 먼저 오디오만 시도 (대부분의 PC에 마이크 있음)
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      debugInfo.value = '카메라+마이크 권한 획득 성공'
+    } catch (e1: any) {
+      debugInfo.value = `video+audio 실패: ${e1.name} — ${e1.message}. 오디오만 시도...`
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        cameraOn.value = false
+        debugInfo.value = '마이크만 권한 획득 성공 (카메라 사용 불가)'
+      } catch (e2: any) {
+        debugInfo.value = `audio만도 실패: ${e2.name} — ${e2.message}`
+        throw e2
+      }
+    }
+
     // 권한 승인됨
     previewStream.value = stream
-    startMicLevel(stream)
+    if (stream.getAudioTracks().length) startMicLevel(stream)
 
     // 권한 획득 후 장치 목록 열거 (label 포함)
     await enumerateDevices()
@@ -79,14 +118,14 @@ async function requestPermissions() {
     // phase 전환 → 템플릿이 렌더링된 후 video 연결
     phase.value = 'ready'
     await nextTick()
-    if (videoEl.value) {
+    if (videoEl.value && stream.getVideoTracks().length) {
       videoEl.value.srcObject = stream
     }
   } catch (err: any) {
+    debugInfo.value = `최종 에러: ${err.name} — ${err.message}`
     if (err.name === 'NotAllowedError') {
       phase.value = 'denied'
     } else {
-      // 장치 없음 등 — 카메라/마이크 없이도 참여 가능하게
       phase.value = 'no-device'
       cameraOn.value = false
       micOn.value = false
@@ -258,7 +297,8 @@ function handleJoin() {
 
 onMounted(() => {
   browserName.value = detectBrowser()
-  // 자동 호출하지 않음 — 사용자 클릭(제스처)으로 권한 요청
+  // Teams 방식: 페이지 로드 즉시 권한 요청
+  requestPermissions()
 })
 
 onBeforeUnmount(() => {
@@ -274,36 +314,13 @@ onBeforeUnmount(() => {
         <p class="text-sm text-muted-foreground mt-1">회의 참여 전 장치를 확인하세요</p>
       </div>
 
-      <!-- 권한 요청 전/중 -->
+      <!-- 권한 요청 중 -->
       <div v-if="phase === 'requesting'" class="max-w-md mx-auto">
         <div class="rounded-lg border bg-card p-8 text-center">
-          <div class="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-primary">
-              <path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="1" y="6" rx="2" ry="2" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold mb-2">장치 권한이 필요합니다</h3>
-          <p class="text-sm text-muted-foreground mb-6">
-            카메라와 마이크를 사용하려면 브라우저 권한을 허용해 주세요.
-          </p>
-          <div v-if="!permissionRequesting" class="flex justify-center gap-3">
-            <button
-              @click="emit('cancel')"
-              class="px-4 py-2.5 text-sm rounded-md border hover:bg-accent transition-colors"
-            >
-              취소
-            </button>
-            <button
-              @click="permissionRequesting = true; requestPermissions()"
-              class="px-6 py-2.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              카메라/마이크 허용
-            </button>
-          </div>
-          <div v-else class="py-2">
-            <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent mb-3" />
-            <p class="text-sm text-muted-foreground">브라우저의 권한 팝업에서 "허용"을 눌러주세요</p>
-          </div>
+          <div class="inline-block h-10 w-10 animate-spin rounded-full border-4 border-primary border-r-transparent mb-4" />
+          <h3 class="text-lg font-semibold mb-2">카메라/마이크 권한 요청 중</h3>
+          <p class="text-sm text-muted-foreground">브라우저 상단의 권한 팝업에서 "허용"을 눌러주세요</p>
+          <p v-if="debugInfo" class="mt-4 text-xs text-muted-foreground font-mono bg-muted p-2 rounded">{{ debugInfo }}</p>
         </div>
       </div>
 
@@ -318,9 +335,10 @@ onBeforeUnmount(() => {
             <div>
               <h3 class="font-semibold mb-1">카메라/마이크 권한이 필요합니다</h3>
               <p class="text-sm text-muted-foreground mb-3">{{ permissionGuide }}</p>
+              <p v-if="debugInfo" class="mb-3 text-xs font-mono bg-muted p-2 rounded text-left break-all">{{ debugInfo }}</p>
               <div class="flex gap-2">
                 <button
-                  @click="phase = 'requesting'; permissionRequesting = false"
+                  @click="phase = 'requesting'; requestPermissions()"
                   class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   다시 시도
@@ -346,7 +364,8 @@ onBeforeUnmount(() => {
             <line x1="2" y1="2" x2="22" y2="22" />
           </svg>
           <h3 class="font-semibold mb-1">장치를 사용할 수 없습니다</h3>
-          <p class="text-sm text-muted-foreground mb-4">카메라/마이크 없이 회의에 참여합니다</p>
+          <p class="text-sm text-muted-foreground mb-2">카메라/마이크 없이 회의에 참여합니다</p>
+          <p v-if="debugInfo" class="mb-4 text-xs font-mono bg-muted p-2 rounded text-left break-all">{{ debugInfo }}</p>
           <div class="flex justify-center gap-2">
             <button
               @click="emit('cancel')"
