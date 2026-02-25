@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { countryFlag, type AccessLogPage } from '~/composables/useAdminAnalytics'
+import type { AccessLogPage } from '~/composables/useAdminAnalytics'
 
 const props = defineProps<{
   data: AccessLogPage | null
@@ -63,7 +63,6 @@ const totalPages = computed(() => {
           <tr class="border-b">
             <th class="text-left py-2 px-2 font-medium text-muted-foreground">시간</th>
             <th class="text-left py-2 px-2 font-medium text-muted-foreground">IP</th>
-            <th class="text-left py-2 px-2 font-medium text-muted-foreground">국가</th>
             <th class="text-left py-2 px-2 font-medium text-muted-foreground">경로</th>
             <th class="text-left py-2 px-2 font-medium text-muted-foreground">상태</th>
             <th class="text-left py-2 px-2 font-medium text-muted-foreground">응답</th>
@@ -75,7 +74,6 @@ const totalPages = computed(() => {
           <tr v-for="log in data.logs" :key="log.id" class="border-b last:border-0 hover:bg-accent/30">
             <td class="py-1.5 px-2 text-muted-foreground whitespace-nowrap">{{ formatTime(log.created_at) }}</td>
             <td class="py-1.5 px-2 font-mono">{{ log.ip_address }}</td>
-            <td class="py-1.5 px-2">{{ countryFlag(log.country_code) }}</td>
             <td class="py-1.5 px-2 max-w-[200px] truncate" :title="log.path">{{ log.method }} {{ log.path }}</td>
             <td class="py-1.5 px-2 font-mono" :class="statusColor(log.status_code)">{{ log.status_code }}</td>
             <td class="py-1.5 px-2 text-muted-foreground">{{ log.response_time_ms }}ms</td>

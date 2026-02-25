@@ -9,7 +9,7 @@ watch(user, (u) => {
 }, { immediate: true })
 
 const {
-  overview, dailyVisits, topPages, countries, serviceUsage,
+  overview, dailyVisits, topPages, topIPs, serviceUsage,
   activeUsers, recentLogins, accessLogs, gitActivity, gitStats,
   loading,
   fetchAll, fetchAccessLogs,
@@ -98,13 +98,13 @@ onMounted(async () => {
       <!-- Overview cards -->
       <AdminAnalyticsOverview :data="overview" />
 
-      <!-- Charts row 1: Daily + Countries -->
+      <!-- Charts row 1: Daily + Top IPs -->
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div class="lg:col-span-3">
           <AdminAnalyticsDailyChart :data="dailyVisits" />
         </div>
         <div class="lg:col-span-2">
-          <AdminAnalyticsCountries :data="countries" />
+          <AdminAnalyticsTopIPs :data="topIPs" />
         </div>
       </div>
 

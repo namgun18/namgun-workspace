@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { countryFlag, type RecentLogin } from '~/composables/useAdminAnalytics'
+import type { RecentLogin } from '~/composables/useAdminAnalytics'
 
 defineProps<{ data: RecentLogin[] }>()
 
@@ -34,7 +34,6 @@ function maskIp(ip: string) {
         class="flex items-center justify-between text-sm py-1.5 border-b last:border-0"
       >
         <div class="flex items-center gap-2 min-w-0">
-          <span>{{ countryFlag(l.country_code) }}</span>
           <span class="font-medium truncate">{{ l.display_name || l.username }}</span>
           <span class="text-muted-foreground text-xs">{{ maskIp(l.ip_address) }}</span>
         </div>

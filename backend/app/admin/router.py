@@ -22,12 +22,12 @@ from app.admin.schemas import (
     AccessLogPage,
     ActiveUser,
     AnalyticsOverview,
-    CountryStats,
     DailyVisit,
     GitActivityItem,
     GitStats,
     RecentLogin,
     ServiceUsage,
+    TopIP,
     TopPage,
 )
 
@@ -385,48 +385,34 @@ async def analytics_top_pages(
     return data
 
 
-# ── GET /api/admin/analytics/countries ────────────────────
+# ── GET /api/admin/analytics/top-ips ──────────────────────
 
 
-@router.get("/analytics/countries", response_model=list[CountryStats])
-async def analytics_countries(
+@router.get("/analytics/top-ips", response_model=list[TopIP])
+async def analytics_top_ips(
     period: str = Query("today", pattern="^(today|7d|30d)$"),
     limit: int = Query(15, ge=1, le=50),
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    cache_key = f"countries:{period}"
+    cache_key = f"top-ips:{period}"
     if (hit := _cached(cache_key)) is not None:
         return hit
 
     since = _period_start(period)
-    # Unique IP count per country (not raw request count)
-    subq = (
-        select(
-            AccessLog.ip_address,
-            AccessLog.country_code,
-            AccessLog.country_name,
-        )
-        .where(and_(
-            AccessLog.created_at >= since,
-            AccessLog.country_code.isnot(None),
-            _exclude_private_ip(),
-        ))
-        .group_by(AccessLog.ip_address, AccessLog.country_code, AccessLog.country_name)
-        .subquery()
-    )
     result = await db.execute(
         select(
-            subq.c.country_code,
-            subq.c.country_name,
-            func.count(subq.c.ip_address).label("ip_count"),
+            AccessLog.ip_address,
+            func.count(AccessLog.id).label("cnt"),
+            func.count(distinct(AccessLog.path)).label("paths"),
         )
-        .group_by(subq.c.country_code, subq.c.country_name)
-        .order_by(func.count(subq.c.ip_address).desc())
+        .where(and_(AccessLog.created_at >= since, _exclude_private_ip()))
+        .group_by(AccessLog.ip_address)
+        .order_by(func.count(AccessLog.id).desc())
         .limit(limit)
     )
     data = [
-        CountryStats(country_code=row[0], country_name=row[1], count=row[2])
+        TopIP(ip_address=row[0], count=row[1], paths=row[2])
         for row in result.all()
     ]
     _set_cache(cache_key, data)

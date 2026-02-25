@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { countryFlag, type ActiveUser } from '~/composables/useAdminAnalytics'
+import type { ActiveUser } from '~/composables/useAdminAnalytics'
 
 defineProps<{ data: ActiveUser[] }>()
 
@@ -25,7 +25,6 @@ function timeAgo(iso: string) {
         class="flex items-center justify-between text-sm py-1.5 border-b last:border-0"
       >
         <div class="flex items-center gap-2 min-w-0">
-          <span>{{ countryFlag(u.country_code) }}</span>
           <span class="font-medium truncate">{{ u.display_name || u.username }}</span>
           <span class="text-muted-foreground truncate">{{ u.path }}</span>
         </div>

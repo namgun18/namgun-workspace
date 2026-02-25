@@ -495,13 +495,13 @@ const demoTopPages = [
   { path: '/api/admin/users', count: 32 },
 ]
 
-const demoCountries = [
-  { country_code: 'KR', country_name: '대한민국', count: 1089 },
-  { country_code: 'US', country_name: '미국', count: 67 },
-  { country_code: 'JP', country_name: '일본', count: 34 },
-  { country_code: 'DE', country_name: '독일', count: 21 },
-  { country_code: 'SG', country_name: '싱가포르', count: 18 },
-  { country_code: 'CN', country_name: '중국', count: 12 },
+const demoTopIPs = [
+  { ip_address: '211.244.144.10', count: 542, paths: 12 },
+  { ip_address: '211.244.144.11', count: 389, paths: 8 },
+  { ip_address: '203.130.45.67', count: 158, paths: 6 },
+  { ip_address: '68.45.123.89', count: 67, paths: 4 },
+  { ip_address: '103.22.200.5', count: 34, paths: 3 },
+  { ip_address: '45.33.32.156', count: 21, paths: 2 },
 ]
 
 const demoServiceUsage = [
@@ -708,7 +708,7 @@ export function getMockResponse(method: string, path: string, query?: Record<str
     return generateDailyVisits(days)
   }
   if (path === '/api/admin/analytics/top-pages') return demoTopPages
-  if (path === '/api/admin/analytics/countries') return demoCountries
+  if (path === '/api/admin/analytics/top-ips') return demoTopIPs
   if (path === '/api/admin/analytics/service-usage') return demoServiceUsage
   if (path === '/api/admin/analytics/active-users') return demoActiveUsers
   if (path === '/api/admin/analytics/recent-logins') return demoRecentLogins

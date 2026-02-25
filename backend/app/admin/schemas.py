@@ -23,10 +23,10 @@ class TopPage(BaseModel):
     count: int
 
 
-class CountryStats(BaseModel):
-    country_code: str | None
-    country_name: str | None
+class TopIP(BaseModel):
+    ip_address: str
     count: int
+    paths: int
 
 
 class ServiceUsage(BaseModel):

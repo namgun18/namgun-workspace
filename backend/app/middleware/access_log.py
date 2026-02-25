@@ -14,7 +14,6 @@ from starlette.responses import Response
 
 from app.db.session import async_session
 from app.db.models import AccessLog
-from app.middleware.geoip import lookup_country
 from app.middleware.ua_parser import parse_user_agent
 
 logger = logging.getLogger(__name__)
@@ -99,7 +98,6 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
 
         ua = request.headers.get("user-agent", "")
         browser, os_name, device = parse_user_agent(ua)
-        country_code, country_name = lookup_country(ip) if ip else (None, None)
         user_id = _extract_user_id(request)
         service = _classify_service(path)
 
@@ -114,8 +112,6 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
             "browser": browser,
             "os": os_name,
             "device": device,
-            "country_code": country_code,
-            "country_name": country_name,
             "user_id": user_id,
             "service": service,
             "created_at": datetime.now(timezone.utc),

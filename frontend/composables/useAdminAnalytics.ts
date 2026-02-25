@@ -18,10 +18,10 @@ export interface TopPage {
   count: number
 }
 
-export interface CountryStats {
-  country_code: string | null
-  country_name: string | null
+export interface TopIP {
+  ip_address: string
   count: number
+  paths: number
 }
 
 export interface ServiceUsage {
@@ -90,16 +90,11 @@ export interface GitStats {
   total_pulls: number
 }
 
-export function countryFlag(code: string | null): string {
-  if (!code || code.length !== 2) return '\u{1F310}'
-  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 - 65 + c.charCodeAt(0)))
-}
-
 export function useAdminAnalytics() {
   const overview = ref<AnalyticsOverview | null>(null)
   const dailyVisits = ref<DailyVisit[]>([])
   const topPages = ref<TopPage[]>([])
-  const countries = ref<CountryStats[]>([])
+  const topIPs = ref<TopIP[]>([])
   const serviceUsage = ref<ServiceUsage[]>([])
   const activeUsers = ref<ActiveUser[]>([])
   const recentLogins = ref<RecentLogin[]>([])
@@ -126,10 +121,10 @@ export function useAdminAnalytics() {
     } catch { topPages.value = [] }
   }
 
-  async function fetchCountries(period = 'today', limit = 15) {
+  async function fetchTopIPs(period = 'today', limit = 15) {
     try {
-      countries.value = await $fetch<CountryStats[]>('/api/admin/analytics/countries', { params: { period, limit } })
-    } catch { countries.value = [] }
+      topIPs.value = await $fetch<TopIP[]>('/api/admin/analytics/top-ips', { params: { period, limit } })
+    } catch { topIPs.value = [] }
   }
 
   async function fetchServiceUsage(period = 'today') {
@@ -178,7 +173,7 @@ export function useAdminAnalytics() {
       fetchOverview(period),
       fetchDailyVisits(days),
       fetchTopPages(period),
-      fetchCountries(period),
+      fetchTopIPs(period),
       fetchServiceUsage(period),
       fetchActiveUsers(),
       fetchRecentLogins(),
@@ -189,10 +184,10 @@ export function useAdminAnalytics() {
   }
 
   return {
-    overview, dailyVisits, topPages, countries, serviceUsage,
+    overview, dailyVisits, topPages, topIPs, serviceUsage,
     activeUsers, recentLogins, accessLogs, gitActivity, gitStats,
     loading,
-    fetchOverview, fetchDailyVisits, fetchTopPages, fetchCountries,
+    fetchOverview, fetchDailyVisits, fetchTopPages, fetchTopIPs,
     fetchServiceUsage, fetchActiveUsers, fetchRecentLogins,
     fetchAccessLogs, fetchAll, fetchGitActivity, fetchGitStats,
   }
