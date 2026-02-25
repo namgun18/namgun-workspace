@@ -4,7 +4,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  join: [opts: { cameraEnabled: boolean; micEnabled: boolean; selectedCameraId?: string; selectedMicId?: string }]
+  join: [opts: { cameraEnabled: boolean; micEnabled: boolean; selectedCameraId?: string; selectedMicId?: string; selectedSpeakerId?: string }]
   cancel: []
 }>()
 
@@ -16,8 +16,10 @@ const debugInfo = ref('')
 // 장치 목록
 const cameras = ref<MediaDeviceInfo[]>([])
 const microphones = ref<MediaDeviceInfo[]>([])
+const speakers = ref<MediaDeviceInfo[]>([])
 const selectedCameraId = ref('')
 const selectedMicId = ref('')
+const selectedSpeakerId = ref('')
 
 // 미디어 상태
 const cameraOn = ref(true)
@@ -29,7 +31,6 @@ const videoEl = ref<HTMLVideoElement | null>(null)
 const micLevel = ref(0)
 let audioCtx: AudioContext | null = null
 let analyser: AnalyserNode | null = null
-let animFrameId: number | null = null
 
 // 브라우저 감지
 const browserName = ref('')
@@ -138,11 +139,15 @@ async function enumerateDevices() {
   const devices = await navigator.mediaDevices.enumerateDevices()
   cameras.value = devices.filter(d => d.kind === 'videoinput')
   microphones.value = devices.filter(d => d.kind === 'audioinput')
+  speakers.value = devices.filter(d => d.kind === 'audiooutput')
   if (cameras.value.length && !selectedCameraId.value) {
     selectedCameraId.value = cameras.value[0].deviceId
   }
   if (microphones.value.length && !selectedMicId.value) {
     selectedMicId.value = microphones.value[0].deviceId
+  }
+  if (speakers.value.length && !selectedSpeakerId.value) {
+    selectedSpeakerId.value = speakers.value[0].deviceId
   }
 }
 
@@ -203,7 +208,9 @@ function stopPreview() {
   stopMicLevel()
 }
 
-// 마이크 레벨 미터
+// 마이크 레벨 미터 (10fps로 제한하여 불필요한 재렌더링 방지)
+let micLevelInterval: ReturnType<typeof setInterval> | null = null
+
 function startMicLevel(stream: MediaStream) {
   stopMicLevel()
   audioCtx = new AudioContext()
@@ -214,7 +221,7 @@ function startMicLevel(stream: MediaStream) {
 
   const dataArray = new Uint8Array(analyser.frequencyBinCount)
 
-  function tick() {
+  micLevelInterval = setInterval(() => {
     if (!analyser) return
     analyser.getByteTimeDomainData(dataArray)
     let sum = 0
@@ -222,16 +229,14 @@ function startMicLevel(stream: MediaStream) {
       const val = (dataArray[i] - 128) / 128
       sum += val * val
     }
-    micLevel.value = Math.min(100, Math.sqrt(sum / dataArray.length) * 300)
-    animFrameId = requestAnimationFrame(tick)
-  }
-  tick()
+    micLevel.value = Math.min(100, Math.round(Math.sqrt(sum / dataArray.length) * 300))
+  }, 100) // 10fps
 }
 
 function stopMicLevel() {
-  if (animFrameId !== null) {
-    cancelAnimationFrame(animFrameId)
-    animFrameId = null
+  if (micLevelInterval !== null) {
+    clearInterval(micLevelInterval)
+    micLevelInterval = null
   }
   if (audioCtx) {
     audioCtx.close()
@@ -241,20 +246,33 @@ function stopMicLevel() {
   micLevel.value = 0
 }
 
-// 스피커 테스트
-function testSpeaker() {
+// 스피커 테스트 (선택된 출력 장치로 재생)
+const speakerTestEl = ref<HTMLAudioElement | null>(null)
+
+async function testSpeaker() {
+  // AudioContext로 비프음 생성 → MediaStreamDestination → Audio 엘리먼트 (setSinkId 지원)
   const ctx = new AudioContext()
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
+  const dest = ctx.createMediaStreamDestination()
   osc.frequency.value = 440
   gain.gain.value = 0.3
   osc.connect(gain)
-  gain.connect(ctx.destination)
+  gain.connect(dest)
   osc.start()
+
+  const audio = new Audio()
+  audio.srcObject = dest.stream
+  if (selectedSpeakerId.value && 'setSinkId' in audio) {
+    try { await (audio as any).setSinkId(selectedSpeakerId.value) } catch { /* fallback */ }
+  }
+  await audio.play()
+
   setTimeout(() => {
     osc.stop()
+    audio.pause()
     ctx.close()
-  }, 300)
+  }, 400)
 }
 
 // 장치 변경 시 스트림 교체
@@ -292,6 +310,7 @@ function handleJoin() {
     micEnabled: micOn.value,
     selectedCameraId: selectedCameraId.value || undefined,
     selectedMicId: selectedMicId.value || undefined,
+    selectedSpeakerId: selectedSpeakerId.value || undefined,
   })
 }
 
@@ -493,9 +512,26 @@ onBeforeUnmount(() => {
                 </p>
               </div>
 
-              <!-- 스피커 테스트 -->
+              <!-- 스피커 선택 + 테스트 -->
               <div>
                 <label class="text-sm font-medium mb-2 block">스피커</label>
+                <div class="flex items-center gap-2 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-muted-foreground shrink-0">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </svg>
+                  <select
+                    v-model="selectedSpeakerId"
+                    class="flex-1 text-sm px-2 py-1.5 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring truncate"
+                    :disabled="speakers.length === 0"
+                  >
+                    <option v-if="speakers.length === 0" value="">스피커 없음</option>
+                    <option v-for="spk in speakers" :key="spk.deviceId" :value="spk.deviceId">
+                      {{ spk.label || `스피커 ${speakers.indexOf(spk) + 1}` }}
+                    </option>
+                  </select>
+                </div>
                 <button
                   @click="testSpeaker"
                   class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border hover:bg-accent transition-colors"
@@ -503,7 +539,6 @@ onBeforeUnmount(() => {
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                     <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                   </svg>
                   테스트 사운드 재생
                 </button>
