@@ -14,6 +14,7 @@ from app.db.models import AccessLog, User
 from app.db.session import get_db
 from app.config import get_settings
 from app.mail import jmap
+from app.mail import stalwart
 from app.admin.schemas import (
     AccessLogEntry,
     AccessLogPage,
@@ -128,32 +129,32 @@ async def approve_user(
     if user.is_active:
         raise HTTPException(status_code=400, detail="이미 활성화된 사용자입니다")
 
+    # Ensure Stalwart mail principal exists (normally created at registration)
+    mail_created = await stalwart.principal_exists(user.username)
+    if not mail_created:
+        # Fallback: create with empty password (user must reset via portal)
+        mail_created = await stalwart.create_principal(
+            username=user.username,
+            password="",
+            email=user.email,
+            display_name=user.display_name,
+        )
+
     # Activate in portal DB
     user.is_active = True
     await db.commit()
 
-    # Send welcome email to trigger Stalwart mailbox creation
+    # Send welcome email
     jmap.clear_cache()
     try:
         await _send_welcome_email(user.email, user.username)
-        logger.info("Welcome email sent to %s, waiting for mailbox creation", user.email)
+        logger.info("Welcome email sent to %s", user.email)
     except Exception as e:
         logger.warning("Failed to send welcome email to %s: %s", user.email, e)
 
-    # Wait for Stalwart to process the email and create the principal
-    mail_ready = False
-    for attempt in range(5):
-        await asyncio.sleep(2)
-        jmap.clear_cache()
-        account_id = await jmap.resolve_account_id(user.email)
-        if account_id:
-            mail_ready = True
-            logger.info("Mail account ready for %s (account_id=%s)", user.username, account_id)
-            break
-
     msg = f"{user.username} 사용자가 승인되었습니다"
-    if not mail_ready:
-        msg += " (메일 계정 생성에 시간이 걸릴 수 있습니다)"
+    if not mail_created:
+        msg += " (메일 계정 생성에 실패했습니다. 수동 확인 필요)"
 
     return {"message": msg}
 
@@ -171,6 +172,9 @@ async def reject_user(
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+    # Clean up Stalwart principal if it exists
+    await stalwart.delete_principal(user.username)
 
     # Delete from portal DB
     await db.delete(user)
