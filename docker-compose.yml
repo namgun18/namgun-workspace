@@ -50,6 +50,8 @@ services:
       dockerfile: Dockerfile
     container_name: ws-backend
     env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy

@@ -635,6 +635,151 @@ const demoGitStats = {
   total_pulls: 1,
 }
 
+// ─── Chat ───
+
+export const demoChatChannels = [
+  {
+    id: 'ch-general', name: '일반', type: 'public', description: '전체 공지 및 자유 대화',
+    created_by: 'demo-user-001', is_archived: false,
+    created_at: new Date(Date.now() - 2592000000).toISOString(),
+    updated_at: new Date(Date.now() - 3600000).toISOString(),
+    member_count: 3, unread_count: 2,
+  },
+  {
+    id: 'ch-dev', name: '개발', type: 'public', description: '개발 관련 논의',
+    created_by: 'demo-user-001', is_archived: false,
+    created_at: new Date(Date.now() - 2592000000).toISOString(),
+    updated_at: new Date(Date.now() - 7200000).toISOString(),
+    member_count: 3, unread_count: 0,
+  },
+  {
+    id: 'ch-private', name: '운영팀', type: 'private', description: '운영 관련 비공개 채널',
+    created_by: 'demo-user-001', is_archived: false,
+    created_at: new Date(Date.now() - 1728000000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString(),
+    member_count: 2, unread_count: 0,
+  },
+  {
+    id: 'ch-dm-cheolsu', name: 'demo,cheolsu', type: 'dm', description: null,
+    created_by: 'demo-user-001', is_archived: false,
+    created_at: new Date(Date.now() - 864000000).toISOString(),
+    updated_at: new Date(Date.now() - 14400000).toISOString(),
+    member_count: 2, unread_count: 1,
+  },
+]
+
+const demoChatMessages: Record<string, any> = {
+  'ch-general': {
+    messages: [
+      {
+        id: 'cm-001', channel_id: 'ch-general', sender: null,
+        content: '채널이 생성되었습니다.', message_type: 'system',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 2592000000).toISOString(),
+        updated_at: new Date(Date.now() - 2592000000).toISOString(),
+      },
+      {
+        id: 'cm-002', channel_id: 'ch-general',
+        sender: { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
+        content: '안녕하세요! 포털 채팅 기능이 추가되었습니다.', message_type: 'text',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 86400000).toISOString(),
+        updated_at: new Date(Date.now() - 86400000).toISOString(),
+      },
+      {
+        id: 'cm-003', channel_id: 'ch-general',
+        sender: { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
+        content: '좋습니다! 기존 메신저 대신 이걸 사용하면 되겠네요.', message_type: 'text',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 82800000).toISOString(),
+        updated_at: new Date(Date.now() - 82800000).toISOString(),
+      },
+      {
+        id: 'cm-004', channel_id: 'ch-general',
+        sender: { id: 'user-003', username: 'younghee', display_name: '이영희', avatar_url: null },
+        content: '파일 공유도 되나요?', message_type: 'text',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 79200000).toISOString(),
+        updated_at: new Date(Date.now() - 79200000).toISOString(),
+      },
+      {
+        id: 'cm-005', channel_id: 'ch-general',
+        sender: { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
+        content: '네, 클립 아이콘으로 파일 첨부가 가능합니다.', message_type: 'text',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 75600000).toISOString(),
+        updated_at: new Date(Date.now() - 75600000).toISOString(),
+      },
+      {
+        id: 'cm-006', channel_id: 'ch-general',
+        sender: { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
+        content: '오늘 서버 점검 시간 확인해주세요.', message_type: 'text',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+        updated_at: new Date(Date.now() - 7200000).toISOString(),
+      },
+      {
+        id: 'cm-007', channel_id: 'ch-general',
+        sender: { id: 'user-003', username: 'younghee', display_name: '이영희', avatar_url: null },
+        content: '새벽 2시부터 4시까지입니다.', message_type: 'text',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+        updated_at: new Date(Date.now() - 3600000).toISOString(),
+      },
+    ],
+    has_more: false,
+  },
+  'ch-dev': {
+    messages: [
+      {
+        id: 'cm-101', channel_id: 'ch-dev', sender: null,
+        content: '채널이 생성되었습니다.', message_type: 'system',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 2592000000).toISOString(),
+        updated_at: new Date(Date.now() - 2592000000).toISOString(),
+      },
+      {
+        id: 'cm-102', channel_id: 'ch-dev',
+        sender: { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
+        content: 'Phase 3-1 채팅 기능 배포 완료했습니다.', message_type: 'text',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 14400000).toISOString(),
+        updated_at: new Date(Date.now() - 14400000).toISOString(),
+      },
+      {
+        id: 'cm-103', channel_id: 'ch-dev',
+        sender: { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
+        content: 'WebSocket 기반이라 실시간으로 잘 동작하네요!', message_type: 'text',
+        file_meta: null, is_edited: false, is_deleted: false,
+        created_at: new Date(Date.now() - 10800000).toISOString(),
+        updated_at: new Date(Date.now() - 10800000).toISOString(),
+      },
+    ],
+    has_more: false,
+  },
+}
+
+const demoChatMembers: Record<string, any[]> = {
+  'ch-general': [
+    { user_id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null, role: 'owner', is_online: true },
+    { user_id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null, role: 'member', is_online: true },
+    { user_id: 'user-003', username: 'younghee', display_name: '이영희', avatar_url: null, role: 'member', is_online: false },
+  ],
+  'ch-dev': [
+    { user_id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null, role: 'owner', is_online: true },
+    { user_id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null, role: 'member', is_online: true },
+    { user_id: 'user-003', username: 'younghee', display_name: '이영희', avatar_url: null, role: 'member', is_online: false },
+  ],
+  'ch-private': [
+    { user_id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null, role: 'owner', is_online: true },
+    { user_id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null, role: 'admin', is_online: true },
+  ],
+  'ch-dm-cheolsu': [
+    { user_id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null, role: 'member', is_online: true },
+    { user_id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null, role: 'member', is_online: true },
+  ],
+}
+
 // ─── Route → Mock Response Map ───
 
 export function getMockResponse(method: string, path: string, query?: Record<string, string>): any {
@@ -694,6 +839,28 @@ export function getMockResponse(method: string, path: string, query?: Record<str
   if (path === '/api/git/repos') return demoRepos
   if (path.startsWith('/api/git')) return {}
 
+
+  // Chat
+  if (path === '/api/chat/channels' && method === 'GET') return demoChatChannels
+  if (path === '/api/chat/presence') return { online_user_ids: ['demo-user-001', 'user-002'] }
+  if (method === 'GET') {
+    const chMsgMatch = path.match(/^\/api\/chat\/channels\/([\w-]+)\/messages$/)
+    if (chMsgMatch) return demoChatMessages[chMsgMatch[1]] || { messages: [], has_more: false }
+    const chMemMatch = path.match(/^\/api\/chat\/channels\/([\w-]+)\/members$/)
+    if (chMemMatch) return demoChatMembers[chMemMatch[1]] || []
+    const chDetailMatch = path.match(/^\/api\/chat\/channels\/([\w-]+)$/)
+    if (chDetailMatch) {
+      const ch = demoChatChannels.find(c => c.id === chDetailMatch[1])
+      if (ch) return { ...ch, members: demoChatMembers[ch.id] || [] }
+    }
+  }
+  if (path === '/api/chat/channels' && method === 'POST') return { id: 'ch-new', name: 'new', type: 'public' }
+  if (path === '/api/chat/dm' && method === 'POST') return { id: 'ch-dm-cheolsu', name: 'demo,cheolsu', type: 'dm' }
+  if (path === '/api/chat/users') {
+    return demoAdminUsers.filter(u => u.username.includes(query?.q || '') || (u.display_name || '').includes(query?.q || '')).map(u => ({
+      id: u.id, username: u.username, display_name: u.display_name, avatar_url: null,
+    }))
+  }
 
   // Meetings
   if (path === '/api/meetings/rooms') return { rooms: [] }

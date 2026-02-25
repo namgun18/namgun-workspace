@@ -43,6 +43,11 @@ export default defineNuxtConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/ws': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 

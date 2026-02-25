@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     gitea_url: str = "http://gitea:3000"
     gitea_token: str = ""
 
+    # Redis
+    redis_url: str = "redis://redis:6379/0"
+
     # LiveKit
     livekit_url: str = "http://livekit:7880"
     livekit_api_key: str = ""

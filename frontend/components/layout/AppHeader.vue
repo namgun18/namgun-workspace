@@ -46,6 +46,13 @@ function toggleDark() {
             메일
           </NuxtLink>
           <NuxtLink
+            to="/chat"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+            :class="route.path === '/chat' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
+          >
+            채팅
+          </NuxtLink>
+          <NuxtLink
             to="/calendar"
             class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
             :class="route.path === '/calendar' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
@@ -189,6 +196,14 @@ function toggleDark() {
         :class="route.path === '/mail' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
       >
         메일
+      </NuxtLink>
+      <NuxtLink
+        to="/chat"
+        @click="mobileMenuOpen = false"
+        class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
+        :class="route.path === '/chat' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
+      >
+        채팅
       </NuxtLink>
       <NuxtLink
         to="/calendar"

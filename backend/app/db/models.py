@@ -86,6 +86,86 @@ class ShareLink(Base):
     )
 
 
+class Channel(Base):
+    __tablename__ = "channels"
+    __table_args__ = (
+        Index("ix_channels_type", "type"),
+        Index("ix_channels_created_at", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    name: Mapped[str] = mapped_column(String(100))
+    type: Mapped[str] = mapped_column(String(10))  # public, private, dm
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_by: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id")
+    )
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class ChannelMember(Base):
+    __tablename__ = "channel_members"
+    __table_args__ = (
+        Index("ix_channel_members_user_channel", "user_id", "channel_id", unique=True),
+        Index("ix_channel_members_channel_id", "channel_id"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    channel_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("channels.id", ondelete="CASCADE")
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    role: Mapped[str] = mapped_column(String(10), default="member")  # owner, admin, member
+    last_read_message_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class Message(Base):
+    __tablename__ = "messages"
+    __table_args__ = (
+        Index("ix_messages_channel_created", "channel_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    channel_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("channels.id", ondelete="CASCADE")
+    )
+    sender_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    content: Mapped[str] = mapped_column(Text)
+    message_type: Mapped[str] = mapped_column(String(10), default="text")  # text, file, system
+    file_meta: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    is_edited: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
 class AccessLog(Base):
     __tablename__ = "access_logs"
     __table_args__ = (

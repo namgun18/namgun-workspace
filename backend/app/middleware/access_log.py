@@ -29,6 +29,7 @@ _SERVICE_MAP = [
     ("/api/files", "files"),
     ("/api/meetings", "meetings"),
     ("/api/git", "git"),
+    ("/api/chat", "chat"),
     ("/api/lab", "lab"),
     ("/api/dashboard", "dashboard"),
     ("/api/admin", "admin"),

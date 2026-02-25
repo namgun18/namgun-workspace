@@ -21,6 +21,8 @@ from app.dashboard.router import router as dashboard_router
 from app.calendar.router import router as calendar_router
 from app.contacts.router import router as contacts_router
 from app.meetings.router import router as meetings_router
+from app.chat.router import router as chat_router
+from app.chat.websocket import router as chat_ws_router
 
 settings = get_settings()
 _health_task = None
@@ -32,7 +34,10 @@ _log_cleanup_task = None
 async def lifespan(app: FastAPI):
     global _health_task, _log_flusher_task, _log_cleanup_task
 
+    from app.chat.redis_client import get_redis, close_redis
+
     await init_db()
+    await get_redis()  # init Redis connection pool
     _health_task = asyncio.create_task(run_health_checker())
     _log_flusher_task = asyncio.create_task(run_log_flusher())
     _log_cleanup_task = asyncio.create_task(run_log_cleanup())
@@ -47,6 +52,7 @@ async def lifespan(app: FastAPI):
                 await task
             except asyncio.CancelledError:
                 pass
+    await close_redis()
 
 
 app = FastAPI(
@@ -80,6 +86,8 @@ app.include_router(dashboard_router)
 app.include_router(calendar_router)
 app.include_router(contacts_router)
 app.include_router(meetings_router)
+app.include_router(chat_router)
+app.include_router(chat_ws_router)
 
 
 @app.get("/api/health")
