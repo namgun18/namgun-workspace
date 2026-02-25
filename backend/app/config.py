@@ -39,6 +39,9 @@ class Settings(BaseSettings):
 
     # LiveKit
     livekit_url: str = "http://livekit:7880"
+    livekit_api_key: str = ""
+    livekit_api_secret: str = ""
+    livekit_ws_url: str = ""  # 브라우저용 WS URL (빈값이면 app_url에서 자동 파생)
 
     # Portal OAuth Provider (for Gitea etc.)
     oauth_clients_json: str = "{}"

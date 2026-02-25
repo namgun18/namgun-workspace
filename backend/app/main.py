@@ -20,6 +20,7 @@ from app.git.router import router as git_router
 from app.dashboard.router import router as dashboard_router
 from app.calendar.router import router as calendar_router
 from app.contacts.router import router as contacts_router
+from app.meetings.router import router as meetings_router
 
 settings = get_settings()
 _health_task = None
@@ -78,6 +79,7 @@ app.include_router(git_router)
 app.include_router(dashboard_router)
 app.include_router(calendar_router)
 app.include_router(contacts_router)
+app.include_router(meetings_router)
 
 
 @app.get("/api/health")

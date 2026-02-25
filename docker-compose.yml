@@ -1,7 +1,13 @@
 ## ===========================================
 ## namgun-workspace — Docker Compose
 ## ===========================================
-## 8 core containers: postgres, redis, backend, frontend, nginx, stalwart, gitea, livekit
+## 코어: postgres, redis, backend, frontend (항상 기동)
+## 선택: nginx, stalwart, gitea, livekit (COMPOSE_PROFILES로 활성화)
+##
+## 배포 예시:
+##   풀스택:      COMPOSE_PROFILES=nginx,stalwart,gitea,livekit
+##   namgun.or.kr: COMPOSE_PROFILES=livekit
+##   최소:        COMPOSE_PROFILES= (코어만)
 ## ===========================================
 
 services:
@@ -15,7 +21,7 @@ services:
       POSTGRES_DB: workspace
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./init/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-workspace}"]
       interval: 10s
@@ -49,10 +55,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
     volumes:
-      - storage-data:/storage
-    expose:
-      - "8000"
+      - storage-vol:/storage
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
@@ -67,15 +73,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: ws-frontend
-    expose:
-      - "3000"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
     restart: unless-stopped
 
-  # ─── 5. Nginx (TLS 종단) ───
+  # ─── 5. Nginx (TLS 종단) — profiles: nginx ───
   nginx:
     image: nginx:alpine
     container_name: ws-nginx
-    profiles: ["default"]
+    profiles: ["nginx"]
     ports:
       - "80:80"
       - "443:443"
@@ -90,10 +96,11 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  # ─── 6. Stalwart Mail ───
+  # ─── 6. Stalwart Mail — profiles: stalwart ───
   stalwart:
     image: stalwartlabs/mail-server:latest
     container_name: ws-stalwart
+    profiles: ["stalwart"]
     ports:
       - "25:25"
       - "587:587"
@@ -106,10 +113,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ─── 7. Gitea ───
+  # ─── 7. Gitea — profiles: gitea ───
   gitea:
     image: gitea/gitea:latest
     container_name: ws-gitea
+    profiles: ["gitea"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,14 +138,14 @@ services:
       - "3000"
     restart: unless-stopped
 
-  # ─── 8. LiveKit ───
+  # ─── 8. LiveKit — profiles: livekit ───
   livekit:
     image: livekit/livekit-server:latest
     container_name: ws-livekit
+    profiles: ["livekit"]
     ports:
+      - "7880:7880"
       - "7882:7882/udp"
-    expose:
-      - "7880"
     command: --config /etc/livekit.yaml
     volumes:
       - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
@@ -148,8 +156,8 @@ volumes:
     name: ws-postgres-data
   redis-data:
     name: ws-redis-data
-  storage-data:
-    name: ws-storage-data
+  storage-vol:
+    name: ${STORAGE_VOLUME:-ws-storage-data}
   stalwart-data:
     name: ws-stalwart-data
   gitea-data:
