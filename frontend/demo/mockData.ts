@@ -517,17 +517,17 @@ const demoServiceUsage = [
 const demoActiveUsers = [
   {
     user_id: 'demo-user-001', username: 'demo', display_name: '데모 사용자',
-    path: '/api/mail/messages', ip_address: '211.244.144.10', country_code: 'KR',
+    path: '/api/mail/messages', ip_address: '211.244.144.10',
     last_seen: new Date(Date.now() - 60000).toISOString(),
   },
   {
     user_id: 'user-002', username: 'cheolsu', display_name: '김철수',
-    path: '/api/calendar/events', ip_address: '211.244.144.11', country_code: 'KR',
+    path: '/api/calendar/events', ip_address: '211.244.144.11',
     last_seen: new Date(Date.now() - 180000).toISOString(),
   },
   {
     user_id: 'user-003', username: 'younghee', display_name: '이영희',
-    path: '/api/files/list', ip_address: '203.130.45.67', country_code: 'KR',
+    path: '/api/files/list', ip_address: '203.130.45.67',
     last_seen: new Date(Date.now() - 240000).toISOString(),
   },
 ]
@@ -535,27 +535,27 @@ const demoActiveUsers = [
 const demoRecentLogins = [
   {
     user_id: 'demo-user-001', username: 'demo', display_name: '데모 사용자',
-    ip_address: '211.244.144.10', country_code: 'KR', country_name: '대한민국',
+    ip_address: '211.244.144.10',
     login_at: new Date(Date.now() - 1800000).toISOString(),
   },
   {
     user_id: 'user-002', username: 'cheolsu', display_name: '김철수',
-    ip_address: '211.244.144.11', country_code: 'KR', country_name: '대한민국',
+    ip_address: '211.244.144.11',
     login_at: new Date(Date.now() - 7200000).toISOString(),
   },
   {
     user_id: 'user-003', username: 'younghee', display_name: '이영희',
-    ip_address: '203.130.45.67', country_code: 'KR', country_name: '대한민국',
+    ip_address: '203.130.45.67',
     login_at: new Date(Date.now() - 14400000).toISOString(),
   },
   {
     user_id: 'demo-user-001', username: 'demo', display_name: '데모 사용자',
-    ip_address: '68.45.123.89', country_code: 'US', country_name: '미국',
+    ip_address: '68.45.123.89',
     login_at: new Date(Date.now() - 86400000).toISOString(),
   },
   {
     user_id: 'user-002', username: 'cheolsu', display_name: '김철수',
-    ip_address: '211.244.144.11', country_code: 'KR', country_name: '대한민국',
+    ip_address: '211.244.144.11',
     login_at: new Date(Date.now() - 172800000).toISOString(),
   },
 ]
@@ -584,8 +584,6 @@ function generateAccessLogs(): any {
       browser: browsers[Math.floor(Math.random() * browsers.length)],
       os: oses[Math.floor(Math.random() * oses.length)],
       device: 'Desktop',
-      country_code: 'KR',
-      country_name: '대한민국',
       user_id: u.id,
       username: u.username,
       service: p.split('/')[2] || null,

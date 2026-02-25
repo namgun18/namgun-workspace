@@ -92,7 +92,7 @@ class AccessLog(Base):
         Index("ix_access_logs_created_at", "created_at"),
         Index("ix_access_logs_user_id", "user_id"),
         Index("ix_access_logs_created_service", "created_at", "service"),
-        Index("ix_access_logs_created_country", "created_at", "country_code"),
+        Index("ix_access_logs_ip_address", "ip_address"),
     )
 
     id: Mapped[str] = mapped_column(
@@ -107,8 +107,6 @@ class AccessLog(Base):
     browser: Mapped[str | None] = mapped_column(String(100), nullable=True)
     os: Mapped[str | None] = mapped_column(String(100), nullable=True)
     device: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    country_code: Mapped[str | None] = mapped_column(String(2), nullable=True)
-    country_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     user_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=True
     )

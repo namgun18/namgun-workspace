@@ -35,7 +35,6 @@ export interface ActiveUser {
   display_name: string | null
   path: string
   ip_address: string
-  country_code: string | null
   last_seen: string
 }
 
@@ -44,8 +43,6 @@ export interface RecentLogin {
   username: string
   display_name: string | null
   ip_address: string
-  country_code: string | null
-  country_name: string | null
   login_at: string
 }
 
@@ -59,8 +56,6 @@ export interface AccessLogEntry {
   browser: string | null
   os: string | null
   device: string | null
-  country_code: string | null
-  country_name: string | null
   user_id: string | null
   username: string | null
   service: string | null

@@ -470,7 +470,6 @@ async def analytics_active_users(
             User.display_name,
             AccessLog.path,
             AccessLog.ip_address,
-            AccessLog.country_code,
             subq.c.last_seen,
         )
         .join(AccessLog, and_(
@@ -483,8 +482,8 @@ async def analytics_active_users(
     return [
         ActiveUser(
             user_id=row[0], username=row[1], display_name=row[2],
-            path=row[3], ip_address=row[4], country_code=row[5],
-            last_seen=row[6].isoformat() if row[6] else "",
+            path=row[3], ip_address=row[4],
+            last_seen=row[5].isoformat() if row[5] else "",
         )
         for row in result.all()
     ]
@@ -505,8 +504,6 @@ async def analytics_recent_logins(
             User.username,
             User.display_name,
             AccessLog.ip_address,
-            AccessLog.country_code,
-            AccessLog.country_name,
             AccessLog.created_at,
         )
         .join(User, User.id == AccessLog.user_id)
@@ -521,8 +518,8 @@ async def analytics_recent_logins(
     return [
         RecentLogin(
             user_id=row[0], username=row[1], display_name=row[2],
-            ip_address=row[3], country_code=row[4], country_name=row[5],
-            login_at=row[6].isoformat() if row[6] else "",
+            ip_address=row[3],
+            login_at=row[4].isoformat() if row[4] else "",
         )
         for row in result.all()
     ]
@@ -567,8 +564,6 @@ async def analytics_access_logs(
             AccessLog.browser,
             AccessLog.os,
             AccessLog.device,
-            AccessLog.country_code,
-            AccessLog.country_name,
             AccessLog.user_id,
             User.username,
             AccessLog.service,
@@ -585,10 +580,9 @@ async def analytics_access_logs(
             id=row[0], ip_address=row[1], method=row[2], path=row[3],
             status_code=row[4], response_time_ms=row[5],
             browser=row[6], os=row[7], device=row[8],
-            country_code=row[9], country_name=row[10],
-            user_id=row[11], username=row[12],
-            service=row[13],
-            created_at=row[14].isoformat() if row[14] else "",
+            user_id=row[9], username=row[10],
+            service=row[11],
+            created_at=row[12].isoformat() if row[12] else "",
         )
         for row in result.all()
     ]

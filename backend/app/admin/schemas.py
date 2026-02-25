@@ -40,7 +40,6 @@ class ActiveUser(BaseModel):
     display_name: str | None
     path: str
     ip_address: str
-    country_code: str | None
     last_seen: str
 
 
@@ -49,8 +48,6 @@ class RecentLogin(BaseModel):
     username: str
     display_name: str | None
     ip_address: str
-    country_code: str | None
-    country_name: str | None
     login_at: str
 
 
@@ -64,8 +61,6 @@ class AccessLogEntry(BaseModel):
     browser: str | None
     os: str | None
     device: str | None
-    country_code: str | None
-    country_name: str | None
     user_id: str | None
     username: str | None
     service: str | None
