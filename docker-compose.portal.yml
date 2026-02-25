@@ -18,7 +18,14 @@ services:
   livekit:
     profiles: ["disabled"]
 
+  postgres:
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init/init-db.portal.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+
   backend:
+    ports:
+      - "8000:8000"
     volumes:
       - portal-storage:/storage
 

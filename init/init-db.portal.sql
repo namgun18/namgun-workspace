@@ -1,0 +1,2 @@
+-- Portal 배포: Gitea DB 불필요 (외부 VM 사용)
+-- 빈 파일
