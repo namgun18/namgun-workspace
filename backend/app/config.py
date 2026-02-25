@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     gitea_url: str = "http://gitea:3000"
     gitea_token: str = ""
 
+    # LiveKit
+    livekit_url: str = "http://livekit:7880"
+
     # Portal OAuth Provider (for Gitea etc.)
     oauth_clients_json: str = "{}"
 

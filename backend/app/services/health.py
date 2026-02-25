@@ -5,29 +5,33 @@ import time
 
 import httpx
 
+from app.config import get_settings
 from app.services.schemas import ServiceStatus
 
-# Service definitions — Docker 내부 서비스명 사용
-SERVICE_DEFS = [
-    {
-        "name": "Gitea",
-        "health_url": "http://gitea:3000/api/v1/version",
-        "external_url": "/git/",
-        "internal_only": False,
-    },
-    {
-        "name": "Stalwart Mail",
-        "health_url": "http://stalwart:8080/.well-known/jmap",
-        "external_url": "/mail/",
-        "internal_only": True,
-    },
-    {
-        "name": "LiveKit",
-        "health_url": "http://livekit:7880/",
-        "external_url": None,
-        "internal_only": True,
-    },
-]
+
+def _build_service_defs() -> list[dict]:
+    """Build SERVICE_DEFS from settings — allows .env to override URLs."""
+    s = get_settings()
+    return [
+        {
+            "name": "Gitea",
+            "health_url": f"{s.gitea_url}/api/v1/version",
+            "external_url": "/git/",
+            "internal_only": False,
+        },
+        {
+            "name": "Stalwart Mail",
+            "health_url": f"{s.stalwart_url}/.well-known/jmap",
+            "external_url": "/mail/",
+            "internal_only": True,
+        },
+        {
+            "name": "LiveKit",
+            "health_url": s.livekit_url.replace("ws://", "http://").replace("wss://", "https://") + "/",
+            "external_url": None,
+            "internal_only": True,
+        },
+    ]
 
 # In-memory cache
 _cache: list[ServiceStatus] = []
@@ -73,8 +77,9 @@ async def run_health_checker():
     """Background task: check all services every 60s."""
     global _cache
     while True:
+        defs = _build_service_defs()
         results = await asyncio.gather(
-            *(check_service(svc) for svc in SERVICE_DEFS),
+            *(check_service(svc) for svc in defs),
             return_exceptions=True,
         )
         _cache = [
@@ -99,6 +104,6 @@ def get_cached_status() -> list[ServiceStatus]:
                 response_ms=None,
                 internal_only=svc["internal_only"],
             )
-            for svc in SERVICE_DEFS
+            for svc in _build_service_defs()
         ]
     return _cache

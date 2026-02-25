@@ -1,0 +1,31 @@
+## ===========================================
+## Portal (namgun.or.kr) override
+## ===========================================
+## Usage:
+##   docker compose -f docker-compose.yml -f docker-compose.portal.yml up -d
+##
+## Stalwart / Gitea / LiveKit run on external VMs,
+## so their containers are disabled here.
+## ===========================================
+
+services:
+  stalwart:
+    profiles: ["disabled"]
+
+  gitea:
+    profiles: ["disabled"]
+
+  livekit:
+    profiles: ["disabled"]
+
+  backend:
+    volumes:
+      - portal-storage:/storage
+
+volumes:
+  portal-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.0.100,nfsvers=4,rw,hard,noatime,nolock
+      device: ":/portal"
