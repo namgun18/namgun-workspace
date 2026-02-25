@@ -409,17 +409,15 @@ async def get_or_create_dm(
 # ─── User Search ───
 
 async def search_users(
-    db: AsyncSession, query: str, limit: int = 20
+    db: AsyncSession, query: str | None = None, limit: int = 50
 ) -> list[dict]:
-    q = (
-        select(User)
-        .where(
-            User.is_active == True,  # noqa: E712
+    q = select(User).where(User.is_active == True)  # noqa: E712
+    if query:
+        q = q.where(
             (User.username.ilike(f"%{query}%"))
-            | (User.display_name.ilike(f"%{query}%")),
+            | (User.display_name.ilike(f"%{query}%"))
         )
-        .limit(limit)
-    )
+    q = q.order_by(User.display_name, User.username).limit(limit)
     rows = (await db.execute(q)).scalars().all()
     return [
         {

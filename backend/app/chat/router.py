@@ -257,6 +257,4 @@ async def search_users(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if not q.strip():
-        return []
-    return await service.search_users(db, q.strip())
+    return await service.search_users(db, q.strip() if q.strip() else None)

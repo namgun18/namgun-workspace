@@ -857,7 +857,11 @@ export function getMockResponse(method: string, path: string, query?: Record<str
   if (path === '/api/chat/channels' && method === 'POST') return { id: 'ch-new', name: 'new', type: 'public' }
   if (path === '/api/chat/dm' && method === 'POST') return { id: 'ch-dm-cheolsu', name: 'demo,cheolsu', type: 'dm' }
   if (path === '/api/chat/users') {
-    return demoAdminUsers.filter(u => u.username.includes(query?.q || '') || (u.display_name || '').includes(query?.q || '')).map(u => ({
+    const q = query?.q || ''
+    const list = q
+      ? demoAdminUsers.filter(u => u.username.includes(q) || (u.display_name || '').includes(q))
+      : demoAdminUsers
+    return list.map(u => ({
       id: u.id, username: u.username, display_name: u.display_name, avatar_url: null,
     }))
   }

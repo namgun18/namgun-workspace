@@ -12,6 +12,7 @@ const memberQuery = ref('')
 const memberResults = ref<Array<{ id: string; username: string; display_name: string | null; avatar_url: string | null }>>([])
 const selectedMembers = ref<Array<{ id: string; username: string; display_name: string | null }>>([])
 const creating = ref(false)
+const errorMessage = ref('')
 const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 function onSearchInput() {
@@ -40,6 +41,7 @@ function removeMember(id: string) {
 async function onSubmit() {
   if (!name.value.trim()) return
   creating.value = true
+  errorMessage.value = ''
   try {
     const result = await createChannel(
       name.value.trim(),
@@ -50,7 +52,8 @@ async function onSubmit() {
     await selectChannel(result.id)
     emit('close')
   } catch (e: any) {
-    console.error('createChannel error:', e)
+    const detail = e?.data?.detail || e?.message || '채널 생성에 실패했습니다.'
+    errorMessage.value = typeof detail === 'string' ? detail : '채널 생성에 실패했습니다.'
   } finally {
     creating.value = false
   }
@@ -147,6 +150,9 @@ async function onSubmit() {
             </span>
           </div>
         </div>
+
+        <!-- Error -->
+        <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
 
         <!-- Submit -->
         <div class="flex justify-end gap-2 pt-2">

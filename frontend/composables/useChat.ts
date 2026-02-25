@@ -51,6 +51,13 @@ export interface TypingUser {
   timeout: ReturnType<typeof setTimeout>
 }
 
+export interface WorkspaceUser {
+  id: string
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+}
+
 // Module-level singleton state
 const channels = ref<Channel[]>([])
 const selectedChannelId = ref<string | null>(null)
@@ -64,6 +71,7 @@ const wsConnected = ref(false)
 const onlineUsers = ref<Set<string>>(new Set())
 const typingUsers = ref<Map<string, TypingUser>>(new Map())
 const showMemberPanel = ref(false)
+const allUsers = ref<WorkspaceUser[]>([])
 
 let _ws: WebSocket | null = null
 let _reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -249,6 +257,15 @@ export function useChat() {
       onlineUsers.value = new Set(data.online_user_ids)
     } catch (e: any) {
       console.error('fetchPresence error:', e)
+    }
+  }
+
+  async function fetchAllUsers() {
+    try {
+      const data = await $fetch<WorkspaceUser[]>('/api/chat/users')
+      allUsers.value = data
+    } catch (e: any) {
+      console.error('fetchAllUsers error:', e)
     }
   }
 
@@ -463,8 +480,7 @@ export function useChat() {
   async function init() {
     if (_initialized) return
     _initialized = true
-    await fetchChannels()
-    await fetchPresence()
+    await Promise.all([fetchChannels(), fetchPresence(), fetchAllUsers()])
     connectWS()
   }
 
@@ -487,6 +503,7 @@ export function useChat() {
     onlineUsers: readonly(onlineUsers),
     typingUsers: readonly(typingUsers),
     showMemberPanel,
+    allUsers: readonly(allUsers),
     // Computed
     selectedChannel,
     sortedChannels,
@@ -495,6 +512,7 @@ export function useChat() {
     init,
     cleanup,
     fetchChannels,
+    fetchAllUsers,
     selectChannel,
     fetchMessages,
     fetchMembers,
