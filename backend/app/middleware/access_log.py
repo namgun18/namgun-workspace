@@ -1,6 +1,7 @@
 """Access logging middleware — captures all /api/ requests with async batch insert."""
 
 import asyncio
+import ipaddress
 import logging
 import time
 import uuid
@@ -43,6 +44,14 @@ _FLUSH_INTERVAL = 5  # seconds
 _flusher_running = False
 
 
+def _is_private_ip(ip: str) -> bool:
+    """Return True for RFC-1918, loopback, and other private/reserved IPs."""
+    try:
+        return ipaddress.ip_address(ip).is_private
+    except ValueError:
+        return False
+
+
 def _classify_service(path: str) -> str | None:
     for prefix, name in _SERVICE_MAP:
         if path.startswith(prefix):
@@ -83,6 +92,10 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
         ).split(",")[0].strip()
         if not ip and request.client:
             ip = request.client.host
+
+        # Skip logging for private/reserved IPs (still serve the request)
+        if ip and _is_private_ip(ip):
+            return response
 
         ua = request.headers.get("user-agent", "")
         browser, os_name, device = parse_user_agent(ua)

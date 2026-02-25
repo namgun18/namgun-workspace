@@ -2,7 +2,9 @@
 
 import asyncio
 import logging
+import time as _time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -255,6 +257,38 @@ def _period_start(period: str) -> datetime:
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
+# ── In-memory TTL cache ──────────────────────────────────
+
+_cache: dict[str, tuple[float, Any]] = {}
+_CACHE_TTL = 30  # seconds
+
+
+def _cached(key: str) -> Any | None:
+    entry = _cache.get(key)
+    if entry and _time.monotonic() - entry[0] < _CACHE_TTL:
+        return entry[1]
+    return None
+
+
+def _set_cache(key: str, value: Any) -> None:
+    _cache[key] = (_time.monotonic(), value)
+
+
+# ── Private IP exclusion for existing DB data ────────────
+
+_PRIVATE_PREFIXES = (
+    "10.", "172.16.", "172.17.", "172.18.", "172.19.",
+    "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
+    "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
+    "172.30.", "172.31.", "192.168.", "127.",
+)
+
+
+def _exclude_private_ip():
+    """SQLAlchemy filter: exclude rows with private IP addresses."""
+    return and_(*(~AccessLog.ip_address.startswith(p) for p in _PRIVATE_PREFIXES))
+
+
 # ── GET /api/admin/analytics/overview ─────────────────────
 
 
@@ -264,6 +298,10 @@ async def analytics_overview(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    cache_key = f"overview:{period}"
+    if (hit := _cached(cache_key)) is not None:
+        return hit
+
     since = _period_start(period)
     result = await db.execute(
         select(
@@ -272,16 +310,18 @@ async def analytics_overview(
             func.count(case((AccessLog.user_id.isnot(None), 1))),
             func.count(case((AccessLog.user_id.is_(None), 1))),
             func.coalesce(func.avg(AccessLog.response_time_ms), 0),
-        ).where(AccessLog.created_at >= since)
+        ).where(and_(AccessLog.created_at >= since, _exclude_private_ip()))
     )
     row = result.one()
-    return AnalyticsOverview(
+    data = AnalyticsOverview(
         total_visits=row[0],
         unique_ips=row[1],
         authenticated_visits=row[2],
         unauthenticated_visits=row[3],
         avg_response_time_ms=int(row[4]),
     )
+    _set_cache(cache_key, data)
+    return data
 
 
 # ── GET /api/admin/analytics/daily-visits ─────────────────
@@ -293,6 +333,10 @@ async def analytics_daily_visits(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    cache_key = f"daily:{days}"
+    if (hit := _cached(cache_key)) is not None:
+        return hit
+
     since = datetime.now(timezone.utc) - timedelta(days=days)
     date_col = func.date(AccessLog.created_at)
     result = await db.execute(
@@ -302,14 +346,16 @@ async def analytics_daily_visits(
             func.count(case((AccessLog.user_id.isnot(None), 1))),
             func.count(case((AccessLog.user_id.is_(None), 1))),
         )
-        .where(AccessLog.created_at >= since)
+        .where(and_(AccessLog.created_at >= since, _exclude_private_ip()))
         .group_by(date_col)
         .order_by(date_col)
     )
-    return [
+    data = [
         DailyVisit(date=str(row[0]), total=row[1], authenticated=row[2], unauthenticated=row[3])
         for row in result.all()
     ]
+    _set_cache(cache_key, data)
+    return data
 
 
 # ── GET /api/admin/analytics/top-pages ────────────────────
@@ -322,15 +368,21 @@ async def analytics_top_pages(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    cache_key = f"pages:{period}"
+    if (hit := _cached(cache_key)) is not None:
+        return hit
+
     since = _period_start(period)
     result = await db.execute(
         select(AccessLog.path, func.count(AccessLog.id).label("cnt"))
-        .where(AccessLog.created_at >= since)
+        .where(and_(AccessLog.created_at >= since, _exclude_private_ip()))
         .group_by(AccessLog.path)
         .order_by(func.count(AccessLog.id).desc())
         .limit(limit)
     )
-    return [TopPage(path=row[0], count=row[1]) for row in result.all()]
+    data = [TopPage(path=row[0], count=row[1]) for row in result.all()]
+    _set_cache(cache_key, data)
+    return data
 
 
 # ── GET /api/admin/analytics/countries ────────────────────
@@ -343,22 +395,42 @@ async def analytics_countries(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    cache_key = f"countries:{period}"
+    if (hit := _cached(cache_key)) is not None:
+        return hit
+
     since = _period_start(period)
-    result = await db.execute(
+    # Unique IP count per country (not raw request count)
+    subq = (
         select(
+            AccessLog.ip_address,
             AccessLog.country_code,
             AccessLog.country_name,
-            func.count(AccessLog.id).label("cnt"),
         )
-        .where(and_(AccessLog.created_at >= since, AccessLog.country_code.isnot(None)))
-        .group_by(AccessLog.country_code, AccessLog.country_name)
-        .order_by(func.count(AccessLog.id).desc())
+        .where(and_(
+            AccessLog.created_at >= since,
+            AccessLog.country_code.isnot(None),
+            _exclude_private_ip(),
+        ))
+        .group_by(AccessLog.ip_address, AccessLog.country_code, AccessLog.country_name)
+        .subquery()
+    )
+    result = await db.execute(
+        select(
+            subq.c.country_code,
+            subq.c.country_name,
+            func.count(subq.c.ip_address).label("ip_count"),
+        )
+        .group_by(subq.c.country_code, subq.c.country_name)
+        .order_by(func.count(subq.c.ip_address).desc())
         .limit(limit)
     )
-    return [
+    data = [
         CountryStats(country_code=row[0], country_name=row[1], count=row[2])
         for row in result.all()
     ]
+    _set_cache(cache_key, data)
+    return data
 
 
 # ── GET /api/admin/analytics/service-usage ────────────────
@@ -370,14 +442,20 @@ async def analytics_service_usage(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    cache_key = f"services:{period}"
+    if (hit := _cached(cache_key)) is not None:
+        return hit
+
     since = _period_start(period)
     result = await db.execute(
         select(AccessLog.service, func.count(AccessLog.id).label("cnt"))
-        .where(and_(AccessLog.created_at >= since, AccessLog.service.isnot(None)))
+        .where(and_(AccessLog.created_at >= since, AccessLog.service.isnot(None), _exclude_private_ip()))
         .group_by(AccessLog.service)
         .order_by(func.count(AccessLog.id).desc())
     )
-    return [ServiceUsage(service=row[0], count=row[1]) for row in result.all()]
+    data = [ServiceUsage(service=row[0], count=row[1]) for row in result.all()]
+    _set_cache(cache_key, data)
+    return data
 
 
 # ── GET /api/admin/analytics/active-users ─────────────────
@@ -449,6 +527,7 @@ async def analytics_recent_logins(
         .where(and_(
             AccessLog.path.in_(["/api/auth/login", "/api/auth/callback"]),
             AccessLog.status_code < 400,
+            _exclude_private_ip(),
         ))
         .order_by(AccessLog.created_at.desc())
         .limit(limit)
@@ -475,13 +554,13 @@ async def analytics_access_logs(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    conditions = []
+    conditions = [_exclude_private_ip()]
     if service:
         conditions.append(AccessLog.service == service)
     if user_id:
         conditions.append(AccessLog.user_id == user_id)
 
-    where = and_(*conditions) if conditions else True
+    where = and_(*conditions)
 
     # Count
     count_result = await db.execute(
@@ -537,6 +616,9 @@ async def analytics_access_logs(
 async def analytics_git_activity(
     admin: User = Depends(require_admin),
 ):
+    if (hit := _cached("git-activity")) is not None:
+        return hit
+
     from app.git import gitea
     try:
         repos, _ = await gitea.search_repos(limit=10, sort="updated")
@@ -593,7 +675,9 @@ async def analytics_git_activity(
             pass
 
     items.sort(key=lambda x: x.created_at, reverse=True)
-    return items[:20]
+    data = items[:20]
+    _set_cache("git-activity", data)
+    return data
 
 
 # ── GET /api/admin/analytics/git-stats ────────────────────
@@ -603,6 +687,9 @@ async def analytics_git_activity(
 async def analytics_git_stats(
     admin: User = Depends(require_admin),
 ):
+    if (hit := _cached("git-stats")) is not None:
+        return hit
+
     from app.git import gitea
     try:
         repos, total_repos = await gitea.search_repos(limit=50, sort="updated")
@@ -610,12 +697,14 @@ async def analytics_git_stats(
         total_pulls = sum(r.get("open_pr_counter", 0) for r in repos)
         # Unique owners as proxy for users
         users = {r.get("owner", {}).get("login") for r in repos}
-        return GitStats(
+        data = GitStats(
             total_repos=total_repos,
             total_users=len(users),
             total_issues=total_issues,
             total_pulls=total_pulls,
         )
+        _set_cache("git-stats", data)
+        return data
     except Exception:
         return GitStats(total_repos=0, total_users=0, total_issues=0, total_pulls=0)
 
