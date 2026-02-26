@@ -371,6 +371,170 @@ class ContactDB(Base):
     )
 
 
+class Board(Base):
+    __tablename__ = "boards"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    name: Mapped[str] = mapped_column(String(100))
+    slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    categories: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    write_permission: Mapped[str] = mapped_column(String(20), default="all")  # all, admin
+    notice_permission: Mapped[str] = mapped_column(String(20), default="admin")  # all, admin
+    comment_permission: Mapped[str] = mapped_column(String(20), default="all")  # all, admin
+    allow_comments: Mapped[bool] = mapped_column(Boolean, default=True)
+    allow_reactions: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class Post(Base):
+    __tablename__ = "posts"
+    __table_args__ = (
+        Index("ix_posts_board_id", "board_id"),
+        Index("ix_posts_author_id", "author_id"),
+        Index("ix_posts_created_at", "created_at"),
+        Index("ix_posts_board_pinned", "board_id", "is_pinned"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    board_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("boards.id", ondelete="CASCADE")
+    )
+    author_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    title: Mapped[str] = mapped_column(String(255))
+    content: Mapped[str] = mapped_column(Text)
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_must_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    must_read_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    view_count: Mapped[int] = mapped_column(Integer, default=0)
+    comment_count: Mapped[int] = mapped_column(Integer, default=0)
+    attachments: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    is_edited: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class PostComment(Base):
+    __tablename__ = "post_comments"
+    __table_args__ = (
+        Index("ix_post_comments_post_id", "post_id"),
+        Index("ix_post_comments_author_id", "author_id"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    post_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("posts.id", ondelete="CASCADE")
+    )
+    author_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    parent_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("post_comments.id", ondelete="CASCADE"), nullable=True
+    )
+    content: Mapped[str] = mapped_column(Text)
+    attachments: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    is_edited: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class PostReaction(Base):
+    __tablename__ = "post_reactions"
+    __table_args__ = (
+        Index("ix_post_reactions_post_id", "post_id"),
+        Index("ix_post_reactions_unique", "post_id", "user_id", "emoji", unique=True),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    post_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("posts.id", ondelete="CASCADE")
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    emoji: Mapped[str] = mapped_column(String(10))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class PostBookmark(Base):
+    __tablename__ = "post_bookmarks"
+    __table_args__ = (
+        Index("ix_post_bookmarks_unique", "post_id", "user_id", unique=True),
+        Index("ix_post_bookmarks_user_id", "user_id"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    post_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("posts.id", ondelete="CASCADE")
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class PostReadLog(Base):
+    __tablename__ = "post_read_logs"
+    __table_args__ = (
+        Index("ix_post_read_logs_unique", "post_id", "user_id", unique=True),
+        Index("ix_post_read_logs_user_id", "user_id"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    post_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("posts.id", ondelete="CASCADE")
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    read_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
 class SystemSetting(Base):
     __tablename__ = "system_settings"
 

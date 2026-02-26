@@ -25,6 +25,7 @@ from app.chat.router import router as chat_router
 from app.chat.websocket import router as chat_ws_router
 from app.chat.webhook import router as webhook_router
 from app.modules.router import router as modules_router
+from app.board.router import router as board_router
 
 settings = get_settings()
 _health_task = None
@@ -110,6 +111,7 @@ app.include_router(meetings_router)
 app.include_router(chat_router)
 app.include_router(chat_ws_router)
 app.include_router(webhook_router)
+app.include_router(board_router)
 
 
 @app.get("/api/health")

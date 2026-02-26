@@ -86,6 +86,16 @@ BUILTIN_MODULES: list[dict[str, Any]] = [
         "requires": [],
         "default_enabled": True,
     },
+    {
+        "id": "board",
+        "name": "게시판",
+        "icon": "clipboard-list",
+        "route": "/board",
+        "api_prefix": "/api/board",
+        "type": "builtin",
+        "requires": [],
+        "default_enabled": True,
+    },
 ]
 
 # ─── In-memory cache ───

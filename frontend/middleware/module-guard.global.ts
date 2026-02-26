@@ -16,6 +16,7 @@ export default defineNuxtRouteMiddleware((to) => {
     '/calendar': 'calendar',
     '/contacts': 'contacts',
     '/git': 'git',
+    '/board': 'board',
   }
 
   for (const [prefix, moduleId] of Object.entries(moduleRoutes)) {
