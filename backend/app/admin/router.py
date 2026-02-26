@@ -124,7 +124,7 @@ async def approve_user(
         except Exception:
             mail_created = False
 
-    # Activate in portal DB
+    # Activate in DB
     user.is_active = True
     await db.commit()
 
@@ -163,7 +163,7 @@ async def reject_user(
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Reject a pending user registration (deletes from portal)."""
+    """Reject a pending user registration (deletes from workspace)."""
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
@@ -176,7 +176,7 @@ async def reject_user(
         except Exception:
             pass
 
-    # Delete from portal DB
+    # Delete from DB
     await db.delete(user)
     await db.commit()
 
@@ -201,7 +201,7 @@ async def deactivate_user_endpoint(
     if user.id == admin.id:
         raise HTTPException(status_code=400, detail="자기 자신은 비활성화할 수 없습니다")
 
-    # Deactivate in portal DB
+    # Deactivate in DB
     user.is_active = False
     await db.commit()
 
@@ -234,7 +234,7 @@ async def set_user_role(
         role = "관리자" if body.is_admin else "일반 사용자"
         raise HTTPException(status_code=400, detail=f"이미 {role}입니다")
 
-    # Update portal DB
+    # Update DB
     user.is_admin = body.is_admin
     await db.commit()
 

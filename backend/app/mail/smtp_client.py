@@ -173,7 +173,7 @@ async def send_mdn(
 
     # Machine-readable part (RFC 8098)
     disposition = (
-        f"Reporting-UA: {settings.domain}; namgun-portal\r\n"
+        f"Reporting-UA: {settings.domain}; workspace\r\n"
         f"Original-Message-ID: {original_message_id}\r\n"
         f"Final-Recipient: rfc822;{from_email}\r\n"
         f"Disposition: manual-action/MDN-sent-manually; displayed\r\n"

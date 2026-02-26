@@ -95,7 +95,7 @@ async def me(user: User = Depends(get_current_user)):
 
 @router.post("/logout")
 async def logout():
-    """Clear portal session cookie."""
+    """Clear session cookie."""
     response = JSONResponse(content={"status": "ok"})
     response.delete_cookie(SESSION_COOKIE, path="/")
     return response
@@ -110,7 +110,7 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     """Register a new user (pending admin approval)."""
     email = f"{body.username}@{settings.domain}"
 
-    # Check if username already exists in portal DB
+    # Check if username already exists in DB
     result = await db.execute(select(User).where(User.username == body.username))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="이미 사용 중인 사용자명입니다")
@@ -118,7 +118,7 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     # Generate email verification token
     verify_token = secrets.token_urlsafe(32)
 
-    # Create portal DB record with bcrypt password hash
+    # Create DB record with bcrypt password hash
     user = User(
         username=body.username,
         display_name=body.display_name,

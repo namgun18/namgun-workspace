@@ -12,8 +12,8 @@ from app.db.session import get_db
 settings = get_settings()
 signer = URLSafeTimedSerializer(settings.secret_key)
 
-SESSION_COOKIE = "portal_session"
-PKCE_COOKIE = "portal_pkce"
+SESSION_COOKIE = "ws_session"
+PKCE_COOKIE = "ws_pkce"
 SESSION_MAX_AGE_DEFAULT = 3600 * 8    # 8 hours
 SESSION_MAX_AGE_REMEMBER = 86400 * 30  # 30 days
 SESSION_MAX_AGE = SESSION_MAX_AGE_REMEMBER  # max for unsign validation
@@ -31,13 +31,13 @@ def unsign_value(token: str, max_age: int = SESSION_MAX_AGE) -> dict | None:
 
 
 async def get_current_user(
-    portal_session: str | None = Cookie(None),
+    ws_session: str | None = Cookie(None),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    if not portal_session:
+    if not ws_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
-    data = unsign_value(portal_session)
+    data = unsign_value(ws_session)
     if not data or "user_id" not in data:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 

@@ -154,8 +154,8 @@ manager = ConnectionManager()
 
 
 def _authenticate_ws(ws: WebSocket) -> str | None:
-    """Extract user_id from portal_session cookie."""
-    cookie = ws.cookies.get("portal_session")
+    """Extract user_id from workspace_session cookie."""
+    cookie = ws.cookies.get("ws_session")
     if not cookie:
         return None
     try:

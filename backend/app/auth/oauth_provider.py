@@ -43,7 +43,7 @@ def _create_access_token(user_id: str) -> str:
         "iss": settings.app_url,
         "iat": int(time.time()),
         "exp": int(time.time()) + ACCESS_TOKEN_TTL,
-        "type": "portal_oauth",
+        "type": "workspace_oauth",
     }
     return jwt.encode(payload, settings.secret_key, algorithm=JWT_ALGORITHM)
 
@@ -100,7 +100,7 @@ async def authorize(
     nonce: str | None = None,
     code_challenge: str | None = None,
     code_challenge_method: str | None = None,
-    portal_session: str | None = Cookie(None),
+    ws_session: str | None = Cookie(None),
     db: AsyncSession = Depends(get_db),
 ):
     # Validate client
@@ -115,15 +115,15 @@ async def authorize(
     if response_type != "code":
         raise HTTPException(status_code=400, detail="Unsupported response_type")
 
-    # Check portal session
+    # Check session
     current_url = f"/oauth/authorize?{request.url.query}"
 
-    if not portal_session:
+    if not ws_session:
         return RedirectResponse(
             url=f"/login?redirect={quote(current_url)}", status_code=302
         )
 
-    data = unsign_value(portal_session)
+    data = unsign_value(ws_session)
     if not data or "user_id" not in data:
         return RedirectResponse(
             url=f"/login?redirect={quote(current_url)}", status_code=302

@@ -60,11 +60,11 @@ def _classify_service(path: str) -> str | None:
 
 
 def _extract_user_id(request: Request) -> str | None:
-    """Extract user_id from portal_session cookie without DB lookup."""
+    """Extract user_id from workspace_session cookie without DB lookup."""
     from itsdangerous import URLSafeTimedSerializer, BadSignature
     from app.config import get_settings
 
-    cookie = request.cookies.get("portal_session")
+    cookie = request.cookies.get("ws_session")
     if not cookie:
         return None
     try:

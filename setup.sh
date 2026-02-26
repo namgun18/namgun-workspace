@@ -117,13 +117,23 @@ fi
 if [[ "$SKIP_ENV" == "false" ]]; then
     echo ""
     echo -e "${BOLD}═══════════════════════════════════════${NC}"
-    echo -e "${BOLD}  namgun-workspace — Initial Setup${NC}"
+    echo -e "${BOLD}  Workspace — Initial Setup${NC}"
     echo -e "${BOLD}═══════════════════════════════════════${NC}"
     echo ""
 
+    # App Name
+    read -rp "App name [Workspace]: " APP_NAME
+    APP_NAME="${APP_NAME:-Workspace}"
+
     # Domain
-    read -rp "Domain (e.g. workspace.example.com): " DOMAIN
+    read -rp "Domain or IP (e.g. workspace.example.com or 192.168.1.100): " DOMAIN
     DOMAIN="${DOMAIN:-localhost}"
+
+    # Detect if domain is an IP address
+    IS_IP=false
+    if [[ "$DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        IS_IP=true
+    fi
 
     # Admin
     read -rp "Admin username: " ADMIN_USERNAME
@@ -170,6 +180,24 @@ if [[ "$SKIP_ENV" == "false" ]]; then
             *) warn "Unknown profile number: $n" ;;
         esac
     done
+    # Warn: nginx requires domain + TLS cert
+    if [[ "$IS_IP" == "true" ]]; then
+        # IP address → remove nginx/certbot, force HTTP
+        local cleaned=()
+        for p in "${PROFILES[@]}"; do
+            if [[ "$p" == "nginx" || "$p" == "certbot" ]]; then
+                warn "nginx/certbot removed — TLS requires a domain name, not an IP."
+            else
+                cleaned+=("$p")
+            fi
+        done
+        PROFILES=("${cleaned[@]}")
+    fi
+
+    if [[ " ${PROFILES[*]} " =~ " nginx " ]] && [[ ! " ${PROFILES[*]} " =~ " certbot " ]]; then
+        warn "nginx without certbot — you must provide TLS certificates manually."
+    fi
+
     COMPOSE_PROFILES=$(IFS=,; echo "${PROFILES[*]}")
 
     # ─── 5. Generate secrets ───
@@ -204,7 +232,7 @@ FRONTEND_PORT=3000
 STORAGE_VOLUME=ws-storage-data
 
 # ─── App ───
-APP_NAME=Workspace
+APP_NAME=${APP_NAME}
 APP_URL=${APP_URL}
 DOMAIN=${DOMAIN}
 DEBUG=false
@@ -260,6 +288,11 @@ ENVEOF
     # Enable mailserver profile flag if selected
     if [[ " ${PROFILES[*]} " =~ " mailserver " ]]; then
         sed -i 's/^FEATURE_BUILTIN_MAILSERVER=false/FEATURE_BUILTIN_MAILSERVER=true/' "$ENV_FILE"
+
+        # Generate dovecot master user config
+        DOVECOT_PW=$(grep DOVECOT_MASTER_PASSWORD "$ENV_FILE" | cut -d= -f2)
+        echo "portal:{PLAIN}${DOVECOT_PW}" > "$SCRIPT_DIR/mailserver/config/dovecot-masters.cf"
+        ok "Dovecot master user configured"
     fi
 fi
 
