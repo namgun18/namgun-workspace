@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 
     # Gitea
     gitea_url: str = "http://gitea:3000"
+    gitea_external_url: str = ""  # browser-facing URL (empty → APP_URL/git/)
     gitea_token: str = ""
     gitea_webhook_secret: str = ""
     gitea_webhook_channel: str = ""  # empty → "git-notifications"

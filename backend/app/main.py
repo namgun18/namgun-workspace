@@ -130,5 +130,5 @@ async def health_check():
         "version": "3.2.0",
         "domain": settings.domain,
         "app_url": settings.app_url,
-        "gitea_url": f"{settings.app_url}/git/",
+        "gitea_url": settings.gitea_external_url or f"{settings.app_url}/git/",
     }
