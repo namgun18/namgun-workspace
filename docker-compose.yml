@@ -201,6 +201,7 @@ volumes:
     name: ws-redis-data
   storage-vol:
     name: ${STORAGE_VOLUME:-ws-storage-data}
+    external: true
   mail-data:
     name: ws-mail-data
   mail-state:

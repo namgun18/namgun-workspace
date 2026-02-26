@@ -277,7 +277,15 @@ if [[ "${COMPOSE_PROFILES:-}" == *"mailserver"* ]]; then
     fi
 fi
 
-# ─── 8. Build and start ───
+# ─── 8. Create storage volume (external) and build ───
+STORAGE_VOL="${STORAGE_VOLUME:-ws-storage-data}"
+if docker volume inspect "$STORAGE_VOL" >/dev/null 2>&1; then
+    ok "Storage volume '$STORAGE_VOL' already exists"
+else
+    docker volume create "$STORAGE_VOL"
+    ok "Storage volume '$STORAGE_VOL' created"
+fi
+
 echo ""
 info "Building and starting containers..."
 docker compose up -d --build

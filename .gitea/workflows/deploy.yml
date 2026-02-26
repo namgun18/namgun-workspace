@@ -14,6 +14,13 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
 
+      - name: Ensure storage volume
+        run: |
+          cd /mnt/d/Docker/namgun-workspace
+          . .env 2>/dev/null || true
+          VOL="${STORAGE_VOLUME:-ws-storage-data}"
+          docker volume inspect "$VOL" >/dev/null 2>&1 || docker volume create "$VOL"
+
       - name: Build and deploy
         run: |
           cd /mnt/d/Docker/namgun-workspace
