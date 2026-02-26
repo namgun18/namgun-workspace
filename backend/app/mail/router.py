@@ -17,6 +17,8 @@ from app.mail.crypto import encrypt_password
 from app.mail.schemas import (
     Mailbox,
     MailboxListResponse,
+    MailboxCreateRequest,
+    MailboxRenameRequest,
     MessageDetail,
     MessageListResponse,
     MessageSummary,
@@ -343,6 +345,62 @@ async def list_mailboxes(
     return MailboxListResponse(mailboxes=mailboxes)
 
 
+_PROTECTED_MAILBOXES = {"INBOX", "Sent", "Drafts", "Trash", "Junk", "Archive"}
+
+
+@router.post("/mailboxes", status_code=201)
+@require_module("mail")
+async def create_mailbox(
+    body: MailboxCreateRequest,
+    account_id: str | None = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.name in _PROTECTED_MAILBOXES:
+        raise HTTPException(status_code=400, detail="기본 폴더는 생성할 수 없습니다")
+    account = await _get_account(db, user, account_id)
+    ok = await imap_client.create_mailbox(account, body.name)
+    if not ok:
+        raise HTTPException(status_code=500, detail="편지함 생성에 실패했습니다")
+    return {"ok": True, "name": body.name}
+
+
+@router.patch("/mailboxes")
+@require_module("mail")
+async def rename_mailbox(
+    body: MailboxRenameRequest,
+    account_id: str | None = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.old_name in _PROTECTED_MAILBOXES:
+        raise HTTPException(status_code=400, detail="기본 폴더는 이름을 변경할 수 없습니다")
+    if body.new_name in _PROTECTED_MAILBOXES:
+        raise HTTPException(status_code=400, detail="기본 폴더 이름으로 변경할 수 없습니다")
+    account = await _get_account(db, user, account_id)
+    ok = await imap_client.rename_mailbox(account, body.old_name, body.new_name)
+    if not ok:
+        raise HTTPException(status_code=500, detail="편지함 이름 변경에 실패했습니다")
+    return {"ok": True}
+
+
+@router.delete("/mailboxes/{mailbox_name:path}")
+@require_module("mail")
+async def delete_mailbox(
+    mailbox_name: str,
+    account_id: str | None = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if mailbox_name in _PROTECTED_MAILBOXES:
+        raise HTTPException(status_code=400, detail="기본 폴더는 삭제할 수 없습니다")
+    account = await _get_account(db, user, account_id)
+    ok = await imap_client.delete_mailbox(account, mailbox_name)
+    if not ok:
+        raise HTTPException(status_code=500, detail="편지함 삭제에 실패했습니다")
+    return {"ok": True}
+
+
 # ─── Messages list ───
 
 
@@ -424,7 +482,87 @@ async def get_message(
         is_unread=msg.get("is_unread", False),
         is_flagged=msg.get("is_flagged", False),
         attachments=[Attachment(**a) for a in msg.get("attachments", [])],
+        disposition_notification_to=msg.get("disposition_notification_to"),
+        mdn_sent=msg.get("mdn_sent", False),
     )
+
+
+# ─── Raw headers ───
+
+
+@router.get("/messages/{message_uid}/headers")
+@require_module("mail")
+async def get_message_headers(
+    message_uid: str,
+    mailbox_id: str = Query("INBOX"),
+    account_id: str | None = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account = await _get_account(db, user, account_id)
+    try:
+        headers = await imap_client.fetch_raw_headers(account, mailbox_id, message_uid)
+    except Exception as e:
+        logger.error("IMAP fetch_raw_headers failed: %s", e)
+        raise HTTPException(status_code=502, detail="메일 서버에 연결할 수 없습니다")
+
+    if headers is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    return {"headers": headers}
+
+
+# ─── MDN (read receipt) ───
+
+
+@router.post("/messages/{message_uid}/read-receipt")
+@require_module("mail")
+async def send_read_receipt(
+    message_uid: str,
+    mailbox_id: str = Query("INBOX"),
+    account_id: str | None = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account = await _get_account(db, user, account_id)
+
+    # Fetch message to get MDN destination and subject
+    try:
+        msg = await imap_client.fetch_message(account, mailbox_id, message_uid)
+    except Exception as e:
+        logger.error("IMAP fetch for MDN failed: %s", e)
+        raise HTTPException(status_code=502, detail="메일 서버에 연결할 수 없습니다")
+
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    dnt = msg.get("disposition_notification_to")
+    if not dnt:
+        raise HTTPException(status_code=400, detail="수신확인이 요청되지 않은 메일입니다")
+
+    if msg.get("mdn_sent"):
+        raise HTTPException(status_code=400, detail="이미 수신확인을 보냈습니다")
+
+    # Send MDN
+    original_message_id = msg.get("in_reply_to") or f"<uid-{message_uid}@{_settings.domain}>"
+    ok = await smtp_client.send_mdn(
+        account=account,
+        from_email=account.email,
+        to_email=dnt,
+        original_message_id=original_message_id,
+        original_subject=msg.get("subject") or "",
+    )
+
+    if not ok:
+        raise HTTPException(status_code=502, detail="수신확인 발송에 실패했습니다")
+
+    # Set $MDNSent flag to prevent duplicate
+    await imap_client.update_flags(
+        account, mailbox_id, message_uid,
+        add_flags=["$MDNSent"],
+    )
+
+    return {"ok": True}
 
 
 # ─── Update message (read/star/move) ───
@@ -536,6 +674,7 @@ async def send_message(
             html_body=body.html_body,
             in_reply_to=body.in_reply_to,
             references=body.references or None,
+            request_read_receipt=body.request_read_receipt,
         )
     except Exception as e:
         logger.error("SMTP send failed: %s", e)
@@ -573,6 +712,12 @@ async def bulk_action(
             mailboxes = await imap_client.list_mailboxes(account)
             trash = next((mb["id"] for mb in mailboxes if mb.get("role") == "trash"), None)
             await imap_client.delete_message(account, mailbox_id, uid, trash)
+        elif body.action == "spam":
+            mailboxes = await imap_client.list_mailboxes(account)
+            junk = next((mb["id"] for mb in mailboxes if mb.get("role") == "junk"), None)
+            if not junk:
+                raise HTTPException(status_code=400, detail="스팸 폴더를 찾을 수 없습니다")
+            await imap_client.move_message(account, mailbox_id, uid, junk)
         elif body.action == "move":
             if not body.mailbox_id:
                 raise HTTPException(status_code=400, detail="이동할 메일함을 지정해주세요")

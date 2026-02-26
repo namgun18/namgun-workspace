@@ -50,6 +50,8 @@ export interface MessageDetail {
   is_unread: boolean
   is_flagged: boolean
   attachments: Attachment[]
+  disposition_notification_to: string | null
+  mdn_sent: boolean
 }
 
 export interface UploadedAttachment {
@@ -315,6 +317,7 @@ export function useMail() {
     in_reply_to?: string | null
     references?: string[]
     attachments?: UploadedAttachment[]
+    request_read_receipt?: boolean
   }) {
     sending.value = true
     try {
@@ -410,6 +413,99 @@ export function useMail() {
     })
   }
 
+  async function markAsSpam(id: string) {
+    try {
+      await $fetch('/api/mail/bulk', {
+        method: 'POST',
+        body: { message_ids: [id], action: 'spam' },
+        params: { mailbox_id: selectedMailboxId.value || 'INBOX' },
+      })
+      messages.value = messages.value.filter(m => m.id !== id)
+      if (selectedMessage.value?.id === id) {
+        selectedMessage.value = null
+      }
+      await fetchMailboxes()
+    } catch (e: any) {
+      console.error('markAsSpam error:', e)
+    }
+  }
+
+  async function fetchRawHeaders(id: string): Promise<string | null> {
+    try {
+      const params: Record<string, any> = { mailbox_id: selectedMailboxId.value || 'INBOX' }
+      if (selectedAccountId.value) params.account_id = selectedAccountId.value
+      const data = await $fetch<{ headers: string }>(`/api/mail/messages/${id}/headers`, { params })
+      return data.headers
+    } catch (e: any) {
+      console.error('fetchRawHeaders error:', e)
+      return null
+    }
+  }
+
+  async function sendReadReceipt(id: string) {
+    try {
+      const params: Record<string, any> = { mailbox_id: selectedMailboxId.value || 'INBOX' }
+      if (selectedAccountId.value) params.account_id = selectedAccountId.value
+      await $fetch(`/api/mail/messages/${id}/read-receipt`, { method: 'POST', params })
+      if (selectedMessage.value?.id === id) {
+        selectedMessage.value = { ...selectedMessage.value, mdn_sent: true }
+      }
+    } catch (e: any) {
+      console.error('sendReadReceipt error:', e)
+    }
+  }
+
+  async function createMailbox(name: string) {
+    try {
+      const params: Record<string, any> = {}
+      if (selectedAccountId.value) params.account_id = selectedAccountId.value
+      await $fetch('/api/mail/mailboxes', {
+        method: 'POST',
+        body: { name },
+        params,
+      })
+      await fetchMailboxes()
+    } catch (e: any) {
+      console.error('createMailbox error:', e)
+      throw e
+    }
+  }
+
+  async function renameMailbox(oldName: string, newName: string) {
+    try {
+      const params: Record<string, any> = {}
+      if (selectedAccountId.value) params.account_id = selectedAccountId.value
+      await $fetch('/api/mail/mailboxes', {
+        method: 'PATCH',
+        body: { old_name: oldName, new_name: newName },
+        params,
+      })
+      await fetchMailboxes()
+    } catch (e: any) {
+      console.error('renameMailbox error:', e)
+      throw e
+    }
+  }
+
+  async function deleteMailbox(name: string) {
+    try {
+      const params: Record<string, any> = {}
+      if (selectedAccountId.value) params.account_id = selectedAccountId.value
+      await $fetch(`/api/mail/mailboxes/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+        params,
+      })
+      if (selectedMailboxId.value === name) {
+        selectedMailboxId.value = null
+        selectedMessage.value = null
+      }
+      await fetchMailboxes()
+    } catch (e: any) {
+      console.error('deleteMailbox error:', e)
+      throw e
+    }
+  }
+
   async function refresh() {
     await Promise.all([fetchMailboxes(), fetchMessages()])
   }
@@ -462,5 +558,11 @@ export function useMail() {
     setSearchQuery,
     downloadAttachment,
     refresh,
+    markAsSpam,
+    fetchRawHeaders,
+    sendReadReceipt,
+    createMailbox,
+    renameMailbox,
+    deleteMailbox,
   }
 }

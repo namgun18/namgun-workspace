@@ -451,6 +451,12 @@ async def fetch_message(account: MailAccount, mailbox: str, uid: str) -> dict | 
         if is_unread:
             await imap.store(uid, "+FLAGS", "(\\Seen)")
 
+        # MDN: extract Disposition-Notification-To and $MDNSent flag
+        dnt = msg.get("Disposition-Notification-To")
+        if dnt:
+            dnt = _decode_header(dnt).strip()
+        mdn_sent = "$MDNSent" in flags
+
         return {
             "id": msg_uid,
             "thread_id": None,
@@ -478,6 +484,8 @@ async def fetch_message(account: MailAccount, mailbox: str, uid: str) -> dict | 
             ],
             "in_reply_to": msg.get("In-Reply-To"),
             "references": msg.get("References"),
+            "disposition_notification_to": dnt or None,
+            "mdn_sent": mdn_sent,
         }
     finally:
         try:
@@ -588,6 +596,76 @@ async def download_attachment(
                 return data or b"", ct, filename
 
         return None
+    finally:
+        try:
+            await imap.logout()
+        except Exception:
+            pass
+
+
+async def create_mailbox(account: MailAccount, name: str) -> bool:
+    """Create a new IMAP mailbox."""
+    imap = await _connect(account)
+    try:
+        resp = await imap.create(name)
+        return resp.result == "OK"
+    except Exception:
+        return False
+    finally:
+        try:
+            await imap.logout()
+        except Exception:
+            pass
+
+
+async def rename_mailbox(account: MailAccount, old_name: str, new_name: str) -> bool:
+    """Rename an IMAP mailbox."""
+    imap = await _connect(account)
+    try:
+        resp = await imap.rename(old_name, new_name)
+        return resp.result == "OK"
+    except Exception:
+        return False
+    finally:
+        try:
+            await imap.logout()
+        except Exception:
+            pass
+
+
+async def delete_mailbox(account: MailAccount, name: str) -> bool:
+    """Delete an IMAP mailbox."""
+    imap = await _connect(account)
+    try:
+        resp = await imap.delete(name)
+        return resp.result == "OK"
+    except Exception:
+        return False
+    finally:
+        try:
+            await imap.logout()
+        except Exception:
+            pass
+
+
+async def fetch_raw_headers(account: MailAccount, mailbox: str, uid: str) -> str | None:
+    """Fetch raw RFC headers for a message by UID."""
+    imap = await _connect(account)
+    try:
+        await imap.select(mailbox)
+        fetch_resp = await imap.fetch(uid, "(BODY.PEEK[HEADER])")
+        if fetch_resp.result != "OK":
+            return None
+
+        raw_data = b""
+        for line in fetch_resp.lines:
+            if isinstance(line, (bytes, bytearray)):
+                raw_data += bytes(line)
+
+        if not raw_data:
+            return None
+
+        return raw_data.decode("utf-8", errors="replace")
     finally:
         try:
             await imap.logout()

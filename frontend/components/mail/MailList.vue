@@ -124,6 +124,7 @@ function handleReadClick(e: Event, id: string) {
       <div class="flex items-center gap-1 ml-auto">
         <button @click="bulkAction('read')" class="px-2 py-1 text-xs rounded hover:bg-accent" title="읽음 표시">읽음</button>
         <button @click="bulkAction('unread')" class="px-2 py-1 text-xs rounded hover:bg-accent" title="안읽음 표시">안읽음</button>
+        <button @click="bulkAction('spam')" class="px-2 py-1 text-xs rounded hover:bg-accent text-orange-600" title="스팸">스팸</button>
         <button @click="bulkAction('delete')" class="px-2 py-1 text-xs rounded hover:bg-accent text-destructive" title="삭제">삭제</button>
         <button @click="deselectAll" class="px-2 py-1 text-xs rounded hover:bg-accent" title="선택 해제">취소</button>
       </div>

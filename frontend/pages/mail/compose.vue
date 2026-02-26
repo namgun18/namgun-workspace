@@ -27,6 +27,7 @@ const uploading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const sending = ref(false)
 const ready = ref(false)
+const requestReadReceipt = ref(false)
 
 // Signature
 const selectedSignatureId = ref<string | null>(null)
@@ -207,6 +208,7 @@ async function handleSend() {
       in_reply_to: msgId.value || null,
       references: [],
       attachments: attachments.value.length > 0 ? attachments.value : undefined,
+      request_read_receipt: requestReadReceipt.value,
     })
     // Notify parent window to refresh
     if (window.opener) {
@@ -384,6 +386,14 @@ function handleClose() {
             <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
           </svg>
         </button>
+        <label class="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer ml-2">
+          <input
+            v-model="requestReadReceipt"
+            type="checkbox"
+            class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/50"
+          />
+          수신확인
+        </label>
       </div>
       <button
         @click="handleSend"

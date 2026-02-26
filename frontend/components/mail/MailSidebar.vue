@@ -3,7 +3,7 @@ const emit = defineEmits<{
   navigate: []
 }>()
 
-const { mailboxes, selectedMailboxId, selectMailbox } = useMail()
+const { mailboxes, selectedMailboxId, selectMailbox, createMailbox, renameMailbox, deleteMailbox } = useMail()
 
 const ROLE_LABELS: Record<string, string> = {
   inbox: '받은편지함',
@@ -23,6 +23,16 @@ const ROLE_ICONS: Record<string, string> = {
   archive: 'archive',
 }
 
+const PROTECTED_ROLES = new Set(['inbox', 'sent', 'drafts', 'trash', 'junk', 'archive'])
+
+const showCreateInput = ref(false)
+const newMailboxName = ref('')
+const creating = ref(false)
+
+const contextMenu = ref<{ x: number; y: number; mailbox: any } | null>(null)
+const renaming = ref<string | null>(null)
+const renameValue = ref('')
+
 function getLabel(mb: any) {
   if (mb.role && ROLE_LABELS[mb.role]) return ROLE_LABELS[mb.role]
   return mb.name
@@ -37,23 +47,110 @@ function handleSelect(id: string) {
   selectMailbox(id)
   emit('navigate')
 }
+
+async function handleCreate() {
+  const name = newMailboxName.value.trim()
+  if (!name) return
+  creating.value = true
+  try {
+    await createMailbox(name)
+    newMailboxName.value = ''
+    showCreateInput.value = false
+  } catch { /* handled in composable */ }
+  creating.value = false
+}
+
+function handleContextMenu(e: MouseEvent, mb: any) {
+  if (mb.role && PROTECTED_ROLES.has(mb.role)) return
+  e.preventDefault()
+  contextMenu.value = { x: e.clientX, y: e.clientY, mailbox: mb }
+}
+
+function startRename(mb: any) {
+  renaming.value = mb.id
+  renameValue.value = mb.name
+  contextMenu.value = null
+}
+
+async function handleRename(mb: any) {
+  const newName = renameValue.value.trim()
+  if (!newName || newName === mb.id) {
+    renaming.value = null
+    return
+  }
+  try {
+    await renameMailbox(mb.id, newName)
+  } catch { /* handled */ }
+  renaming.value = null
+}
+
+async function handleDeleteMailbox(mb: any) {
+  contextMenu.value = null
+  if (!confirm(`"${mb.name}" 편지함을 삭제하시겠습니까? 포함된 메일도 삭제됩니다.`)) return
+  try {
+    await deleteMailbox(mb.id)
+  } catch { /* handled */ }
+}
+
+// Close context menu on click outside
+if (import.meta.client) {
+  window.addEventListener('click', () => { contextMenu.value = null })
+}
 </script>
 
 <template>
   <aside class="flex flex-col h-full border-r bg-muted/30">
-    <div class="px-3 py-3 border-b">
+    <div class="flex items-center justify-between px-3 py-3 border-b">
       <h2 class="text-sm font-semibold text-foreground">메일</h2>
-    </div>
-    <nav class="flex-1 p-3 space-y-0.5 overflow-auto">
       <button
-        v-for="mb in mailboxes"
-        :key="mb.id"
-        @click="handleSelect(mb.id)"
-        class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors"
-        :class="selectedMailboxId === mb.id
-          ? 'bg-accent text-accent-foreground font-medium'
-          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'"
+        @click="showCreateInput = !showCreateInput"
+        class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+        title="편지함 추가"
       >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Create mailbox input -->
+    <div v-if="showCreateInput" class="px-3 py-2 border-b">
+      <form @submit.prevent="handleCreate" class="flex gap-1">
+        <input
+          v-model="newMailboxName"
+          type="text"
+          placeholder="편지함 이름"
+          class="flex-1 px-2 py-1 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+          :disabled="creating"
+        />
+        <button type="submit" :disabled="creating || !newMailboxName.trim()" class="px-2 py-1 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          추가
+        </button>
+      </form>
+    </div>
+
+    <nav class="flex-1 p-3 space-y-0.5 overflow-auto">
+      <template v-for="mb in mailboxes" :key="mb.id">
+        <!-- Rename mode -->
+        <form v-if="renaming === mb.id" @submit.prevent="handleRename(mb)" class="flex gap-1 px-1 py-1">
+          <input
+            v-model="renameValue"
+            type="text"
+            class="flex-1 px-2 py-1 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+            @keydown.escape="renaming = null"
+          />
+          <button type="submit" class="px-2 py-1 text-xs rounded-md bg-primary text-primary-foreground">확인</button>
+        </form>
+        <!-- Normal mode -->
+        <button
+          v-else
+          @click="handleSelect(mb.id)"
+          @contextmenu="handleContextMenu($event, mb)"
+          class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors"
+          :class="selectedMailboxId === mb.id
+            ? 'bg-accent text-accent-foreground font-medium'
+            : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'"
+        >
         <!-- Inbox -->
         <svg v-if="getIcon(mb) === 'inbox'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0">
           <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
@@ -93,6 +190,26 @@ function handleSelect(id: string) {
           {{ mb.unread_count > 99 ? '99+' : mb.unread_count }}
         </span>
       </button>
+      </template>
     </nav>
+
+    <!-- Context menu -->
+    <Teleport to="body">
+      <div
+        v-if="contextMenu"
+        class="fixed z-50 bg-popover border rounded-md shadow-md py-1 min-w-[140px]"
+        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+        @click.stop
+      >
+        <button
+          @click="startRename(contextMenu.mailbox)"
+          class="w-full px-3 py-1.5 text-sm text-left hover:bg-accent transition-colors"
+        >이름 변경</button>
+        <button
+          @click="handleDeleteMailbox(contextMenu.mailbox)"
+          class="w-full px-3 py-1.5 text-sm text-left hover:bg-accent text-destructive transition-colors"
+        >삭제</button>
+      </div>
+    </Teleport>
   </aside>
 </template>

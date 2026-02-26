@@ -12,7 +12,7 @@ from app.services.schemas import ServiceStatus
 def _build_service_defs() -> list[dict]:
     """Build SERVICE_DEFS from settings — allows .env to override URLs."""
     s = get_settings()
-    return [
+    defs = [
         {
             "name": "Gitea",
             "health_url": f"{s.gitea_url}/api/v1/version",
@@ -20,18 +20,32 @@ def _build_service_defs() -> list[dict]:
             "internal_only": False,
         },
         {
-            "name": "Stalwart Mail",
-            "health_url": f"{s.stalwart_url}/.well-known/jmap",
+            "name": "Mail Server",
+            "health_tcp": "mailserver:993",
             "external_url": "/mail/",
             "internal_only": True,
         },
         {
-            "name": "LiveKit",
-            "health_url": s.livekit_url.replace("ws://", "http://").replace("wss://", "https://") + "/",
+            "name": "PostgreSQL",
+            "health_tcp": "postgres:5432",
+            "external_url": None,
+            "internal_only": True,
+        },
+        {
+            "name": "Redis",
+            "health_tcp": "redis:6379",
             "external_url": None,
             "internal_only": True,
         },
     ]
+    if s.livekit_url:
+        defs.append({
+            "name": "LiveKit",
+            "health_url": s.livekit_url.replace("ws://", "http://").replace("wss://", "https://") + "/",
+            "external_url": None,
+            "internal_only": True,
+        })
+    return defs
 
 # In-memory cache
 _cache: list[ServiceStatus] = []

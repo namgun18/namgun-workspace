@@ -68,6 +68,8 @@ class MessageDetail(BaseModel):
     is_unread: bool = False
     is_flagged: bool = False
     attachments: list[Attachment] = []
+    disposition_notification_to: str | None = None
+    mdn_sent: bool = False
 
     model_config = {"populate_by_name": True}
 
@@ -88,13 +90,23 @@ class SendMessageRequest(BaseModel):
     html_body: str | None = None
     in_reply_to: str | None = None  # message id for threading
     references: list[str] = []
+    request_read_receipt: bool = False
 
 
 class BulkActionRequest(BaseModel):
     account_id: str | None = None
     message_ids: list[str]
-    action: str  # "read", "unread", "star", "unstar", "delete", "move"
+    action: str  # "read", "unread", "star", "unstar", "delete", "move", "spam"
     mailbox_id: str | None = None  # target mailbox for "move"
+
+
+class MailboxCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+
+
+class MailboxRenameRequest(BaseModel):
+    old_name: str = Field(..., min_length=1, max_length=100)
+    new_name: str = Field(..., min_length=1, max_length=100)
 
 
 class SignatureCreate(BaseModel):

@@ -27,6 +27,7 @@ onMounted(() => {
           }"
         />
         <span class="text-sm">{{ svc.name }}</span>
+        <span v-if="svc.status === 'ok' && svc.response_ms != null" class="text-xs text-muted-foreground">{{ svc.response_ms }}ms</span>
       </div>
     </template>
   </div>

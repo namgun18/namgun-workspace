@@ -14,7 +14,45 @@ const {
   openCompose,
   downloadAttachment,
   mailboxes,
+  markAsSpam,
+  fetchRawHeaders,
+  sendReadReceipt,
 } = useMail()
+
+const showHeaders = ref(false)
+const rawHeaders = ref<string | null>(null)
+const loadingHeaders = ref(false)
+const mdnSending = ref(false)
+
+async function toggleHeaders() {
+  if (showHeaders.value) {
+    showHeaders.value = false
+    return
+  }
+  if (!selectedMessage.value) return
+  loadingHeaders.value = true
+  rawHeaders.value = await fetchRawHeaders(selectedMessage.value.id)
+  loadingHeaders.value = false
+  showHeaders.value = true
+}
+
+async function handleMdnAccept() {
+  if (!selectedMessage.value) return
+  mdnSending.value = true
+  await sendReadReceipt(selectedMessage.value.id)
+  mdnSending.value = false
+}
+
+function handleSpam() {
+  if (!selectedMessage.value) return
+  markAsSpam(selectedMessage.value.id)
+}
+
+// Reset view state when message changes
+watch(() => selectedMessage.value?.id, () => {
+  showHeaders.value = false
+  rawHeaders.value = null
+})
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return ''
@@ -185,6 +223,25 @@ function handleForward() {
           </svg>
         </button>
         <button
+          @click="handleSpam"
+          class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-orange-100 text-orange-600 transition-colors"
+          title="스팸"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </button>
+        <button
+          @click="toggleHeaders"
+          class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
+          :class="showHeaders ? 'bg-accent' : ''"
+          title="헤더 보기"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+          </svg>
+        </button>
+        <button
           @click="handleDelete"
           class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive transition-colors"
           title="삭제"
@@ -227,8 +284,35 @@ function handleForward() {
           </div>
         </div>
 
+        <!-- MDN banner -->
+        <div
+          v-if="selectedMessage.disposition_notification_to && !selectedMessage.mdn_sent"
+          class="mx-6 mt-3 flex items-center gap-3 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 px-4 py-2.5"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5 text-blue-600 shrink-0">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          <span class="text-sm text-blue-800 dark:text-blue-200 flex-1">발신자가 수신확인을 요청했습니다.</span>
+          <button
+            @click="handleMdnAccept"
+            :disabled="mdnSending"
+            class="px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{ mdnSending ? '전송 중...' : '확인' }}
+          </button>
+        </div>
+
+        <!-- Raw headers (collapsible) -->
+        <div v-if="showHeaders" class="mx-6 mt-3">
+          <div class="rounded-md border bg-muted/30 p-3">
+            <h4 class="text-xs font-medium text-muted-foreground mb-2">원본 헤더</h4>
+            <div v-if="loadingHeaders" class="h-20 bg-muted/50 rounded animate-pulse" />
+            <pre v-else class="text-xs whitespace-pre-wrap font-mono text-muted-foreground max-h-64 overflow-auto">{{ rawHeaders }}</pre>
+          </div>
+        </div>
+
         <!-- Divider -->
-        <div class="mx-6 border-t" />
+        <div class="mx-6 border-t mt-3" />
 
         <!-- Body content -->
         <div class="px-6 py-4">
@@ -300,6 +384,11 @@ function handleForward() {
         <button @click="handleForward" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent" title="전달">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <polyline points="15 17 20 12 15 7" /><path d="M4 18v-2a4 4 0 0 1 4-4h12" />
+          </svg>
+        </button>
+        <button @click="handleSpam" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-orange-100 text-orange-600" title="스팸">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         </button>
         <button @click="handleDelete" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive" title="삭제">
