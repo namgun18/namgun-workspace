@@ -8,6 +8,7 @@ from app.db.models import (  # noqa: F401 — ensure all models registered
     Base, AccessLog, Channel, ChannelMember, Message, Notification, Reaction,
     SystemSetting, MailAccount, CalendarDB, CalendarEventDB, CalendarShareDB,
     AddressBookDB, ContactDB,
+    Board, Post, PostComment, PostReaction, PostBookmark, PostReadLog,
 )
 
 settings = get_settings()

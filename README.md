@@ -17,11 +17,24 @@ Microsoft 365, Google Workspace 같은 SaaS에 종속되지 않고, 자체 서�
 
 ## 빠른 시작
 
+### 원클릭 설치 (권장)
+
+```bash
+git clone https://github.com/namgun/namgun-workspace.git
+cd namgun-workspace
+sudo bash setup.sh
+```
+
+`setup.sh`가 Docker 설치, .env 생성, 빌드, 관리자 계정 생성까지 인터랙티브로 처리합니다.
+(Ubuntu 22.04/24.04, Debian 12 지원)
+
+### 수동 설치
+
 ```bash
 git clone https://github.com/namgun/namgun-workspace.git
 cd namgun-workspace
 cp .env.example .env
-# .env 편집 (DB_PASSWORD, SECRET_KEY 등 설정)
+# .env 편집 (DB_PASSWORD, SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD 등)
 docker compose up -d
 ```
 
@@ -101,7 +114,7 @@ docker compose up -d
 | Phase 2 | 서비스 컨테이너 구성 | Done |
 | Phase 3 | 실시간 채팅 | Done |
 | Phase 4 | 모듈 시스템 + 메일 스택 전환 | Done (v3.0) |
-| Phase 5 | 배포 자동화 | Planned |
+| Phase 5 | 배포 자동화 | Done |
 | Phase 6 | 화이트라벨링 + i18n | Planned |
 | Phase 7~11 | CalDAV, 플러그인, 운영도구, PWA, 오픈코어 | Planned |
 
@@ -109,6 +122,7 @@ docker compose up -d
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
+| v3.2.0 | 2026-02-26 | Phase 5: 배포 자동화 — setup.sh 인터랙티브 스크립트, 관리자 시드 CLI, DKIM 생성, docker-compose 볼륨 자동 생성 |
 | v3.1.0 | 2026-02-26 | 메일 상용 기능 (스팸 지정, 헤더 보기, 편지함 CRUD, 수신확인/MDN), 헬스체크 대시보드 최신화, 보안/버그/레거시 코드 전면 점검 및 수정 |
 | v3.0.0 | 2026-02-26 | Phase 4: 모듈 on/off 시스템, 메일 IMAP/SMTP 전환 (Stalwart JMAP 제거), 캘린더/연락처 PostgreSQL 자체 구현, 자체 메일서버 선택적 제공 (docker profile) |
 | v2.1.0 | 2026-02-26 | Phase 3-2: 스레드, 이모지 리액션, 메시지 검색, Gitea 웹훅 알림, LiveKit 회의 채팅 |

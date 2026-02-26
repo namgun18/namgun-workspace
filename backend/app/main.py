@@ -1,4 +1,5 @@
 import asyncio
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -48,6 +49,13 @@ async def lifespan(app: FastAPI):
 
     await init_db()
 
+    # Auto-seed admin if ADMIN_USERNAME + ADMIN_PASSWORD are set
+    admin_user = os.environ.get("ADMIN_USERNAME")
+    admin_pass = os.environ.get("ADMIN_PASSWORD")
+    if admin_user and admin_pass:
+        from app.cli import seed_admin
+        await seed_admin(admin_user, admin_pass)
+
     # Load module states from DB
     from app.modules.registry import load_module_states
     from app.db.session import async_session
@@ -78,7 +86,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="3.0.0",
+    version="3.2.0",
     lifespan=lifespan,
     docs_url="/api/docs" if settings.debug else None,
     redoc_url=None,
@@ -116,4 +124,4 @@ app.include_router(board_router)
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok", "service": settings.app_name, "version": "3.0.0"}
+    return {"status": "ok", "service": settings.app_name, "version": "3.2.0"}
