@@ -43,17 +43,23 @@ docker compose build && docker compose up -d
 주의: DB 스키마가 변경된 경우 롤백 시 호환성 문제가 있을 수 있습니다.
 새 컬럼 추가는 안전하지만, 테이블 삭제나 컬럼 타입 변경은 롤백이 어렵습니다.
 
-## CI/CD (Gitea Actions)
+## 배포 방식
 
-`.gitea/workflows/deploy-portal.yml`에 정의된 파이프라인:
+현재 **수동 배포**를 사용합니다:
 
-1. `git push` → Gitea Actions 트리거
-2. Docker 이미지 빌드
-3. 컨테이너 재배포
-4. 헬스체크 확인
-
-배포 상태 확인:
 ```bash
-curl -sf 'http://localhost:3000/api/v1/repos/namgun/namgun-workspace/actions/runs?limit=1' \
-  -H "Authorization: token <GITEA_TOKEN>"
+git pull origin main
+docker compose up -d --build
+```
+
+> CI/CD 자동 배포(Gitea Actions)는 비활성화 상태입니다.
+> 필요 시 `.gitea/workflows/` 디렉토리에 워크플로를 추가하여 재활성화할 수 있습니다.
+
+## 백업
+
+```bash
+# 자동 백업 (PostgreSQL + Redis + 메일)
+sudo bash scripts/backup.sh [백업디렉토리]
+
+# 30일 이상 된 백업은 자동 삭제됩니다.
 ```

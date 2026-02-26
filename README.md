@@ -25,7 +25,8 @@ cd namgun-workspace
 sudo bash setup.sh
 ```
 
-`setup.sh`가 Docker 설치, .env 생성, 빌드, 관리자 계정 생성까지 인터랙티브로 처리합니다.
+`setup.sh`가 Docker 설치, 배포 모드 선택, .env 생성, nginx 설정, 빌드, 관리자 계정 생성까지 인터랙티브로 처리합니다.
+배포 모드: **External Proxy** (외부 SSL) / **Standalone** (Let's Encrypt 자동) / **Development** (HTTP)
 (Ubuntu 22.04/24.04, Debian 12 지원)
 
 ### 수동 설치
@@ -69,7 +70,7 @@ docker compose up -d
 - **채팅, 캘린더, 연락처**: backend(FastAPI) 내장. 추가 컨테이너 불필요.
 - **메일**: IMAP/SMTP 클라이언트 기반 (Gmail, Outlook 등 외부 메일 연결)
 - **자체 메일서버**: `COMPOSE_PROFILES=mailserver`로 선택적 활성화
-- **외부 프록시**: `EXTERNAL_PROXY=true`로 내장 nginx 비활성화
+- **배포 모드**: `DEPLOY_MODE=external_proxy|standalone|dev` (setup.sh에서 자동 설정)
 
 ## 주요 기능
 
@@ -114,14 +115,15 @@ docker compose up -d
 | Phase 2 | 서비스 컨테이너 구성 | Done |
 | Phase 3 | 실시간 채팅 | Done |
 | Phase 4 | 모듈 시스템 + 메일 스택 전환 | Done (v3.0) |
-| Phase 5 | 배포 자동화 | Done |
-| Phase 6 | 화이트라벨링 + i18n | Planned |
+| Phase 5 | 배포 자동화 | Done (v3.2) |
+| Phase 6 | 화이트라벨링 + i18n | In Progress |
 | Phase 7~11 | CalDAV, 플러그인, 운영도구, PWA, 오픈코어 | Planned |
 
 ## 변경이력
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
+| v3.3.0 | 2026-02-27 | 전수점검 — nginx 보안 헤더/gzip, CORS 미들웨어, bare except 정리(7개 파일), 에러 바운더리/Toast, N+1 쿼리 수정, 백업 스크립트, 컨테이너 리소스 제한, i18n 기반 구축(ko/en), 테스트 인프라(pytest/vitest) |
 | v3.2.2 | 2026-02-27 | setup.sh 전면 재작성 — 배포 모드 도입 (external_proxy/standalone/dev), nginx.conf 모드별 자동 생성, standalone SSL 자동화 (override.yml + certbot), Stalwart 변수 제거, `local` 버그 수정, 5단계 배포 후 검증 체인 |
 | v3.2.1 | 2026-02-26 | Docker 내부 네트워크 재설계 (172.28.0.0/24 고정 IP, nginx 단일 진입점), LiveKit 재시작 루프 해결, 메일 From 헤더 RFC 2047 인코딩, Sent 폴더 자동 저장 |
 | v3.2.0 | 2026-02-26 | Phase 5: 배포 자동화 — setup.sh 인터랙티브 스크립트, 관리자 시드 CLI, DKIM 생성, docker-compose 볼륨 자동 생성 |

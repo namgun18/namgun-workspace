@@ -17,7 +17,7 @@
 | MX | `your-domain.com` | `mail.your-domain.com` (우선순위 10) | 수신 메일 (필수) |
 | TXT | `your-domain.com` | `v=spf1 ip4:공인IP ~all` | SPF (필수) |
 | TXT | `_dmarc.your-domain.com` | `v=DMARC1; p=quarantine; rua=mailto:postmaster@your-domain.com` | DMARC (권장) |
-| CNAME | `default._domainkey.your-domain.com` | (Stalwart에서 DKIM 키 생성 후 등록) | DKIM (권장) |
+| CNAME | `default._domainkey.your-domain.com` | (DKIM 키 생성 후 등록, `scripts/generate-dkim.sh` 참고) | DKIM (권장) |
 
 **PTR 레코드**: ISP에 요청하여 공인 IP → `mail.your-domain.com` 역방향 DNS 설정 (메일 전송률 향상)
 
@@ -45,13 +45,15 @@ cp .env.example .env
 ```
 
 **필수 변경 항목**:
+- `DEPLOY_MODE`: 배포 모드 (`external_proxy` / `standalone` / `dev`)
 - `SECRET_KEY`: 랜덤 문자열 (예: `openssl rand -hex 32`)
 - `DB_PASSWORD`: PostgreSQL 비밀번호
 - `DATABASE_URL`: DB_PASSWORD와 동일하게 맞춤
-- `STALWART_ADMIN_PASSWORD`: Stalwart 관리자 비밀번호
 - `DOMAIN`: 실제 도메인
 - `APP_URL`: `https://your-domain.com`
 - SMTP 관련: 도메인에 맞게 수정
+
+> **권장**: 수동 `.env` 생성 대신 `sudo bash setup.sh`를 사용하면 모든 값이 자동 생성됩니다.
 
 ---
 
@@ -79,39 +81,38 @@ Gitea 관리자로 로그인 → 사이트 관리 → Authentication Sources:
 4. Client ID / Secret: 포털 `.env`의 `OAUTH_CLIENTS_JSON`에 등록한 값과 일치
 5. OpenID Connect Auto Discovery URL: `https://your-domain.com/oauth/.well-known/openid-configuration`
 
-### 2-3. Stalwart DKIM 설정
+### 2-3. DKIM 설정 (자체 메일서버 사용 시)
 
-Stalwart 웹 관리콘솔(`http://stalwart:8080` 또는 포트 매핑된 주소)에 접속:
+`setup.sh`에서 mailserver 프로필 선택 시 DKIM 키가 자동 생성됩니다.
+수동 생성이 필요한 경우:
 
-1. **Domain 추가**: `your-domain.com`
-2. **DKIM 키 생성**: 도메인 설정에서 자동 생성
-3. DNS에 DKIM TXT 레코드 등록 (1-1에서 예약한 `default._domainkey`)
-
-### 2-4. TLS 인증서 (Phase 4 이전 임시 방법)
-
-현재 nginx는 HTTP(80)만 리슨합니다. HTTPS가 필요한 경우:
-
-**옵션 A**: 외부 리버스 프록시 (이미 nginx/traefik이 있는 경우)
-```
-# .env에 추가
-NGINX_PROFILE=external
-```
-→ 내장 nginx 비활성화, backend(8000)/frontend(3000)만 expose
-
-**옵션 B**: certbot 수동 실행
 ```bash
-docker run --rm -v ws-certbot-data:/etc/letsencrypt -v ws-certbot-webroot:/var/www/certbot \
-  certbot/certbot certonly --webroot -w /var/www/certbot -d your-domain.com
+bash scripts/generate-dkim.sh your-domain.com
 ```
-이후 nginx.conf에 SSL 블록 추가 (Phase 4에서 자동화 예정)
+
+생성된 DKIM 공개키를 DNS TXT 레코드로 등록합니다 (1-1에서 예약한 `default._domainkey`).
+
+### 2-4. TLS 인증서
+
+`setup.sh`에서 배포 모드에 따라 자동 처리됩니다:
+
+| 모드 | TLS 처리 |
+|------|----------|
+| **External Proxy** | 외부 리버스 프록시(nginx/traefik)에서 SSL 종단. 내장 nginx는 HTTP(:80)만 |
+| **Standalone** | certbot이 Let's Encrypt 인증서 자동 발급. nginx가 :80+:443 리슨 |
+| **Development** | SSL 없음. HTTP(:80)만 |
+
+수동 certbot 실행이 필요한 경우:
+```bash
+docker exec ws-certbot certbot certonly --webroot -w /var/www/certbot -d your-domain.com
+```
 
 ### 2-5. 관리자 계정 생성
 
-포털에서 첫 가입 후 PostgreSQL에서 수동으로 관리자 권한 부여:
+`setup.sh`에서 입력한 관리자 계정은 자동 생성됩니다. 수동 생성이 필요한 경우:
 
 ```bash
-docker exec -it ws-postgres psql -U workspace -d workspace -c \
-  "UPDATE users SET is_admin = true, is_active = true WHERE username = 'your-admin-username';"
+docker exec ws-backend python -m app.cli seed-admin --username admin --password 'your-password'
 ```
 
 ---
@@ -122,10 +123,13 @@ docker exec -it ws-postgres psql -U workspace -d workspace -c \
 
 | 대상 | 방법 | 주기 |
 |------|------|------|
-| PostgreSQL | `docker exec ws-postgres pg_dump -U workspace workspace > backup.sql` | 일 1회 |
-| Stalwart 데이터 | `docker cp ws-stalwart:/opt/stalwart-mail ./stalwart-backup/` | 주 1회 |
+| PostgreSQL | `docker exec ws-postgres pg_dump -U workspace workspace \| gzip > backup.sql.gz` | 일 1회 |
+| Redis | `docker exec ws-redis redis-cli BGSAVE` | 일 1회 |
+| 메일 데이터 | mailserver 프로필 사용 시 `/var/mail` 백업 | 주 1회 |
 | Gitea 데이터 | `docker exec ws-gitea gitea dump` | 주 1회 |
 | 파일 스토리지 | `docker cp ws-backend:/storage ./storage-backup/` | 필요 시 |
+
+> **자동 백업**: `sudo bash scripts/backup.sh` 실행 시 PostgreSQL, Redis, 메일 데이터를 한 번에 백업합니다. 30일 보관 정책 적용.
 
 ### 3-2. 업데이트
 
@@ -138,10 +142,10 @@ docker compose up -d
 ### 3-3. 로그 확인
 
 ```bash
-docker compose logs -f backend   # FastAPI 로그
-docker compose logs -f stalwart  # 메일 서버 로그
-docker compose logs -f gitea     # Gitea 로그
-docker compose logs -f nginx     # 프록시 로그
+docker compose logs -f backend     # FastAPI 로그
+docker compose logs -f mailserver  # 메일 서버 로그 (mailserver 프로필)
+docker compose logs -f gitea       # Gitea 로그
+docker compose logs -f nginx       # 프록시 로그
 ```
 
 ---

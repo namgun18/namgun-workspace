@@ -10,7 +10,7 @@
 
 ## Phase 2: 서비스 컨테이너 구성 — Done
 
-Nginx, Gitea, Stalwart, LiveKit 통합. `docker compose up` 한 번으로 전체 스택.
+Nginx, Gitea, LiveKit 통합. `docker compose up` 한 번으로 전체 스택.
 
 ## Phase 3: 실시간 채팅 — Done
 
@@ -43,18 +43,24 @@ FastAPI WebSocket + Redis Pub/Sub. 채널, DM, 스레드, 멘션, 리액션, 검
 
 ---
 
-## Phase 5: 배포 자동화
+## Phase 5: 배포 자동화 — Done (v3.2)
 
-- `setup.sh` — 도메인 + 관리자 정보 입력 → .env 자동 생성 → docker compose up
+- `setup.sh` 인터랙티브 설치 (배포 모드 3종: external_proxy / standalone / dev)
+- nginx.conf 모드별 자동 생성 (HTTP-only / HTTP+HTTPS)
+- Standalone: Let's Encrypt 자동 발급, docker-compose.override.yml 자동 생성
 - DKIM 키 자동 생성, DNS 레코드 안내
-- TLS 인증서 자동 발급 (Let's Encrypt)
 - 초기 관리자 계정 DB seed
+- 5단계 배포 후 검증 체인 (컨테이너 → 헬스체크 → admin seed → noreply → SSL)
+- 컨테이너 리소스 제한 (메모리/CPU)
+- 백업 스크립트 (`scripts/backup.sh`)
 
-## Phase 6: 화이트라벨링 + i18n
+## Phase 6: 화이트라벨링 + i18n — In Progress
 
 - 환경변수 3개로 브랜드 교체 (BRAND_NAME, BRAND_LOGO, BRAND_COLOR)
-- 한/영 다국어 지원 (vue-i18n)
+- 한/영 다국어 지원 (@nuxtjs/i18n, vue-i18n) — **기반 구축 완료 (v3.3)**
+- i18n 구조: `locales/ko.json`, `locales/en.json`, `$t()` 패턴 (login.vue 전환 완료)
 - 메일 템플릿 브랜드 반영
+- 나머지 페이지 i18n 마이그레이션 진행 중
 
 ## Phase 7: CalDAV/CardDAV 동기화
 
@@ -72,7 +78,8 @@ FastAPI WebSocket + Redis Pub/Sub. 채널, DM, 스레드, 멘션, 리액션, 검
 ## Phase 9: 운영 도구
 
 - `update.sh` — 무중단 업데이트
-- `backup.sh` / `restore.sh` — PostgreSQL + 파일 백업/복원
+- `backup.sh` — PostgreSQL + Redis + 메일 백업 (**구현 완료 v3.3**, `scripts/backup.sh`)
+- `restore.sh` — 복원 스크립트
 - `health.sh` — 서비스 자가진단
 - 감사 로그 (로그인, 설정 변경 기록)
 
@@ -98,8 +105,8 @@ FastAPI WebSocket + Redis Pub/Sub. 채널, DM, 스레드, 멘션, 리액션, 검
 | Phase 2 | 서비스 컨테이너 구성 | Done |
 | Phase 3 | 실시간 채팅 | Done |
 | Phase 4 | 모듈 시스템 + 메일 스택 전환 | Done (v3.0) |
-| Phase 5 | 배포 자동화 | Planned |
-| Phase 6 | 화이트라벨링 + i18n | Planned |
+| Phase 5 | 배포 자동화 | Done (v3.2) |
+| Phase 6 | 화이트라벨링 + i18n | In Progress |
 | Phase 7 | CalDAV/CardDAV 동기화 | Planned |
 | Phase 8 | 플러그인 아키텍처 | Planned |
 | Phase 9 | 운영 도구 | Planned |
