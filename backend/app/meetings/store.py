@@ -23,6 +23,7 @@ class RoomMeta:
     share_token: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     created_at: float = field(default_factory=time.time)
     requests: dict[str, JoinRequest] = field(default_factory=dict)
+    chat_channel_id: str | None = None
 
 
 # room_name → RoomMeta

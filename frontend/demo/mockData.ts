@@ -674,7 +674,8 @@ const demoChatMessages: Record<string, any> = {
       {
         id: 'cm-001', channel_id: 'ch-general', sender: null,
         content: '채널이 생성되었습니다.', message_type: 'system',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 0, reactions: [],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 2592000000).toISOString(),
         updated_at: new Date(Date.now() - 2592000000).toISOString(),
       },
@@ -682,7 +683,12 @@ const demoChatMessages: Record<string, any> = {
         id: 'cm-002', channel_id: 'ch-general',
         sender: { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
         content: '안녕하세요! 포털 채팅 기능이 추가되었습니다.', message_type: 'text',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 2,
+        reactions: [
+          { emoji: '👍', count: 2, user_ids: ['user-002', 'user-003'], reacted: false },
+          { emoji: '🔥', count: 1, user_ids: ['user-002'], reacted: false },
+        ],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 86400000).toISOString(),
         updated_at: new Date(Date.now() - 86400000).toISOString(),
       },
@@ -690,7 +696,8 @@ const demoChatMessages: Record<string, any> = {
         id: 'cm-003', channel_id: 'ch-general',
         sender: { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
         content: '좋습니다! 기존 메신저 대신 이걸 사용하면 되겠네요.', message_type: 'text',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 0, reactions: [],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 82800000).toISOString(),
         updated_at: new Date(Date.now() - 82800000).toISOString(),
       },
@@ -698,7 +705,9 @@ const demoChatMessages: Record<string, any> = {
         id: 'cm-004', channel_id: 'ch-general',
         sender: { id: 'user-003', username: 'younghee', display_name: '이영희', avatar_url: null },
         content: '파일 공유도 되나요?', message_type: 'text',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 1,
+        reactions: [{ emoji: '❤️', count: 1, user_ids: ['demo-user-001'], reacted: true }],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 79200000).toISOString(),
         updated_at: new Date(Date.now() - 79200000).toISOString(),
       },
@@ -706,7 +715,8 @@ const demoChatMessages: Record<string, any> = {
         id: 'cm-005', channel_id: 'ch-general',
         sender: { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
         content: '네, 클립 아이콘으로 파일 첨부가 가능합니다.', message_type: 'text',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 0, reactions: [],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 75600000).toISOString(),
         updated_at: new Date(Date.now() - 75600000).toISOString(),
         read_by: [
@@ -718,7 +728,9 @@ const demoChatMessages: Record<string, any> = {
         id: 'cm-006', channel_id: 'ch-general',
         sender: { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
         content: '오늘 서버 점검 시간 확인해주세요.', message_type: 'text',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 0,
+        reactions: [{ emoji: '😮', count: 1, user_ids: ['user-003'], reacted: false }],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 7200000).toISOString(),
         updated_at: new Date(Date.now() - 7200000).toISOString(),
         read_by: [
@@ -729,7 +741,9 @@ const demoChatMessages: Record<string, any> = {
         id: 'cm-007', channel_id: 'ch-general',
         sender: { id: 'user-003', username: 'younghee', display_name: '이영희', avatar_url: null },
         content: '새벽 2시부터 4시까지입니다.', message_type: 'text',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 0,
+        reactions: [{ emoji: '👍', count: 2, user_ids: ['demo-user-001', 'user-002'], reacted: true }],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 3600000).toISOString(),
         updated_at: new Date(Date.now() - 3600000).toISOString(),
         read_by: [
@@ -745,7 +759,8 @@ const demoChatMessages: Record<string, any> = {
       {
         id: 'cm-101', channel_id: 'ch-dev', sender: null,
         content: '채널이 생성되었습니다.', message_type: 'system',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 0, reactions: [],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 2592000000).toISOString(),
         updated_at: new Date(Date.now() - 2592000000).toISOString(),
       },
@@ -753,7 +768,9 @@ const demoChatMessages: Record<string, any> = {
         id: 'cm-102', channel_id: 'ch-dev',
         sender: { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
         content: 'Phase 3-1 채팅 기능 배포 완료했습니다.', message_type: 'text',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 1,
+        reactions: [{ emoji: '🔥', count: 2, user_ids: ['user-002', 'user-003'], reacted: false }],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 14400000).toISOString(),
         updated_at: new Date(Date.now() - 14400000).toISOString(),
       },
@@ -761,7 +778,9 @@ const demoChatMessages: Record<string, any> = {
         id: 'cm-103', channel_id: 'ch-dev',
         sender: { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
         content: 'WebSocket 기반이라 실시간으로 잘 동작하네요!', message_type: 'text',
-        file_meta: null, is_edited: false, is_deleted: false,
+        file_meta: null, parent_id: null, reply_count: 0,
+        reactions: [{ emoji: '👍', count: 1, user_ids: ['demo-user-001'], reacted: true }],
+        is_edited: false, is_deleted: false,
         created_at: new Date(Date.now() - 10800000).toISOString(),
         updated_at: new Date(Date.now() - 10800000).toISOString(),
       },
@@ -886,6 +905,81 @@ export function getMockResponse(method: string, path: string, query?: Record<str
   if (path === '/api/git/repos') return demoRepos
   if (path.startsWith('/api/git')) return {}
 
+
+  // Chat — Thread replies
+  if (method === 'GET') {
+    const threadMatch = path.match(/^\/api\/chat\/messages\/([\w-]+)\/thread$/)
+    if (threadMatch) {
+      const parentId = threadMatch[1]
+      const demoReplies: Record<string, any[]> = {
+        'cm-002': [
+          {
+            id: 'cm-t-001', channel_id: 'ch-general',
+            sender: { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
+            content: '드디어! 기다리고 있었습니다 👏', message_type: 'text',
+            file_meta: null, parent_id: 'cm-002', reply_count: 0,
+            reactions: [{ emoji: '👍', count: 1, user_ids: ['demo-user-001'], reacted: true }],
+            is_edited: false, is_deleted: false,
+            created_at: new Date(Date.now() - 85000000).toISOString(),
+            updated_at: new Date(Date.now() - 85000000).toISOString(),
+          },
+          {
+            id: 'cm-t-002', channel_id: 'ch-general',
+            sender: { id: 'user-003', username: 'younghee', display_name: '이영희', avatar_url: null },
+            content: '멋지네요! 다음 업데이트도 기대됩니다.', message_type: 'text',
+            file_meta: null, parent_id: 'cm-002', reply_count: 0, reactions: [],
+            is_edited: false, is_deleted: false,
+            created_at: new Date(Date.now() - 84000000).toISOString(),
+            updated_at: new Date(Date.now() - 84000000).toISOString(),
+          },
+        ],
+        'cm-004': [
+          {
+            id: 'cm-t-003', channel_id: 'ch-general',
+            sender: { id: 'demo-user-001', username: 'demo', display_name: '데모 사용자', avatar_url: null },
+            content: '네, 이미지/문서 등 첨부할 수 있습니다.', message_type: 'text',
+            file_meta: null, parent_id: 'cm-004', reply_count: 0, reactions: [],
+            is_edited: false, is_deleted: false,
+            created_at: new Date(Date.now() - 78000000).toISOString(),
+            updated_at: new Date(Date.now() - 78000000).toISOString(),
+          },
+        ],
+        'cm-102': [
+          {
+            id: 'cm-t-004', channel_id: 'ch-dev',
+            sender: { id: 'user-002', username: 'cheolsu', display_name: '김철수', avatar_url: null },
+            content: '수고하셨습니다! 테스트 결과 잘 동작합니다.', message_type: 'text',
+            file_meta: null, parent_id: 'cm-102', reply_count: 0, reactions: [],
+            is_edited: false, is_deleted: false,
+            created_at: new Date(Date.now() - 13000000).toISOString(),
+            updated_at: new Date(Date.now() - 13000000).toISOString(),
+          },
+        ],
+      }
+      return { replies: demoReplies[parentId] || [] }
+    }
+  }
+
+  // Chat — Search
+  if (path === '/api/chat/messages/search' && method === 'GET') {
+    const q = (query?.q || '').toLowerCase()
+    const allMsgs: any[] = []
+    for (const [chId, data] of Object.entries(demoChatMessages)) {
+      const ch = demoChatChannels.find(c => c.id === chId)
+      for (const msg of (data as any).messages) {
+        if (msg.content.toLowerCase().includes(q) && msg.message_type !== 'system') {
+          allMsgs.push({ ...msg, channel_name: ch?.name || '', channel_type: ch?.type || 'public' })
+        }
+      }
+    }
+    return allMsgs.slice(0, 20)
+  }
+
+  // Chat — Reaction toggle
+  if (method === 'POST') {
+    const reactionMatch = path.match(/^\/api\/chat\/messages\/([\w-]+)\/reactions$/)
+    if (reactionMatch) return { action: 'added', message_id: reactionMatch[1], reactions: [] }
+  }
 
   // Chat Notifications
   if (path === '/api/chat/notifications' && method === 'GET') {
