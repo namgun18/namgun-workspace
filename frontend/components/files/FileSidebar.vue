@@ -4,6 +4,7 @@ const emit = defineEmits<{
 }>()
 
 const { currentPath, navigateTo, storageInfo, fetchStorageInfo } = useFiles()
+const { t } = useI18n()
 const { user } = useAuth()
 
 onMounted(() => {
@@ -12,11 +13,11 @@ onMounted(() => {
 
 const navItems = computed(() => {
   const items = [
-    { label: '내 파일', path: 'my', icon: 'folder-user' },
-    { label: '공유 파일', path: 'shared', icon: 'folder-shared' },
+    { label: t('files.sidebar.myFiles'), path: 'my', icon: 'folder-user' },
+    { label: t('files.sidebar.sharedFiles'), path: 'shared', icon: 'folder-shared' },
   ]
   if (user.value?.is_admin) {
-    items.push({ label: '전체 사용자', path: 'users', icon: 'users' })
+    items.push({ label: t('files.sidebar.allUsers'), path: 'users', icon: 'users' })
   }
   return items
 })
@@ -79,7 +80,7 @@ const usedPercent = computed(() => {
     <!-- Storage usage -->
     <div v-if="storageInfo" class="p-3 border-t">
       <div class="flex justify-between text-xs text-muted-foreground mb-1.5">
-        <span>스토리지</span>
+        <span>{{ $t('files.sidebar.storage') }}</span>
         <span v-if="storageInfo.total_capacity">{{ usedPercent }}%</span>
       </div>
       <div v-if="storageInfo.total_capacity" class="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-2">
@@ -91,15 +92,15 @@ const usedPercent = computed(() => {
       </div>
       <div class="space-y-1">
         <div class="flex justify-between text-xs">
-          <span>내 파일</span>
+          <span>{{ $t('files.sidebar.myFiles') }}</span>
           <span>{{ formatSize(storageInfo.personal_used) }}</span>
         </div>
         <div class="flex justify-between text-xs">
-          <span>공유</span>
+          <span>{{ $t('files.sidebar.shared') }}</span>
           <span>{{ formatSize(storageInfo.shared_used) }}</span>
         </div>
         <div v-if="storageInfo.total_capacity" class="flex justify-between text-xs font-medium mt-1">
-          <span>전체</span>
+          <span>{{ $t('files.sidebar.total') }}</span>
           <span>{{ formatSize(storageInfo.disk_used) }} / {{ formatSize(storageInfo.total_capacity) }}</span>
         </div>
       </div>

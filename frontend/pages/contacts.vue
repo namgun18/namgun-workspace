@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.contacts')} | ${appName.value}`) })
+
 const { fetchAddressBooks, fetchContacts } = useContacts()
 
 onMounted(async () => {

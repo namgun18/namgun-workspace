@@ -4,14 +4,15 @@ const emit = defineEmits<{
 }>()
 
 const { mailboxes, selectedMailboxId, selectMailbox, createMailbox, renameMailbox, deleteMailbox } = useMail()
+const { t } = useI18n()
 
 const ROLE_LABELS: Record<string, string> = {
-  inbox: '받은편지함',
-  sent: '보낸편지함',
-  drafts: '임시보관함',
-  trash: '휴지통',
-  junk: '스팸',
-  archive: '보관함',
+  inbox: 'mail.folder.inbox',
+  sent: 'mail.folder.sent',
+  drafts: 'mail.folder.drafts',
+  trash: 'mail.folder.trash',
+  junk: 'mail.folder.junk',
+  archive: 'mail.folder.archive',
 }
 
 const ROLE_ICONS: Record<string, string> = {
@@ -34,7 +35,7 @@ const renaming = ref<string | null>(null)
 const renameValue = ref('')
 
 function getLabel(mb: any) {
-  if (mb.role && ROLE_LABELS[mb.role]) return ROLE_LABELS[mb.role]
+  if (mb.role && ROLE_LABELS[mb.role]) return t(ROLE_LABELS[mb.role])
   return mb.name
 }
 
@@ -86,7 +87,7 @@ async function handleRename(mb: any) {
 
 async function handleDeleteMailbox(mb: any) {
   contextMenu.value = null
-  if (!confirm(`"${mb.name}" 편지함을 삭제하시겠습니까? 포함된 메일도 삭제됩니다.`)) return
+  if (!confirm(t('mail.folder.deleteConfirm', { name: mb.name }))) return
   try {
     await deleteMailbox(mb.id)
   } catch { /* handled */ }
@@ -103,11 +104,11 @@ if (import.meta.client && !_sidebarClickRegistered) {
 <template>
   <aside class="flex flex-col h-full border-r bg-muted/30">
     <div class="flex items-center justify-between px-3 py-3 border-b">
-      <h2 class="text-sm font-semibold text-foreground">메일</h2>
+      <h2 class="text-sm font-semibold text-foreground">{{ $t('mail.sidebar.title') }}</h2>
       <button
         @click="showCreateInput = !showCreateInput"
         class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-        title="편지함 추가"
+        :title="$t('mail.folder.addTitle')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -121,12 +122,12 @@ if (import.meta.client && !_sidebarClickRegistered) {
         <input
           v-model="newMailboxName"
           type="text"
-          placeholder="편지함 이름"
+          :placeholder="$t('mail.folder.namePlaceholder')"
           class="flex-1 px-2 py-1 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
           :disabled="creating"
         />
         <button type="submit" :disabled="creating || !newMailboxName.trim()" class="px-2 py-1 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-          추가
+          {{ $t('common.add') }}
         </button>
       </form>
     </div>
@@ -141,7 +142,7 @@ if (import.meta.client && !_sidebarClickRegistered) {
             class="flex-1 px-2 py-1 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
             @keydown.escape="renaming = null"
           />
-          <button type="submit" class="px-2 py-1 text-xs rounded-md bg-primary text-primary-foreground">확인</button>
+          <button type="submit" class="px-2 py-1 text-xs rounded-md bg-primary text-primary-foreground">{{ $t('common.confirm') }}</button>
         </form>
         <!-- Normal mode -->
         <button
@@ -206,11 +207,11 @@ if (import.meta.client && !_sidebarClickRegistered) {
         <button
           @click="startRename(contextMenu.mailbox)"
           class="w-full px-3 py-1.5 text-sm text-left hover:bg-accent transition-colors"
-        >이름 변경</button>
+        >{{ $t('mail.folder.rename') }}</button>
         <button
           @click="handleDeleteMailbox(contextMenu.mailbox)"
           class="w-full px-3 py-1.5 text-sm text-left hover:bg-accent text-destructive transition-colors"
-        >삭제</button>
+        >{{ $t('common.delete') }}</button>
       </div>
     </Teleport>
   </aside>

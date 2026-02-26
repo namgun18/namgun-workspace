@@ -90,11 +90,11 @@ watch(() => fileContent.value, highlight)
       </div>
 
       <div v-else-if="fileContent?.too_large" class="px-4 py-8 text-center text-sm text-muted-foreground">
-        파일이 너무 큽니다 (1MB 초과). 직접 다운로드하세요.
+        {{ $t('git.fileViewer.tooLarge') }}
       </div>
 
       <div v-else-if="!fileContent?.content" class="px-4 py-8 text-center text-sm text-muted-foreground">
-        바이너리 파일이거나 내용이 없습니다.
+        {{ $t('git.fileViewer.binaryOrEmpty') }}
       </div>
 
       <div

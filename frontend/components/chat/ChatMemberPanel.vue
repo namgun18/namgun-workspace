@@ -1,13 +1,14 @@
 <script setup lang="ts">
 const { members, selectedChannel, onlineUsers, leaveChannel, openDM, showMemberPanel } = useChat()
 const { user } = useAuth()
+const { t } = useI18n()
 
 const onlineMembers = computed(() => members.value.filter(m => m.is_online))
 const offlineMembers = computed(() => members.value.filter(m => !m.is_online))
 
 async function onLeave() {
   if (!selectedChannel.value) return
-  if (!confirm('이 채널을 나가시겠습니까?')) return
+  if (!confirm(t('chat.members.leaveConfirm'))) return
   await leaveChannel(selectedChannel.value.id)
 }
 
@@ -21,8 +22,8 @@ async function onDM(userId: string) {
 <template>
   <div class="w-56 border-l h-full flex flex-col bg-background shrink-0">
     <div class="flex items-center justify-between px-3 py-2.5 border-b">
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">멤버</h4>
-      <button @click="showMemberPanel = false" class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent">
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ $t('chat.members.title') }}</h4>
+      <button @click="showMemberPanel = false" class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent" :aria-label="$t('common.close')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
         </svg>
@@ -33,7 +34,7 @@ async function onDM(userId: string) {
       <!-- Online -->
       <div v-if="onlineMembers.length > 0">
         <div class="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase">
-          온라인 — {{ onlineMembers.length }}
+          {{ $t('chat.members.online', { n: onlineMembers.length }) }}
         </div>
         <button
           v-for="m in onlineMembers"
@@ -51,14 +52,14 @@ async function onDM(userId: string) {
             <span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background" />
           </div>
           <span class="text-xs truncate">{{ m.display_name || m.username }}</span>
-          <span v-if="m.role === 'owner'" class="text-[9px] text-muted-foreground ml-auto">소유자</span>
+          <span v-if="m.role === 'owner'" class="text-[9px] text-muted-foreground ml-auto">{{ $t('chat.members.owner') }}</span>
         </button>
       </div>
 
       <!-- Offline -->
       <div v-if="offlineMembers.length > 0">
         <div class="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase">
-          오프라인 — {{ offlineMembers.length }}
+          {{ $t('chat.members.offline', { n: offlineMembers.length }) }}
         </div>
         <button
           v-for="m in offlineMembers"
@@ -83,7 +84,7 @@ async function onDM(userId: string) {
         @click="onLeave"
         class="w-full text-xs text-destructive hover:bg-destructive/10 px-2 py-1.5 rounded transition-colors"
       >
-        채널 나가기
+        {{ $t('chat.members.leaveChannel') }}
       </button>
     </div>
   </div>

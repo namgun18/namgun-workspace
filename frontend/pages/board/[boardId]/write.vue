@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('board.write.createTitle')} | ${appName.value}`) })
+
 const route = useRoute()
 const router = useRouter()
 const boardId = route.params.boardId as string
@@ -62,7 +66,7 @@ async function handleFileUpload(e: Event) {
       attachments.value = [...attachments.value, { name: result.filename, url: result.url, size: result.size }]
     } catch (e: any) {
       console.error('File upload error:', e)
-      alert('파일 업로드에 실패했습니다')
+      alert(t('board.write.fileUploadError'))
     }
   }
   input.value = ''
@@ -74,12 +78,12 @@ function removeAttachment(index: number) {
 
 async function handleSubmit() {
   if (!title.value.trim()) {
-    alert('제목을 입력해주세요')
+    alert(t('board.write.titleRequired'))
     return
   }
   const content = editorHtml.value || editorText.value
   if (!content.trim()) {
-    alert('내용을 입력해주세요')
+    alert(t('board.write.contentRequired'))
     return
   }
 
@@ -109,7 +113,7 @@ async function handleSubmit() {
   } catch (e: any) {
     console.error('Submit error:', e)
     const detail = e?.data?.detail
-    const msg = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map((d: any) => d.msg).join(', ') : '게시글 저장에 실패했습니다'
+    const msg = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map((d: any) => d.msg).join(', ') : t('board.write.saveError')
     alert(msg)
   } finally {
     submitting.value = false
@@ -141,15 +145,15 @@ function formatSize(bytes: number): string {
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
             <polyline points="15 18 9 12 15 6" />
           </svg>
-          <span class="hidden sm:inline">뒤로</span>
+          <span class="hidden sm:inline">{{ $t('common.back') }}</span>
         </button>
         <h2 class="text-sm font-semibold">
-          {{ isEditMode ? '게시글 수정' : '게시글 작성' }}
+          {{ isEditMode ? $t('board.write.editTitle') : $t('board.write.createTitle') }}
         </h2>
         <div class="flex-1" />
-        <UiButton variant="outline" size="sm" @click="router.back()">취소</UiButton>
+        <UiButton variant="outline" size="sm" @click="router.back()">{{ $t('common.cancel') }}</UiButton>
         <UiButton size="sm" @click="handleSubmit" :disabled="submitting">
-          {{ submitting ? '저장 중...' : (isEditMode ? '수정' : '등록') }}
+          {{ submitting ? $t('common.saving') : (isEditMode ? $t('common.edit') : $t('common.submit')) }}
         </UiButton>
       </div>
 
@@ -163,18 +167,18 @@ function formatSize(bytes: number): string {
           v-model="category"
           class="h-9 rounded-md border bg-background px-3 text-sm"
         >
-          <option :value="null">말머리 선택</option>
+          <option :value="null">{{ $t('board.write.selectCategory') }}</option>
           <option v-for="cat in currentBoard.categories" :key="cat" :value="cat">{{ cat }}</option>
         </select>
 
         <template v-if="canSetNotice">
           <label class="flex items-center gap-1.5 text-sm cursor-pointer">
             <input type="checkbox" v-model="isPinned" class="rounded" />
-            공지
+            {{ $t('board.post.noticeBadge') }}
           </label>
           <label class="flex items-center gap-1.5 text-sm cursor-pointer">
             <input type="checkbox" v-model="isMustRead" class="rounded" />
-            필독
+            {{ $t('board.post.mustReadBadge') }}
           </label>
         </template>
       </div>
@@ -183,7 +187,7 @@ function formatSize(bytes: number): string {
       <input
         v-model="title"
         type="text"
-        placeholder="제목을 입력하세요"
+        :placeholder="$t('board.write.titlePlaceholder')"
         class="w-full h-11 rounded-md border bg-background px-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-ring"
       />
 
@@ -200,7 +204,7 @@ function formatSize(bytes: number): string {
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
             <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
           </svg>
-          파일 첨부
+          {{ $t('board.write.attachFile') }}
           <input type="file" multiple class="hidden" @change="handleFileUpload" />
         </label>
 

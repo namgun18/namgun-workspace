@@ -50,8 +50,8 @@ onMounted(() => {
   <div class="w-80 border-l h-full flex flex-col bg-background shrink-0">
     <!-- Header -->
     <div class="flex items-center justify-between px-3 py-2.5 border-b">
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">메시지 검색</h4>
-      <button @click="showSearchPanel = false" class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent">
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ $t('chat.search.title') }}</h4>
+      <button @click="showSearchPanel = false" class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent" :aria-label="$t('common.close')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
         </svg>
@@ -68,7 +68,7 @@ onMounted(() => {
           ref="inputRef"
           v-model="searchQuery"
           @input="onInput"
-          placeholder="메시지 내용 검색..."
+          :placeholder="$t('chat.search.placeholder')"
           class="w-full pl-7 pr-2 py-1.5 text-xs border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
         />
       </div>
@@ -77,11 +77,11 @@ onMounted(() => {
     <!-- Results -->
     <div class="flex-1 overflow-y-auto">
       <div v-if="searchLoading" class="flex items-center justify-center py-4">
-        <span class="text-xs text-muted-foreground">검색 중...</span>
+        <span class="text-xs text-muted-foreground">{{ $t('chat.search.loading') }}</span>
       </div>
 
       <div v-else-if="searchResults.length === 0 && searchQuery.trim()" class="flex items-center justify-center py-4">
-        <span class="text-xs text-muted-foreground">검색 결과가 없습니다</span>
+        <span class="text-xs text-muted-foreground">{{ $t('chat.search.noResults') }}</span>
       </div>
 
       <button
@@ -108,7 +108,7 @@ onMounted(() => {
         </div>
         <!-- Sender + content -->
         <div class="flex items-start gap-1.5">
-          <span class="text-[10px] text-muted-foreground shrink-0">{{ result.sender?.display_name || result.sender?.username || '시스템' }}:</span>
+          <span class="text-[10px] text-muted-foreground shrink-0">{{ result.sender?.display_name || result.sender?.username || $t('chat.search.system') }}:</span>
           <p class="text-xs line-clamp-2 break-words">{{ result.content }}</p>
         </div>
       </button>

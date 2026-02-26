@@ -72,7 +72,7 @@ const isAllSelected = computed(() =>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-12 w-12 mb-3 opacity-50">
         <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
       </svg>
-      <p class="text-sm">이 폴더는 비어 있습니다</p>
+      <p class="text-sm">{{ $t('files.empty') }}</p>
     </div>
 
     <!-- Table -->
@@ -89,7 +89,7 @@ const isAllSelected = computed(() =>
           </th>
           <th class="px-2 py-2 cursor-pointer select-none" @click="toggleSort('name')">
             <span class="flex items-center gap-1">
-              이름
+              {{ $t('files.list.nameColumn') }}
               <svg v-if="sortField === 'name'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3" :class="sortDir === 'desc' ? 'rotate-180' : ''">
                 <polyline points="18 15 12 9 6 15" />
               </svg>
@@ -97,7 +97,7 @@ const isAllSelected = computed(() =>
           </th>
           <th class="px-2 py-2 w-32 cursor-pointer select-none hidden sm:table-cell" @click="toggleSort('modified_at')">
             <span class="flex items-center gap-1">
-              수정일
+              {{ $t('files.list.modifiedColumn') }}
               <svg v-if="sortField === 'modified_at'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3" :class="sortDir === 'desc' ? 'rotate-180' : ''">
                 <polyline points="18 15 12 9 6 15" />
               </svg>
@@ -105,7 +105,7 @@ const isAllSelected = computed(() =>
           </th>
           <th class="px-2 py-2 w-24 cursor-pointer select-none hidden sm:table-cell" @click="toggleSort('size')">
             <span class="flex items-center gap-1">
-              크기
+              {{ $t('files.list.sizeColumn') }}
               <svg v-if="sortField === 'size'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3" :class="sortDir === 'desc' ? 'rotate-180' : ''">
                 <polyline points="18 15 12 9 6 15" />
               </svg>
@@ -156,7 +156,7 @@ const isAllSelected = computed(() =>
               @click="openActionMenu($event, item)"
               class="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors opacity-0 group-hover:opacity-100"
               :class="selectedItems.has(item.path) ? 'opacity-100' : ''"
-              title="더보기"
+              :title="$t('common.moreActions')"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 text-muted-foreground">
                 <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />

@@ -4,6 +4,8 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
 
+const { t } = useI18n()
+
 const props = defineProps<{
   initialContent?: string
 }>()
@@ -45,7 +47,7 @@ function toggleBlockquote() { editor.value?.chain().focus().toggleBlockquote().r
 function toggleCode() { editor.value?.chain().focus().toggleCodeBlock().run() }
 
 function setLink() {
-  const url = window.prompt('링크 URL을 입력하세요:')
+  const url = window.prompt(t('mail.editor.linkPrompt'))
   if (url) {
     editor.value?.chain().focus().setLink({ href: url }).run()
   }
@@ -68,25 +70,25 @@ onBeforeUnmount(() => {
         @click="toggleBold"
         :class="isActive('bold') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded text-sm font-bold hover:bg-accent"
-        title="굵게"
+        :title="$t('mail.editor.bold')"
       >B</button>
       <button
         @click="toggleItalic"
         :class="isActive('italic') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded text-sm italic hover:bg-accent"
-        title="기울임"
+        :title="$t('mail.editor.italic')"
       >I</button>
       <button
         @click="toggleUnderline"
         :class="isActive('underline') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded text-sm underline hover:bg-accent"
-        title="밑줄"
+        :title="$t('mail.editor.underline')"
       >U</button>
       <button
         @click="toggleStrike"
         :class="isActive('strike') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded text-sm line-through hover:bg-accent"
-        title="취소선"
+        :title="$t('mail.editor.strikethrough')"
       >S</button>
 
       <div class="w-px h-5 bg-border mx-1" />
@@ -95,13 +97,13 @@ onBeforeUnmount(() => {
         @click="toggleH1"
         :class="isActive('heading', { level: 1 }) ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 px-1.5 flex items-center justify-center rounded text-xs font-bold hover:bg-accent"
-        title="제목 1"
+        :title="$t('mail.editor.heading1')"
       >H1</button>
       <button
         @click="toggleH2"
         :class="isActive('heading', { level: 2 }) ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 px-1.5 flex items-center justify-center rounded text-xs font-bold hover:bg-accent"
-        title="제목 2"
+        :title="$t('mail.editor.heading2')"
       >H2</button>
 
       <div class="w-px h-5 bg-border mx-1" />
@@ -110,7 +112,7 @@ onBeforeUnmount(() => {
         @click="toggleBulletList"
         :class="isActive('bulletList') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded hover:bg-accent"
-        title="글머리 기호"
+        :title="$t('mail.editor.bulletList')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
           <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
@@ -121,7 +123,7 @@ onBeforeUnmount(() => {
         @click="toggleOrderedList"
         :class="isActive('orderedList') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded hover:bg-accent"
-        title="번호 매기기"
+        :title="$t('mail.editor.orderedList')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
           <line x1="10" y1="6" x2="21" y2="6" /><line x1="10" y1="12" x2="21" y2="12" /><line x1="10" y1="18" x2="21" y2="18" />
@@ -137,7 +139,7 @@ onBeforeUnmount(() => {
         @click="setLink"
         :class="isActive('link') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded hover:bg-accent"
-        title="링크"
+        :title="$t('mail.editor.link')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4">
           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -148,7 +150,7 @@ onBeforeUnmount(() => {
         @click="toggleBlockquote"
         :class="isActive('blockquote') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded hover:bg-accent"
-        title="인용"
+        :title="$t('mail.editor.blockquote')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
           <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z" />
@@ -159,7 +161,7 @@ onBeforeUnmount(() => {
         @click="toggleCode"
         :class="isActive('codeBlock') ? 'bg-accent text-foreground' : 'text-muted-foreground'"
         class="h-7 w-7 flex items-center justify-center rounded hover:bg-accent"
-        title="코드"
+        :title="$t('mail.editor.code')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4">
           <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />

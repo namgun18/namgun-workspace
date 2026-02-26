@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CalendarEvent } from '~/composables/useCalendar'
 
+const { t } = useI18n()
 const { selectedDate, visibleEvents, openCreateModal, openEditModal } = useCalendar()
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
@@ -16,8 +17,8 @@ const isToday = computed(() => {
 
 const dateLabel = computed(() => {
   const d = selectedDate.value
-  const weekdays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${weekdays[d.getDay()]}`
+  const weekdays = computed(() => t('calendar.weekdaysFull') as unknown as string[])
+  return `${d.getMonth() + 1}/${d.getDate()} ${weekdays.value[d.getDay()]}`
 })
 
 const allDayEvts = computed(() =>
@@ -60,7 +61,7 @@ function handleSlotClick(hour: number) {
     <div class="border-b p-3 shrink-0">
       <h3 class="text-sm font-medium" :class="{ 'text-primary': isToday }">
         {{ dateLabel }}
-        <span v-if="isToday" class="ml-1 text-xs text-primary">(오늘)</span>
+        <span v-if="isToday" class="ml-1 text-xs text-primary">{{ $t('calendar.today') }}</span>
       </h3>
       <!-- All day events -->
       <div v-if="allDayEvts.length" class="mt-2 space-y-1">

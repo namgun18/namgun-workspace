@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { t } = useI18n()
 import { timeAgo } from '~/lib/date'
 
 interface MailPreview {
@@ -34,7 +35,7 @@ async function fetchRecentMails() {
 onMounted(fetchRecentMails)
 
 function senderName(from: MailPreview['from_']) {
-  if (!from || from.length === 0) return '(알 수 없음)'
+  if (!from || from.length === 0) return t('mail.unknownSender')
   return from[0].name || from[0].email
 }
 </script>
@@ -44,10 +45,10 @@ function senderName(from: MailPreview['from_']) {
     <UiCardHeader class="pb-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-blue-500"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <UiCardTitle class="text-base">최근 메일</UiCardTitle>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-blue-500" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <UiCardTitle class="text-base">{{ $t('dashboard.recentMail.title') }}</UiCardTitle>
         </div>
-        <NuxtLink to="/mail" class="text-xs text-primary hover:underline">전체 보기</NuxtLink>
+        <NuxtLink to="/mail" class="text-xs text-primary hover:underline">{{ $t('common.viewAll') }}</NuxtLink>
       </div>
     </UiCardHeader>
     <UiCardContent>
@@ -61,7 +62,7 @@ function senderName(from: MailPreview['from_']) {
 
       <!-- Empty -->
       <p v-else-if="mails.length === 0" class="text-sm text-muted-foreground">
-        새 메일이 없습니다
+        {{ $t('dashboard.recentMail.empty') }}
       </p>
 
       <!-- Mail list -->
@@ -87,7 +88,7 @@ function senderName(from: MailPreview['from_']) {
               </span>
             </div>
             <p class="text-sm truncate" :class="m.is_unread ? 'text-foreground' : 'text-muted-foreground'">
-              {{ m.subject || '(제목 없음)' }}
+              {{ m.subject || $t('mail.noSubject') }}
             </p>
           </div>
         </NuxtLink>

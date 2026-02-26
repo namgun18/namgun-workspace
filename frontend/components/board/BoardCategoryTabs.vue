@@ -16,7 +16,7 @@ const emit = defineEmits<{
       class="px-2.5 py-1 rounded-md text-sm whitespace-nowrap transition-colors"
       :class="!selected ? 'bg-accent font-medium' : 'text-muted-foreground hover:bg-accent/50'"
     >
-      전체
+      {{ $t('common.all') }}
     </button>
     <button
       v-for="cat in categories"

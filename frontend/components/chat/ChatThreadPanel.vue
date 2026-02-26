@@ -36,8 +36,8 @@ const formattedTime = (dateStr: string) => {
   <div class="w-80 border-l h-full flex flex-col bg-background shrink-0">
     <!-- Header -->
     <div class="flex items-center justify-between px-3 py-2.5 border-b">
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">스레드</h4>
-      <button @click="closeThread" class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent">
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ $t('chat.thread.title') }}</h4>
+      <button @click="closeThread" class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent" :aria-label="$t('common.close')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
         </svg>
@@ -62,11 +62,11 @@ const formattedTime = (dateStr: string) => {
     <!-- Thread replies -->
     <div class="flex-1 overflow-y-auto px-3 py-2 space-y-2">
       <div v-if="loadingThread" class="flex items-center justify-center py-4">
-        <span class="text-xs text-muted-foreground">불러오는 중...</span>
+        <span class="text-xs text-muted-foreground">{{ $t('common.loading') }}</span>
       </div>
 
       <div v-else-if="threadMessages.length === 0" class="flex items-center justify-center py-4">
-        <span class="text-xs text-muted-foreground">아직 답글이 없습니다</span>
+        <span class="text-xs text-muted-foreground">{{ $t('chat.thread.empty') }}</span>
       </div>
 
       <div v-for="msg in threadMessages" :key="msg.id" class="group">
@@ -100,7 +100,7 @@ const formattedTime = (dateStr: string) => {
       <textarea
         v-model="replyContent"
         @keydown="onKeydown"
-        placeholder="답글 작성..."
+        :placeholder="$t('chat.thread.replyPlaceholder')"
         class="w-full px-2 py-1.5 text-xs border rounded bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
         rows="2"
       />
@@ -110,7 +110,7 @@ const formattedTime = (dateStr: string) => {
           :disabled="!replyContent.trim()"
           class="px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          보내기
+          {{ $t('common.send') }}
         </button>
       </div>
     </div>

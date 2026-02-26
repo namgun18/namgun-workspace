@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const { deleteMessage, editMessage, toggleReaction } = useChat()
+const { t } = useI18n()
 
 const showActions = ref(false)
 const editing = ref(false)
@@ -61,10 +62,10 @@ const renderedContent = computed<ContentPart[]>(() => {
 const formattedDate = computed(() => {
   const d = new Date(props.message.created_at)
   const today = new Date()
-  if (d.toDateString() === today.toDateString()) return '오늘'
+  if (d.toDateString() === today.toDateString()) return t('common.today')
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (d.toDateString() === yesterday.toDateString()) return '어제'
+  if (d.toDateString() === yesterday.toDateString()) return t('common.yesterday')
   return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 })
 
@@ -84,7 +85,7 @@ async function submitEdit() {
 }
 
 async function onDelete() {
-  if (!confirm('메시지를 삭제하시겠습니까?')) return
+  if (!confirm(t('chat.message.deleteConfirm'))) return
   try {
     await deleteMessage(props.message.id)
   } catch (e: any) {
@@ -133,8 +134,8 @@ async function onDelete() {
             rows="2"
           />
           <div class="flex gap-1 mt-1">
-            <button @click="submitEdit" class="text-xs px-2 py-0.5 rounded bg-primary text-primary-foreground hover:bg-primary/90">저장</button>
-            <button @click="editing = false" class="text-xs px-2 py-0.5 rounded border hover:bg-accent">취소</button>
+            <button @click="submitEdit" class="text-xs px-2 py-0.5 rounded bg-primary text-primary-foreground hover:bg-primary/90">{{ $t('common.save') }}</button>
+            <button @click="editing = false" class="text-xs px-2 py-0.5 rounded border hover:bg-accent">{{ $t('common.cancel') }}</button>
           </div>
         </div>
 
@@ -143,7 +144,7 @@ async function onDelete() {
             <span v-if="part.type === 'mention'" class="text-primary font-medium">{{ part.value }}</span>
             <template v-else>{{ part.value }}</template>
           </template>
-          <span v-if="message.is_edited" class="text-[10px] text-muted-foreground ml-1">(수정됨)</span>
+          <span v-if="message.is_edited" class="text-[10px] text-muted-foreground ml-1">{{ $t('chat.message.edited') }}</span>
         </p>
       </div>
     </div>
@@ -165,8 +166,8 @@ async function onDelete() {
             rows="2"
           />
           <div class="flex gap-1 mt-1">
-            <button @click="submitEdit" class="text-xs px-2 py-0.5 rounded bg-primary text-primary-foreground hover:bg-primary/90">저장</button>
-            <button @click="editing = false" class="text-xs px-2 py-0.5 rounded border hover:bg-accent">취소</button>
+            <button @click="submitEdit" class="text-xs px-2 py-0.5 rounded bg-primary text-primary-foreground hover:bg-primary/90">{{ $t('common.save') }}</button>
+            <button @click="editing = false" class="text-xs px-2 py-0.5 rounded border hover:bg-accent">{{ $t('common.cancel') }}</button>
           </div>
         </div>
         <p v-else class="text-sm whitespace-pre-wrap break-words">
@@ -174,7 +175,7 @@ async function onDelete() {
             <span v-if="part.type === 'mention'" class="text-primary font-medium">{{ part.value }}</span>
             <template v-else>{{ part.value }}</template>
           </template>
-          <span v-if="message.is_edited" class="text-[10px] text-muted-foreground ml-1">(수정됨)</span>
+          <span v-if="message.is_edited" class="text-[10px] text-muted-foreground ml-1">{{ $t('chat.message.edited') }}</span>
         </p>
       </div>
     </div>
@@ -190,7 +191,7 @@ async function onDelete() {
         @click="emit('open-thread', message.id)"
         class="text-xs text-primary hover:underline"
       >
-        {{ message.reply_count }}개의 답글
+        {{ message.reply_count }}{{ $t('chat.message.replies') }}
       </button>
     </div>
 
@@ -217,23 +218,23 @@ async function onDelete() {
       class="absolute -top-3 right-2 flex items-center gap-0.5 px-1 py-0.5 bg-background border rounded-md shadow-sm"
     >
       <!-- Reaction quick add -->
-      <button @click="toggleReaction(message.id, '👍')" class="p-1 rounded hover:bg-accent" title="리액션">
+      <button @click="toggleReaction(message.id, '👍')" class="p-1 rounded hover:bg-accent" :title="$t('chat.message.reaction')">
         <span class="text-xs">😊</span>
       </button>
       <!-- Thread reply -->
-      <button @click="emit('open-thread', message.id)" class="p-1 rounded hover:bg-accent" title="답글">
+      <button @click="emit('open-thread', message.id)" class="p-1 rounded hover:bg-accent" :title="$t('chat.message.reply')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       </button>
       <!-- Edit (own only) -->
-      <button v-if="isOwn" @click="startEdit" class="p-1 rounded hover:bg-accent" title="수정">
+      <button v-if="isOwn" @click="startEdit" class="p-1 rounded hover:bg-accent" :title="$t('common.edit')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       </button>
       <!-- Delete (own only) -->
-      <button v-if="isOwn" @click="onDelete" class="p-1 rounded hover:bg-accent text-destructive" title="삭제">
+      <button v-if="isOwn" @click="onDelete" class="p-1 rounded hover:bg-accent text-destructive" :title="$t('common.delete')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
           <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
         </svg>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { t } = useI18n()
 const { issues, issueState, loading, fetchIssues, selectIssue } = useGit()
 const emit = defineEmits<{ createIssue: [] }>()
 
@@ -6,11 +7,11 @@ function timeAgo(dateStr: string) {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}분 전`
+  if (mins < 60) return t('common.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}일 전`
+  if (days < 30) return t('common.daysAgo', { n: days })
   return new Date(dateStr).toLocaleDateString('ko-KR')
 }
 
@@ -48,7 +49,7 @@ async function toggleState(state: 'open' | 'closed') {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-        새 이슈
+        {{ $t('git.issue.newButton') }}
       </button>
     </div>
 
@@ -59,7 +60,7 @@ async function toggleState(state: 'open' | 'closed') {
 
     <!-- Empty -->
     <div v-else-if="issues.length === 0" class="text-center py-12 text-sm text-muted-foreground">
-      {{ issueState === 'open' ? '열린 이슈가 없습니다' : '닫힌 이슈가 없습니다' }}
+      {{ issueState === 'open' ? $t('git.issue.emptyOpen') : $t('git.issue.emptyClosed') }}
     </div>
 
     <!-- List -->
@@ -91,7 +92,7 @@ async function toggleState(state: 'open' | 'closed') {
             </div>
             <div class="text-xs text-muted-foreground mt-1">
               #{{ issue.number }} · {{ issue.user?.login }} · {{ timeAgo(issue.created_at) }}
-              <span v-if="issue.comments > 0"> · {{ issue.comments }}개 댓글</span>
+              <span v-if="issue.comments > 0"> · {{ issue.comments }}{{ $t('git.issue.commentCount') }}</span>
             </div>
           </div>
         </div>

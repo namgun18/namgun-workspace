@@ -28,7 +28,7 @@ function onToggle(emoji: string) {
       :class="r.reacted
         ? 'bg-primary/10 border-primary/30 text-primary'
         : 'bg-muted/50 border-transparent hover:bg-accent'"
-      :title="r.count + '명'"
+      :title="$t('board.reaction.countLabel', { n: r.count })"
     >
       <span>{{ r.emoji }}</span>
       <span class="text-xs">{{ r.count }}</span>
@@ -39,7 +39,7 @@ function onToggle(emoji: string) {
       <button
         @click="showPicker = !showPicker"
         class="inline-flex items-center justify-center h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 hover:bg-accent transition-colors text-xs"
-        title="리액션 추가"
+        :title="$t('board.reaction.addTitle')"
       >
         +
       </button>

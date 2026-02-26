@@ -1,0 +1,1054 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "retry": "Retry",
+    "submit": "Submit",
+    "reset": "Reset",
+    "add": "Add",
+    "create": "Create",
+    "creating": "Creating...",
+    "saving": "Saving...",
+    "sending": "Sending...",
+    "processing": "Processing...",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "download": "Download",
+    "refresh": "Refresh",
+    "more": "More",
+    "moreActions": "More actions",
+    "menu": "Menu",
+    "done": "Done",
+    "send": "Send",
+    "prev": "Prev",
+    "next": "Next",
+    "all": "All",
+    "none": "None",
+    "optional": "(Optional)",
+    "default": "Default",
+    "noData": "No data",
+    "unknownUser": "Unknown",
+    "unknown": "Unknown",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "people": "",
+    "notice": "Notice",
+    "mustRead": "Must read",
+    "viewAll": "View all",
+    "addItem": "+ Add",
+    "backToLogin": "Back to login page",
+    "returnToLogin": "Return to login",
+    "goToLogin": "Go to login page",
+    "goHome": "Go to home",
+    "login": "Log in",
+    "justNow": "Just now",
+    "minutesAgo": "{n}m ago",
+    "hoursAgo": "{n}h ago",
+    "daysAgo": "{n}d ago",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "role": {
+      "admin": "Admin",
+      "user": "User"
+    },
+    "pagination": {
+      "prev": "Prev",
+      "next": "Next"
+    }
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "register": "Sign up",
+    "username": "Username",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "loginFailed": "Login failed.",
+    "registerSuccess": "Registration complete.",
+    "usernameOrEmail": "Username or email",
+    "usernameOrEmailPlaceholder": "Username or email",
+    "passwordPlaceholder": "Password",
+    "rememberMe": "Remember me",
+    "loginRequired": "Please log in to access this service",
+    "loggingIn": "Logging in...",
+    "noAccount": "Don't have an account?",
+    "enterCredentials": "Please enter your username and password.",
+    "invalidCredentials": "Invalid username or password.",
+    "authServerUnavailable": "Cannot connect to authentication server.",
+    "loginError": "An error occurred during login. Please try again."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "mail": "Mail",
+    "chat": "Chat",
+    "files": "Files",
+    "meetings": "Meetings",
+    "calendar": "Calendar",
+    "contacts": "Contacts",
+    "git": "Git",
+    "board": "Board",
+    "settings": "Settings",
+    "admin": "Admin",
+    "profile": "Profile",
+    "adminDashboard": "Admin Dashboard"
+  },
+  "error": {
+    "notFound": "Page not found.",
+    "serverError": "A server error has occurred.",
+    "forbidden": "Access denied.",
+    "networkError": "A network error has occurred.",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "goHome": "Go to home",
+    "moduleLoadFailed": "Failed to load module info. Some features may be limited.",
+    "renderError": "An error occurred while rendering the page.",
+    "adminRequired": "Admin access required",
+    "unexpectedError": "An unexpected error occurred.",
+    "genericError": "An error occurred during processing.",
+    "404": {
+      "title": "Page not found",
+      "description": "The page you requested does not exist or has been moved."
+    },
+    "500": {
+      "title": "Server error",
+      "description": "Please try again later. If the problem persists, contact the administrator."
+    },
+    "default": {
+      "title": "An error occurred",
+      "description": "An unknown error occurred."
+    }
+  },
+  "validation": {
+    "allFieldsRequired": "Please fill in all fields.",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordTooShort": "Password must be at least 8 characters.",
+    "recoveryEmailMustBeExternal": "Recovery email must be an external email address.",
+    "minChars": "Min {n} characters"
+  },
+  "fields": {
+    "username": "Username",
+    "email": "Email",
+    "displayName": "Display name",
+    "password": "Password",
+    "passwordConfirm": "Confirm password",
+    "recoveryEmail": "Recovery email",
+    "newPassword": "New password",
+    "newPasswordConfirm": "Confirm new password",
+    "currentPassword": "Current password"
+  },
+  "register": {
+    "title": "Sign up",
+    "subtitle": "Create your Workspace account",
+    "successTitle": "Registration submitted",
+    "successMessage": "A verification link has been sent to your recovery email. Please verify your email. Once verified and approved by an administrator, you can log in.",
+    "usernamePlaceholder": "Lowercase letters, numbers, dots, hyphens (3-30 chars)",
+    "emailPreviewLabel": "Email:",
+    "displayNamePlaceholder": "Name displayed to other users",
+    "passwordPlaceholder": "Min 8 characters",
+    "passwordConfirmPlaceholder": "Re-enter your password",
+    "recoveryEmailPlaceholder": "External email for password recovery",
+    "recoveryEmailHint": "Enter an external email outside {'@'}{domain}",
+    "submitButton": "Sign up",
+    "hasAccount": "Already have an account?",
+    "errorGeneric": "An error occurred during registration."
+  },
+  "forgotPassword": {
+    "title": "Forgot password",
+    "subtitle": "Enter your username and we'll send a reset link to your recovery email",
+    "usernameRequired": "Please enter your username.",
+    "successTitle": "Sent",
+    "usernamePlaceholder": "Username used during registration",
+    "submitButton": "Send reset link"
+  },
+  "resetPassword": {
+    "title": "Reset password",
+    "subtitle": "Enter your new password",
+    "invalidToken": "Invalid reset link.",
+    "successTitle": "Reset complete",
+    "successMessage": "Your password has been reset. Please log in with your new password.",
+    "newPasswordPlaceholder": "8+ characters",
+    "confirmPasswordPlaceholder": "Re-enter password",
+    "submitButton": "Reset password"
+  },
+  "verifyEmail": {
+    "title": "Email verification",
+    "loading": "Verifying...",
+    "invalidToken": "Invalid verification link.",
+    "successTitle": "Verified",
+    "errorTitle": "Verification failed",
+    "errorGeneric": "Email verification failed.",
+    "goToRegister": "Go to registration page"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your account information and password",
+    "sectionUserInfo": "User information",
+    "sectionSignatures": "Mail signatures",
+    "sectionSync": "Sync settings",
+    "sectionPasswordChange": "Change password",
+    "avatarChange": "Change avatar",
+    "avatarUploading": "Uploading...",
+    "avatarUploadError": "Failed to upload avatar.",
+    "avatarHint": "JPG, PNG, WebP, GIF / Max 5MB",
+    "recoveryEmailHint": "External email outside your domain",
+    "noChanges": "No changes to save.",
+    "updateSuccess": "Profile updated.",
+    "updateError": "An error occurred while updating your profile.",
+    "sigNew": "New signature",
+    "sigEmpty": "No signatures. Add a new signature.",
+    "sigSetDefaultTitle": "Set as default signature",
+    "sigSetDefault": "Default",
+    "sigSetDefaultLabel": "Set as default signature",
+    "sigEditTitle": "Edit signature",
+    "sigNameLabel": "Signature name",
+    "sigNamePlaceholder": "e.g. Work",
+    "sigContentLabel": "Signature content (HTML)",
+    "sigNameAndContentRequired": "Please enter a name and content.",
+    "sigSaveError": "Failed to save signature.",
+    "sigDeleteConfirm": "Delete this signature?",
+    "syncDescription": "Sync with external clients such as Thunderbird, iOS, and Android.",
+    "caldavLabel": "CalDAV (Calendar)",
+    "carddavLabel": "CardDAV (Contacts)",
+    "syncUsernameHint": "Username: your email address ({email})",
+    "syncPasswordHint": "Password: same as your Workspace account password",
+    "newPasswordMismatch": "New passwords do not match.",
+    "passwordChangeSuccess": "Password changed.",
+    "passwordChangeError": "An error occurred while changing your password.",
+    "passwordChanging": "Changing...",
+    "passwordChangeButton": "Change password"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications"
+  },
+  "greeting": {
+    "hello": "Hello",
+    "lateNight": "Late night",
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "withName": "{greeting}, {name}",
+    "haveAGoodDay": "Have a great day"
+  },
+  "dashboard": {
+    "notices": {
+      "title": "Notices",
+      "empty": "No notices"
+    },
+    "recentBoard": {
+      "title": "Recent posts",
+      "empty": "No recent posts"
+    },
+    "recentGit": {
+      "title": "Recent Git activity",
+      "empty": "No recent commits"
+    },
+    "recentMail": {
+      "title": "Recent mail",
+      "empty": "No new mail"
+    },
+    "shortcuts": {
+      "title": "Quick shortcuts",
+      "composeMail": "Compose mail",
+      "calendar": "Calendar",
+      "contacts": "Contacts",
+      "fileUpload": "Upload file",
+      "gitRepo": "Git repos"
+    },
+    "storage": {
+      "title": "Storage",
+      "manageFiles": "Manage files",
+      "usedPercent": "{percent}% used",
+      "myFiles": "My files",
+      "sharedFiles": "Shared files"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Admin Dashboard",
+      "subtitle": "Visitor analytics and service status"
+    },
+    "period": {
+      "today": "Today",
+      "7d": "7 days",
+      "30d": "30 days"
+    },
+    "modules": {
+      "title": "Module management",
+      "description": "Enable/disable feature modules. Disabled modules are hidden from navigation and their APIs are blocked."
+    },
+    "users": {
+      "title": "User management",
+      "subtitle": "Approve registrations and manage users",
+      "tabs": {
+        "pending": "Pending",
+        "all": "All users"
+      },
+      "pendingEmpty": "No pending users",
+      "allEmpty": "No registered users",
+      "recoveryEmail": "Recovery:",
+      "approve": "Approve",
+      "reject": "Reject",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "confirmReject": "Reject this registration? The user will be deleted.",
+      "confirmDeactivate": "Deactivate this user?",
+      "confirmGrantAdmin": "Grant admin privileges to {name}?",
+      "confirmRevokeAdmin": "Revoke admin privileges from {name}?",
+      "approveError": "An error occurred during approval.",
+      "rejectError": "An error occurred during rejection.",
+      "deactivateError": "An error occurred during deactivation.",
+      "roleChangeError": "An error occurred while changing role.",
+      "table": {
+        "user": "User",
+        "email": "Email",
+        "status": "Status",
+        "role": "Role",
+        "joinedAt": "Joined",
+        "actions": "Actions"
+      }
+    },
+    "analytics": {
+      "overview": {
+        "totalVisits": "Total visits",
+        "uniqueVisitors": "Unique visitors",
+        "authenticatedVisits": "Authenticated",
+        "avgResponseTime": "Avg response time"
+      },
+      "activeUsers": {
+        "title": "Active users (last 5 min)",
+        "empty": "No active users"
+      },
+      "daily": {
+        "title": "Daily visit trends",
+        "labelTotal": "Total",
+        "labelAuthenticated": "Authenticated",
+        "labelUnauthenticated": "Unauthenticated"
+      },
+      "git": {
+        "title": "Git activity",
+        "repos": "Repos {n}",
+        "issues": "Issues {n}",
+        "empty": "No Git activity"
+      },
+      "recentLogins": {
+        "title": "Recent logins",
+        "empty": "No login history"
+      },
+      "serviceUsage": {
+        "title": "Service usage"
+      },
+      "topIPs": {
+        "title": "Top IPs"
+      },
+      "topPages": {
+        "title": "Popular pages"
+      },
+      "accessLogs": {
+        "title": "Access logs",
+        "empty": "No logs",
+        "pagination": "{from}–{to} of {total}",
+        "col": {
+          "time": "Time",
+          "ip": "IP",
+          "path": "Path",
+          "status": "Status",
+          "response": "Response",
+          "browser": "Browser",
+          "user": "User"
+        }
+      },
+      "services": {
+        "all": "All",
+        "mail": "Mail",
+        "calendar": "Calendar",
+        "contacts": "Contacts",
+        "files": "Files",
+        "meetings": "Meetings",
+        "dashboard": "Dashboard",
+        "admin": "Admin",
+        "auth": "Auth",
+        "services": "Services"
+      }
+    }
+  },
+  "mail": {
+    "unknownSender": "(Unknown)",
+    "noSubject": "(No subject)",
+    "empty": "No mail",
+    "search": {
+      "placeholder": "Search mail..."
+    },
+    "sender": {
+      "none": "(No sender)"
+    },
+    "subject": {
+      "none": "(No subject)"
+    },
+    "message": {
+      "unread": "Unread",
+      "star": "Star",
+      "unstar": "Unstar",
+      "spam": "Spam"
+    },
+    "bulk": {
+      "selected": " selected",
+      "markRead": "Mark as read",
+      "read": "Read",
+      "markUnread": "Mark as unread",
+      "unread": "Unread",
+      "spam": "Spam",
+      "delete": "Delete"
+    },
+    "pagination": {
+      "count": ""
+    },
+    "folder": {
+      "inbox": "Inbox",
+      "sent": "Sent",
+      "drafts": "Drafts",
+      "trash": "Trash",
+      "junk": "Junk",
+      "archive": "Archive",
+      "deleteConfirm": "Delete \"{name}\" folder? All contained emails will also be deleted.",
+      "addTitle": "Add folder",
+      "namePlaceholder": "Folder name",
+      "rename": "Rename"
+    },
+    "sidebar": {
+      "title": "Mail"
+    },
+    "view": {
+      "deleteConfirm": "Delete this email?",
+      "reply": "Reply",
+      "replyAll": "Reply all",
+      "forward": "Forward",
+      "showHeaders": "Show headers",
+      "to": "To:",
+      "cc": "CC:",
+      "mdnRequest": "The sender has requested a read receipt.",
+      "rawHeaders": "Raw headers",
+      "noBody": "No content",
+      "attachments": "Attachments ({n})"
+    },
+    "compose": {
+      "new": "New mail",
+      "reply": "Reply",
+      "replyAll": "Reply all",
+      "forward": "Forward",
+      "from": "From",
+      "to": "To",
+      "toPlaceholder": "Email addresses (comma-separated)",
+      "toRequired": "Please enter a recipient.",
+      "cc": "CC",
+      "bcc": "BCC",
+      "emailPlaceholder": "Email address",
+      "subject": "Subject",
+      "subjectPlaceholder": "Subject",
+      "signature": "Signature",
+      "noSignature": "No signature",
+      "signatureDefault": "(Default)",
+      "attachFile": "Attach file",
+      "attachSizeError": "Total attachment size cannot exceed 25MB.",
+      "uploadError": "File upload failed.",
+      "uploading": "Uploading file...",
+      "sendError": "Failed to send email.",
+      "cancelConfirm": "Discard this email?",
+      "readReceipt": "Read receipt",
+      "send": "Send"
+    },
+    "editor": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strikethrough": "Strikethrough",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "bulletList": "Bullet list",
+      "orderedList": "Ordered list",
+      "link": "Link",
+      "linkPrompt": "Enter the link URL:",
+      "blockquote": "Quote",
+      "code": "Code"
+    },
+    "accounts": {
+      "title": "Mail account settings",
+      "descBuiltin": "Portal mail accounts are automatically linked. You can add external mail accounts.",
+      "descExternal": "Connect external mail accounts like Gmail, Outlook, etc.",
+      "add": "Add account",
+      "addTitle": "Add mail account",
+      "editTitle": "Edit account",
+      "builtin": "Built-in",
+      "default": "Default",
+      "testing": "Testing...",
+      "test": "Test connection",
+      "empty": "No mail accounts registered. Please add an account.",
+      "saveFail": "Save failed",
+      "deleteConfirm": "Delete this mail account?",
+      "deleteFail": "Delete failed",
+      "testFail": "Test failed",
+      "displayName": "Display name",
+      "email": "Email address",
+      "imapHost": "IMAP server",
+      "imapPort": "IMAP port",
+      "imapSecurity": "IMAP security",
+      "smtpHost": "SMTP server",
+      "smtpPort": "SMTP port",
+      "smtpSecurity": "SMTP security",
+      "username": "Login ID",
+      "password": "Password",
+      "passwordEditHint": "(Enter only if changing)",
+      "setDefault": "Set as default account"
+    }
+  },
+  "chat": {
+    "conversation": {
+      "empty": "Select a channel to start a conversation"
+    },
+    "create": {
+      "title": "Create new channel",
+      "name": "Channel name",
+      "namePlaceholder": "General",
+      "type": "Type",
+      "public": "Public",
+      "private": "Private",
+      "description": "Description (optional)",
+      "descriptionPlaceholder": "Channel description",
+      "members": "Add members (optional)",
+      "memberSearch": "Search users...",
+      "error": "Failed to create channel.",
+      "creating": "Creating...",
+      "submit": "Create"
+    },
+    "file": {
+      "image": "Image",
+      "file": "File"
+    },
+    "header": {
+      "searchMessages": "Search messages"
+    },
+    "input": {
+      "attachFile": "Attach file",
+      "placeholder": "Type a message... ({'@'} to mention)",
+      "send": "Send",
+      "uploading": "Uploading file..."
+    },
+    "members": {
+      "title": "Members",
+      "online": "Online — {n}",
+      "offline": "Offline — {n}",
+      "owner": "Owner",
+      "leaveChannel": "Leave channel",
+      "leaveConfirm": "Leave this channel?"
+    },
+    "message": {
+      "edited": "(edited)",
+      "replies": " replies",
+      "reaction": "Reaction",
+      "reply": "Reply",
+      "deleteConfirm": "Delete this message?"
+    },
+    "messages": {
+      "loadingMore": "Loading older messages...",
+      "empty": "No messages yet. Send the first message!"
+    },
+    "reactions": {
+      "add": "Add reaction"
+    },
+    "search": {
+      "title": "Search messages",
+      "placeholder": "Search message content...",
+      "loading": "Searching...",
+      "noResults": "No results found",
+      "system": "System"
+    },
+    "sidebar": {
+      "title": "Chat",
+      "newChannel": "New channel",
+      "channels": "Channels",
+      "users": "Users",
+      "dms": "Direct messages",
+      "noChannels": "No channels.",
+      "noChannelsHint": "Create a new channel.",
+      "online": "Online — {n}",
+      "offline": "Offline — {n}",
+      "noUsers": "No other users."
+    },
+    "thread": {
+      "title": "Thread",
+      "empty": "No replies yet",
+      "replyPlaceholder": "Write a reply..."
+    },
+    "typing": {
+      "one": "{name} is typing...",
+      "two": "{name1} and {name2} are typing...",
+      "many": "{name} and {n} others are typing..."
+    }
+  },
+  "meetings": {
+    "chat": {
+      "title": "Meeting chat",
+      "placeholder": "Type a message..."
+    },
+    "controls": {
+      "cameraOff": "Turn off camera",
+      "cameraOn": "Turn on camera",
+      "micOff": "Mute",
+      "micOn": "Unmute",
+      "screenStop": "Stop sharing",
+      "screenShare": "Share screen",
+      "participants": "Participants",
+      "chat": "Chat",
+      "leave": "Leave"
+    },
+    "device": {
+      "subtitle": "Check your devices before joining the meeting",
+      "requesting": "Requesting camera/microphone access",
+      "requestingDesc": "Please click \"Allow\" in the browser permission popup",
+      "denied": "Camera/microphone access required",
+      "joinWithoutPerm": "Join without permissions",
+      "noDevice": "Device unavailable",
+      "noDeviceDesc": "Joining the meeting without camera/microphone",
+      "joinAnyway": "Join anyway",
+      "join": "Join meeting",
+      "cameraOff": "Camera off",
+      "noCamera": "No camera",
+      "cameraLabel": "Camera {n}",
+      "mic": "Microphone",
+      "noMic": "No microphone",
+      "micLabel": "Microphone {n}",
+      "micWorking": "Microphone is working",
+      "micSpeak": "Try speaking...",
+      "micOff": "Microphone off",
+      "speaker": "Speaker",
+      "noSpeaker": "No speaker",
+      "speakerLabel": "Speaker {n}",
+      "testSound": "Play test sound",
+      "permGuideChrome": "Click the lock icon (or settings) in the address bar → Site settings → Camera/Microphone → Change to \"Allow\" and refresh",
+      "permGuideEdge": "Click the lock icon (or settings) in the address bar → Site settings → Camera/Microphone → Change to \"Allow\" and refresh",
+      "permGuideFirefox": "Click the camera/microphone icon in the address bar → Unblock and refresh",
+      "permGuideSafari": "Safari → Preferences → Websites → Camera/Microphone → Allow for this site and refresh",
+      "permGuideDefault": "Please allow camera/microphone access for this site in your browser settings."
+    },
+    "invite": {
+      "title": "New meeting room",
+      "roomName": "Room name",
+      "roomNamePlaceholder": "e.g. Weekly meeting",
+      "invitees": "Invite participants",
+      "searchPlaceholder": "Search users or enter external email",
+      "external": "External invite:",
+      "scheduledTime": "Scheduled time",
+      "scheduledHint": "(Optional, leave empty for immediate)",
+      "duration": "Duration",
+      "duration30": "30 min",
+      "duration60": "1 hour",
+      "duration120": "2 hours",
+      "inviteInfo": "Invitation email (ICS) will be sent to {n} people",
+      "maxParticipants": "Maximum 10 participants",
+      "creating": "Creating...",
+      "createAndInvite": "Create & invite",
+      "createAndJoin": "Create & join"
+    },
+    "list": {
+      "title": "Meeting rooms",
+      "newRoom": "New room",
+      "empty": "No active meeting rooms",
+      "emptyHint": "Create a new room to get started",
+      "host": "Host",
+      "pending": "Waiting {n}",
+      "join": "Join",
+      "copyLink": "Copy link"
+    },
+    "participant": {
+      "me": "(me)"
+    },
+    "sidebar": {
+      "participants": "Participants ({n})",
+      "waitingRoom": "Waiting room",
+      "chat": "Chat",
+      "noWaiting": "No participants waiting",
+      "joinRequest": "Join request",
+      "approve": "Approve",
+      "deny": "Deny",
+      "hostOnly": "Only the host can manage the waiting room",
+      "noMessages": "No messages",
+      "chatPlaceholder": "Type a message..."
+    },
+    "index": {
+      "createFail": "Failed to create meeting room",
+      "deleteFail": "Delete failed",
+      "deleteConfirm": "Delete meeting room \"{name}\"?"
+    },
+    "join": {
+      "invalidLink": "Invalid invitation link",
+      "requestFail": "Failed to request joining",
+      "joinFail": "Failed to join meeting",
+      "header": "Video meeting",
+      "loadingRoom": "Loading meeting room info...",
+      "host": "Host:",
+      "displayName": "Display name",
+      "namePlaceholder": "Name to use in the meeting",
+      "approvalHint": "You'll enter the meeting once the host approves",
+      "request": "Request to join",
+      "waiting": "Waiting for approval",
+      "waitingDesc": "Please wait while the host approves your request",
+      "requestedAs": "Requested as",
+      "denied": "Request denied",
+      "deniedDesc": "The host denied your join request"
+    },
+    "room": {
+      "participantCount": " participants",
+      "inviteLink": "Invite link",
+      "ended": "Meeting has ended",
+      "endedDesc": "You may close this window",
+      "closeWindow": "Close window"
+    }
+  },
+  "board": {
+    "attachments": {
+      "title": "Attachments ({n})"
+    },
+    "comment": {
+      "placeholder": "Write a comment",
+      "submit": "Post comment",
+      "submitting": "Posting...",
+      "createError": "Failed to post comment",
+      "deleteConfirm": "Delete this comment?",
+      "edited": "(edited)",
+      "empty": "No comments yet",
+      "heading": "Comments {n}"
+    },
+    "reply": {
+      "label": "Reply",
+      "placeholder": "Write a reply",
+      "submit": "Post reply",
+      "createError": "Failed to post reply"
+    },
+    "create": {
+      "title": "Create board",
+      "buttonLabel": "Create board",
+      "nameSlugRequired": "Please enter a name and slug",
+      "error": "Failed to create board",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Announcements",
+      "slugLabel": "Slug (URL)",
+      "slugPlaceholder": "e.g. notice",
+      "descriptionLabel": "Description (optional)",
+      "descriptionPlaceholder": "Board description",
+      "categoriesLabel": "Categories (comma-separated)",
+      "categoriesPlaceholder": "e.g. General, Urgent, Info",
+      "writePermissionLabel": "Write permission",
+      "writePermissionAll": "All users",
+      "writePermissionAdmin": "Admin only",
+      "submitting": "Creating...",
+      "submit": "Create"
+    },
+    "post": {
+      "empty": "No posts",
+      "noticeBadge": "Notice",
+      "mustReadBadge": "Must read",
+      "hasAttachments": "Attachments",
+      "viewCount": "{n} views",
+      "write": "Write",
+      "deleteConfirm": "Delete this post?",
+      "listLink": "List",
+      "backToList": "Back to list",
+      "notFound": "Post not found",
+      "edited": "(edited)",
+      "bookmarked": "Saved",
+      "bookmark": "Save"
+    },
+    "table": {
+      "title": "Title",
+      "author": "Author",
+      "views": "Views",
+      "comments": "Comments",
+      "date": "Date"
+    },
+    "reaction": {
+      "countLabel": "{n} people",
+      "addTitle": "Add reaction"
+    },
+    "sidebar": {
+      "addBoard": "Add board",
+      "unreadMustRead": "Unread must-read",
+      "empty": "No boards",
+      "myBookmarks": "My bookmarks"
+    },
+    "index": {
+      "allBoards": "All boards",
+      "empty": "No boards",
+      "emptyAdmin": "Create a board to get started"
+    },
+    "mustRead": {
+      "empty": "No unread must-read posts"
+    },
+    "bookmarks": {
+      "empty": "No saved posts"
+    },
+    "search": {
+      "placeholder": "Search by title or content",
+      "resultCount": " results",
+      "noResults": "No results found"
+    },
+    "sort": {
+      "latest": "Latest",
+      "views": "Views",
+      "comments": "Comments"
+    },
+    "write": {
+      "createTitle": "Write post",
+      "editTitle": "Edit post",
+      "titlePlaceholder": "Enter title",
+      "titleRequired": "Please enter a title",
+      "contentRequired": "Please enter content",
+      "selectCategory": "Select category",
+      "attachFile": "Attach file",
+      "fileUploadError": "File upload failed",
+      "saveError": "Failed to save post"
+    }
+  },
+  "files": {
+    "empty": "This folder is empty",
+    "commandBar": {
+      "new": "New",
+      "newFolder": "New folder",
+      "upload": "Upload",
+      "selectedCount": "{n} selected",
+      "gridView": "Grid view",
+      "listView": "List view",
+      "deleteConfirm": "Delete {n} items?"
+    },
+    "contextMenu": {
+      "preview": "Preview",
+      "zipDownload": "Download as ZIP",
+      "shareLink": "Share link",
+      "rename": "Rename"
+    },
+    "detail": {
+      "title": "Details",
+      "folder": "Folder",
+      "file": "File",
+      "size": "Size",
+      "modifiedAt": "Modified"
+    },
+    "list": {
+      "nameColumn": "Name",
+      "modifiedColumn": "Modified",
+      "sizeColumn": "Size"
+    },
+    "preview": {
+      "loadError": "Failed to load preview.",
+      "unsupported": "Preview is not supported for this file type."
+    },
+    "share": {
+      "title": "Create share link",
+      "createError": "Failed to create share link",
+      "fileLabel": "File",
+      "linkLabel": "Share link",
+      "expiresLabel": "Expiration",
+      "noExpiry": "No expiry",
+      "expire1h": "1 hour",
+      "expire1d": "1 day",
+      "expire7d": "7 days",
+      "oneTime": "One-time download (expires after one download)",
+      "createLink": "Create link"
+    },
+    "sidebar": {
+      "myFiles": "My files",
+      "sharedFiles": "Shared files",
+      "allUsers": "All users",
+      "storage": "Storage",
+      "shared": "Shared",
+      "total": "Total"
+    },
+    "upload": {
+      "title": "Upload files",
+      "destination": "Upload to:",
+      "dropHere": "Drop files here",
+      "dragOrClick": "Drag files or click to browse",
+      "maxSize": "Max 1GB",
+      "uploading": "Uploading..."
+    },
+    "newFolder": {
+      "title": "New folder",
+      "placeholder": "Folder name",
+      "createError": "Failed to create folder"
+    },
+    "delete": {
+      "confirm": "Delete \"{name}\"?",
+      "error": "Delete failed"
+    },
+    "rename": {
+      "prompt": "Enter new name:",
+      "error": "Rename failed"
+    }
+  },
+  "git": {
+    "commandBar": {
+      "repoList": "Repositories",
+      "openInGitea": "Open in Gitea"
+    },
+    "tab": {
+      "code": "Code",
+      "issues": "Issues",
+      "commits": "Commits"
+    },
+    "commit": {
+      "empty": "No commits"
+    },
+    "issue": {
+      "createTitle": "Create new issue",
+      "titlePlaceholder": "Issue title",
+      "bodyPlaceholder": "Description (optional, supports Markdown)",
+      "createButton": "Create issue",
+      "newButton": "New issue",
+      "emptyOpen": "No open issues",
+      "emptyClosed": "No closed issues",
+      "commentCount": " comments",
+      "commentPlaceholder": "Write a comment... (supports Markdown)",
+      "commentSubmitting": "Sending...",
+      "commentSubmit": "Post comment"
+    },
+    "fileTree": {
+      "emptyDir": "Empty directory"
+    },
+    "fileViewer": {
+      "tooLarge": "File is too large (over 1MB). Please download directly.",
+      "binaryOrEmpty": "Binary file or no content."
+    },
+    "pull": {
+      "noDescription": "No description",
+      "emptyOpen": "No open pull requests",
+      "emptyClosed": "No closed pull requests"
+    },
+    "repoDetail": {
+      "copyUrl": "Copy URL",
+      "noDescription": "No description"
+    },
+    "repoList": {
+      "empty": "No repositories"
+    }
+  },
+  "calendar": {
+    "weekdaysFull": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    "weekdaysShort": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    "today": "(Today)",
+    "allDay": "All day",
+    "monthLabel": "{m} {y}",
+    "event": {
+      "titleRequired": "Please enter a title.",
+      "calendarRequired": "Please select a calendar.",
+      "timeRequired": "Please enter start/end times.",
+      "saveError": "Failed to save event.",
+      "deleteConfirm": "Delete this event?",
+      "editTitle": "Edit event",
+      "createTitle": "New event",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Event title",
+      "calendarLabel": "Calendar",
+      "startLabel": "Start",
+      "endLabel": "End",
+      "locationLabel": "Location",
+      "locationPlaceholder": "Location (optional)",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Description (optional)",
+      "moreCount": "+{n} more",
+      "newButton": "New event"
+    },
+    "share": {
+      "title": "Share calendar",
+      "addUser": "Add user",
+      "emailPlaceholder": "Email address",
+      "grantWrite": "Grant write access",
+      "currentShares": "Shared with",
+      "noShares": "Not shared with anyone yet.",
+      "readWrite": "Read/Write",
+      "readOnly": "Read only",
+      "unshare": "Unshare",
+      "alreadyShared": "Already shared with this user.",
+      "setError": "Failed to set sharing.",
+      "removeError": "Failed to remove sharing.",
+      "permissionError": "Failed to change permission."
+    },
+    "sidebar": {
+      "myCalendars": "My calendars",
+      "addCalendar": "Add calendar",
+      "deleteConfirm": "Delete calendar '{name}'?",
+      "soloTitle": "Show only '{name}' (click again to show all)",
+      "shareTitle": "Share",
+      "calendarNamePlaceholder": "Calendar name"
+    },
+    "toolbar": {
+      "today": "Today",
+      "weekRange": "{m1} {d1}–{d2}, {y}",
+      "weekRangeCrossMonth": "{m1} {d1} – {m2} {d2}"
+    },
+    "viewMode": {
+      "month": "Month",
+      "week": "Week",
+      "day": "Day"
+    }
+  },
+  "contacts": {
+    "type": {
+      "home": "Personal",
+      "work": "Work",
+      "other": "Other"
+    },
+    "detail": {
+      "empty": "Select a contact",
+      "deleteConfirm": "Delete contact '{name}'?",
+      "emailSection": "Email",
+      "phoneSection": "Phone",
+      "addressSection": "Address",
+      "notesSection": "Notes"
+    },
+    "edit": {
+      "editTitle": "Edit contact",
+      "createTitle": "New contact",
+      "nameRequired": "Please enter a name.",
+      "addressBookRequired": "Please select an address book.",
+      "saveError": "Failed to save contact.",
+      "addressBookLabel": "Address book",
+      "nameLabel": "Name",
+      "namePlaceholder": "Name",
+      "lastNameLabel": "Last name",
+      "lastNamePlaceholder": "Last name",
+      "firstNameLabel": "First name",
+      "firstNamePlaceholder": "First name",
+      "organizationLabel": "Organization",
+      "organizationPlaceholder": "Company/Organization",
+      "emailLabel": "Email",
+      "phoneLabel": "Phone",
+      "addressLabel": "Address",
+      "addressPlaceholder": "Address",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Notes (optional)"
+    },
+    "list": {
+      "searchPlaceholder": "Search contacts...",
+      "totalCount": "{n} contacts",
+      "empty": "No contacts"
+    },
+    "sidebar": {
+      "newContact": "New contact",
+      "addressBooks": "Address books",
+      "addAddressBook": "Add address book",
+      "allContacts": "All contacts",
+      "deleteConfirm": "Delete address book '{name}'?",
+      "addressBookNamePlaceholder": "Address book name"
+    }
+  }
+}

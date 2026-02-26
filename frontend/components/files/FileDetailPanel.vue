@@ -42,7 +42,7 @@ function isImage(item: FileItem) {
   >
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-3 border-b">
-      <h3 class="text-sm font-medium truncate">상세 정보</h3>
+      <h3 class="text-sm font-medium truncate">{{ $t('files.detail.title') }}</h3>
       <button @click="emit('close')" class="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -67,18 +67,18 @@ function isImage(item: FileItem) {
       </div>
       <div class="text-center">
         <p class="text-sm font-medium break-all">{{ item.name }}</p>
-        <p class="text-xs text-muted-foreground mt-0.5">{{ item.mime_type || (item.is_dir ? '폴더' : '파일') }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ item.mime_type || (item.is_dir ? $t('files.detail.folder') : $t('files.detail.file')) }}</p>
       </div>
     </div>
 
     <!-- Metadata -->
     <div class="p-4 space-y-3 text-sm flex-1 overflow-auto">
       <div v-if="!item.is_dir" class="flex justify-between">
-        <span class="text-muted-foreground">크기</span>
+        <span class="text-muted-foreground">{{ $t('files.detail.size') }}</span>
         <span>{{ formatSize(item.size) }}</span>
       </div>
       <div class="flex justify-between">
-        <span class="text-muted-foreground">수정일</span>
+        <span class="text-muted-foreground">{{ $t('files.detail.modifiedAt') }}</span>
         <span class="text-xs">{{ formatDate(item.modified_at) }}</span>
       </div>
     </div>
@@ -87,19 +87,19 @@ function isImage(item: FileItem) {
     <div class="p-3 border-t space-y-1">
       <button @click="emit('download', item.path, item.is_dir)" class="w-full text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent transition-colors flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-        {{ item.is_dir ? 'ZIP 다운로드' : '다운로드' }}
+        {{ item.is_dir ? $t('files.contextMenu.zipDownload') : $t('common.download') }}
       </button>
       <button v-if="!item.is_dir" @click="emit('share', item)" class="w-full text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent transition-colors flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-        공유 링크
+        {{ $t('files.contextMenu.shareLink') }}
       </button>
       <button @click="emit('rename', item)" class="w-full text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent transition-colors flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-        이름 변경
+        {{ $t('files.contextMenu.rename') }}
       </button>
       <button @click="emit('delete', item)" class="w-full text-left px-3 py-1.5 text-sm rounded-md hover:bg-destructive/10 text-destructive transition-colors flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-        삭제
+        {{ $t('common.delete') }}
       </button>
     </div>
   </div>
@@ -131,7 +131,7 @@ function isImage(item: FileItem) {
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium truncate">{{ item.name }}</p>
           <p class="text-xs text-muted-foreground">
-            {{ item.is_dir ? '폴더' : formatSize(item.size) }}
+            {{ item.is_dir ? $t('files.detail.folder') : formatSize(item.size) }}
             <span v-if="item.modified_at"> &middot; {{ formatDate(item.modified_at) }}</span>
           </p>
         </div>
@@ -146,19 +146,19 @@ function isImage(item: FileItem) {
       <div class="p-2 space-y-0.5 overflow-auto">
         <button @click="emit('download', item.path, item.is_dir); emit('close')" class="w-full text-left px-4 py-3 text-sm rounded-md hover:bg-accent transition-colors flex items-center gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5 text-muted-foreground"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-          {{ item.is_dir ? 'ZIP 다운로드' : '다운로드' }}
+          {{ item.is_dir ? $t('files.contextMenu.zipDownload') : $t('common.download') }}
         </button>
         <button v-if="!item.is_dir" @click="emit('share', item); emit('close')" class="w-full text-left px-4 py-3 text-sm rounded-md hover:bg-accent transition-colors flex items-center gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5 text-muted-foreground"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-          공유 링크
+          {{ $t('files.contextMenu.shareLink') }}
         </button>
         <button @click="emit('rename', item); emit('close')" class="w-full text-left px-4 py-3 text-sm rounded-md hover:bg-accent transition-colors flex items-center gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5 text-muted-foreground"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-          이름 변경
+          {{ $t('files.contextMenu.rename') }}
         </button>
         <button @click="emit('delete', item); emit('close')" class="w-full text-left px-4 py-3 text-sm rounded-md hover:bg-destructive/10 text-destructive transition-colors flex items-center gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-          삭제
+          {{ $t('common.delete') }}
         </button>
       </div>
     </div>

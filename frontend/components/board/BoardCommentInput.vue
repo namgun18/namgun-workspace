@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 const props = defineProps<{
   postId: string
 }>()
@@ -16,7 +18,7 @@ async function handleSubmit() {
     content.value = ''
   } catch (e: any) {
     console.error('Comment error:', e)
-    alert(e?.data?.detail || '댓글 작성에 실패했습니다')
+    alert(e?.data?.detail || t('board.comment.createError'))
   } finally {
     submitting.value = false
   }
@@ -27,7 +29,7 @@ async function handleSubmit() {
   <div>
     <textarea
       v-model="content"
-      placeholder="댓글을 입력하세요"
+      :placeholder="$t('board.comment.placeholder')"
       class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
       rows="3"
       @keydown.meta.enter="handleSubmit"
@@ -35,7 +37,7 @@ async function handleSubmit() {
     />
     <div class="flex justify-end mt-1.5">
       <UiButton size="sm" @click="handleSubmit" :disabled="submitting || !content.trim()">
-        {{ submitting ? '등록 중...' : '댓글 등록' }}
+        {{ submitting ? $t('board.comment.submitting') : $t('board.comment.submit') }}
       </UiButton>
     </div>
   </div>

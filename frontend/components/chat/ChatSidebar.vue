@@ -35,11 +35,11 @@ const offlineUsersList = computed(() =>
   <div class="flex flex-col h-full border-r">
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-3 border-b">
-      <h2 class="text-sm font-semibold">채팅</h2>
+      <h2 class="text-sm font-semibold">{{ $t('chat.sidebar.title') }}</h2>
       <button
         @click="$emit('create-channel')"
         class="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors"
-        title="새 채널"
+        :title="$t('chat.sidebar.newChannel')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -54,14 +54,14 @@ const offlineUsersList = computed(() =>
         class="flex-1 py-2 text-xs font-medium text-center transition-colors"
         :class="activeTab === 'channels' ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'"
       >
-        채널
+        {{ $t('chat.sidebar.channels') }}
       </button>
       <button
         @click="activeTab = 'users'"
         class="flex-1 py-2 text-xs font-medium text-center transition-colors"
         :class="activeTab === 'users' ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'"
       >
-        사용자
+        {{ $t('chat.sidebar.users') }}
       </button>
     </div>
 
@@ -69,7 +69,7 @@ const offlineUsersList = computed(() =>
     <div v-if="activeTab === 'channels'" class="flex-1 overflow-y-auto py-1">
       <!-- Channels -->
       <div v-if="sortedChannels.channels.length > 0" class="mb-2">
-        <div class="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">채널</div>
+        <div class="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ $t('chat.sidebar.channels') }}</div>
         <ChatChannelItem
           v-for="ch in sortedChannels.channels"
           :key="ch.id"
@@ -81,7 +81,7 @@ const offlineUsersList = computed(() =>
 
       <!-- DMs -->
       <div v-if="sortedChannels.dms.length > 0">
-        <div class="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">다이렉트 메시지</div>
+        <div class="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ $t('chat.sidebar.dms') }}</div>
         <ChatChannelItem
           v-for="ch in sortedChannels.dms"
           :key="ch.id"
@@ -94,7 +94,7 @@ const offlineUsersList = computed(() =>
 
       <!-- Empty state -->
       <div v-if="sortedChannels.channels.length === 0 && sortedChannels.dms.length === 0" class="px-4 py-8 text-center text-sm text-muted-foreground">
-        채널이 없습니다.<br>새 채널을 만들어보세요.
+        {{ $t('chat.sidebar.noChannels') }}<br>{{ $t('chat.sidebar.noChannelsHint') }}
       </div>
     </div>
 
@@ -103,7 +103,7 @@ const offlineUsersList = computed(() =>
       <!-- Online users -->
       <div v-if="onlineUsersList.length > 0">
         <div class="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          온라인 — {{ onlineUsersList.length }}
+          {{ $t('chat.sidebar.online', { n: onlineUsersList.length }) }}
         </div>
         <button
           v-for="u in onlineUsersList"
@@ -127,7 +127,7 @@ const offlineUsersList = computed(() =>
       <!-- Offline users -->
       <div v-if="offlineUsersList.length > 0">
         <div class="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          오프라인 — {{ offlineUsersList.length }}
+          {{ $t('chat.sidebar.offline', { n: offlineUsersList.length }) }}
         </div>
         <button
           v-for="u in offlineUsersList"
@@ -150,7 +150,7 @@ const offlineUsersList = computed(() =>
 
       <!-- No users -->
       <div v-if="allUsers.length <= 1" class="px-4 py-8 text-center text-sm text-muted-foreground">
-        다른 사용자가 없습니다.
+        {{ $t('chat.sidebar.noUsers') }}
       </div>
     </div>
   </div>

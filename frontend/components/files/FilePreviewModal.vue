@@ -10,6 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const { getPreviewUrl, downloadFile } = useFiles()
+const { t } = useI18n()
 
 const textContent = ref<string | null>(null)
 const loadingText = ref(false)
@@ -32,7 +33,7 @@ async function loadTextPreview() {
     const data = await $fetch<{ type: string; content: string; name: string }>(getPreviewUrl(props.item.path))
     textContent.value = data.content
   } catch {
-    textContent.value = '미리보기를 불러올 수 없습니다.'
+    textContent.value = t('files.preview.loadError')
   } finally {
     loadingText.value = false
   }
@@ -45,7 +46,7 @@ onMounted(() => {
 
 <template>
   <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="emit('close')">
-    <div class="bg-background rounded-t-xl sm:rounded-lg shadow-xl w-full sm:max-w-4xl max-h-[85vh] sm:max-h-[90vh] sm:mx-4 flex flex-col">
+    <div class="bg-background rounded-t-xl sm:rounded-lg shadow-xl w-full sm:max-w-4xl max-h-[85vh] sm:max-h-[90vh] sm:mx-4 flex flex-col" role="dialog">
       <!-- Header -->
       <div class="flex items-center justify-between px-4 sm:px-6 py-3 border-b shrink-0">
         <h2 class="text-sm font-medium truncate pr-2">{{ item.name }}</h2>
@@ -53,7 +54,7 @@ onMounted(() => {
           <button
             @click="downloadFile(item.path)"
             class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent"
-            title="다운로드"
+            :title="$t('common.download')"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -96,12 +97,12 @@ onMounted(() => {
 
         <!-- Unsupported -->
         <div v-else class="flex flex-col items-center justify-center h-40 text-muted-foreground">
-          <p class="text-sm">이 파일 형식은 미리보기를 지원하지 않습니다.</p>
+          <p class="text-sm">{{ $t('files.preview.unsupported') }}</p>
           <button
             @click="downloadFile(item.path)"
             class="mt-3 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            다운로드
+            {{ $t('common.download') }}
           </button>
         </div>
       </div>

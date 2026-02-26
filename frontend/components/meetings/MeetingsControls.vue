@@ -25,7 +25,7 @@ const emit = defineEmits<{
       @click="emit('toggleCamera')"
       class="inline-flex items-center justify-center h-11 w-11 rounded-full transition-colors"
       :class="cameraEnabled ? 'bg-muted hover:bg-muted/80' : 'bg-destructive/15 text-destructive hover:bg-destructive/25'"
-      :title="cameraEnabled ? '카메라 끄기' : '카메라 켜기'"
+      :title="cameraEnabled ? $t('meetings.controls.cameraOff') : $t('meetings.controls.cameraOn')"
     >
       <svg v-if="cameraEnabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
         <path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="1" y="6" rx="2" ry="2" />
@@ -42,7 +42,7 @@ const emit = defineEmits<{
       @click="emit('toggleMic')"
       class="inline-flex items-center justify-center h-11 w-11 rounded-full transition-colors"
       :class="micEnabled ? 'bg-muted hover:bg-muted/80' : 'bg-destructive/15 text-destructive hover:bg-destructive/25'"
-      :title="micEnabled ? '마이크 끄기' : '마이크 켜기'"
+      :title="micEnabled ? $t('meetings.controls.micOff') : $t('meetings.controls.micOn')"
     >
       <svg v-if="micEnabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
         <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
@@ -63,7 +63,7 @@ const emit = defineEmits<{
       @click="emit('toggleScreen')"
       class="inline-flex items-center justify-center h-11 w-11 rounded-full transition-colors"
       :class="screenShareEnabled ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25' : 'bg-muted hover:bg-muted/80'"
-      :title="screenShareEnabled ? '화면공유 중지' : '화면공유'"
+      :title="screenShareEnabled ? $t('meetings.controls.screenStop') : $t('meetings.controls.screenShare')"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
         <rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
@@ -78,7 +78,7 @@ const emit = defineEmits<{
       @click="emit('toggleSidebar', 'participants')"
       class="relative inline-flex items-center justify-center h-11 w-11 rounded-full transition-colors"
       :class="sidebarOpen && sidebarTab === 'participants' ? 'bg-primary/15 text-primary' : 'bg-muted hover:bg-muted/80'"
-      title="참여자"
+      :title="$t('meetings.controls.participants')"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
@@ -97,7 +97,7 @@ const emit = defineEmits<{
       @click="emit('toggleSidebar', 'chat')"
       class="relative inline-flex items-center justify-center h-11 w-11 rounded-full transition-colors"
       :class="sidebarOpen && sidebarTab === 'chat' ? 'bg-primary/15 text-primary' : 'bg-muted hover:bg-muted/80'"
-      title="채팅"
+      :title="$t('meetings.controls.chat')"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -115,7 +115,7 @@ const emit = defineEmits<{
       @click="emit('leave')"
       class="inline-flex items-center justify-center h-11 px-5 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors font-medium text-sm"
     >
-      나가기
+      {{ $t('meetings.controls.leave') }}
     </button>
   </div>
 </template>

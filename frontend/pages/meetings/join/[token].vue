@@ -18,6 +18,7 @@ const {
   toggleScreenShare,
 } = useMeetings()
 const { appName } = useAppConfig()
+const { t } = useI18n()
 
 // 페이지 상태: loading → form → waiting → device-setup → room → denied → error
 const step = ref<'loading' | 'form' | 'waiting' | 'device-setup' | 'room' | 'denied' | 'error'>('loading')
@@ -41,7 +42,7 @@ onMounted(async () => {
     roomInfo.value = data
     step.value = 'form'
   } catch (e: any) {
-    errorMsg.value = e?.data?.detail || '초대 링크가 유효하지 않습니다'
+    errorMsg.value = e?.data?.detail || t('meetings.join.invalidLink')
     step.value = 'error'
   }
 })
@@ -58,7 +59,7 @@ async function submitRequest() {
     step.value = 'waiting'
     startPolling()
   } catch (e: any) {
-    errorMsg.value = e?.data?.detail || '참가 신청에 실패했습니다'
+    errorMsg.value = e?.data?.detail || t('meetings.join.requestFail')
     step.value = 'error'
   }
 }
@@ -101,7 +102,7 @@ async function handleDeviceReady(opts: { cameraEnabled: boolean; micEnabled: boo
     await joinRoomWithToken(approvedWsUrl.value, approvedToken.value, roomInfo.value?.name || '', opts)
     step.value = 'room'
   } catch (e: any) {
-    errorMsg.value = e?.data?.detail || '회의 참여에 실패했습니다'
+    errorMsg.value = e?.data?.detail || t('meetings.join.joinFail')
     step.value = 'error'
   }
 }
@@ -141,7 +142,7 @@ const otherParticipants = computed(() => participants.value.filter(p => p !== sc
     <header v-if="step !== 'device-setup' && step !== 'room'" class="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
       <div class="flex h-14 items-center justify-between px-4">
         <span class="font-bold text-lg">{{ appName }}</span>
-        <span class="text-sm text-muted-foreground">화상회의</span>
+        <span class="text-sm text-muted-foreground">{{ $t('meetings.join.header') }}</span>
       </div>
       <div class="h-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-80" />
     </header>
@@ -160,7 +161,7 @@ const otherParticipants = computed(() => participants.value.filter(p => p !== sc
         <!-- 룸 헤더 -->
         <div class="flex items-center justify-between px-4 py-2 border-b bg-background">
           <h2 class="font-semibold text-base truncate">{{ currentRoomName }}</h2>
-          <span class="text-sm text-muted-foreground">{{ participants.length }}명 참여 중</span>
+          <span class="text-sm text-muted-foreground">{{ participants.length }}{{ $t('meetings.room.participantCount') }}</span>
         </div>
 
         <!-- 메인 영역 -->
@@ -224,7 +225,7 @@ const otherParticipants = computed(() => participants.value.filter(p => p !== sc
         <!-- 로딩 -->
         <div v-if="step === 'loading'" class="text-center py-12">
           <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent mb-3" />
-          <p class="text-muted-foreground">회의실 정보를 불러오는 중...</p>
+          <p class="text-muted-foreground">{{ $t('meetings.join.loadingRoom') }}</p>
         </div>
 
         <!-- 닉네임 입력 폼 -->
@@ -237,30 +238,30 @@ const otherParticipants = computed(() => participants.value.filter(p => p !== sc
             </div>
             <h2 class="text-lg font-semibold">{{ roomInfo.name }}</h2>
             <p class="text-sm text-muted-foreground mt-1">
-              호스트: {{ roomInfo.host_name }}
+              {{ $t('meetings.join.host') }} {{ roomInfo.host_name }}
             </p>
             <p class="text-xs text-muted-foreground mt-0.5">
-              {{ roomInfo.num_participants }}/{{ roomInfo.max_participants }}명 참여 중
+              {{ roomInfo.num_participants }}/{{ roomInfo.max_participants }}{{ $t('meetings.room.participantCount') }}
             </p>
           </div>
 
           <form @submit.prevent="submitRequest">
-            <label class="block text-sm font-medium mb-1.5">표시 이름</label>
+            <label class="block text-sm font-medium mb-1.5">{{ $t('meetings.join.displayName') }}</label>
             <input
               v-model="nickname"
               type="text"
-              placeholder="회의에서 사용할 이름"
+              :placeholder="$t('meetings.join.namePlaceholder')"
               maxlength="30"
               class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               autofocus
             />
-            <p class="text-xs text-muted-foreground mt-1.5">호스트가 참여를 승인하면 회의에 입장합니다</p>
+            <p class="text-xs text-muted-foreground mt-1.5">{{ $t('meetings.join.approvalHint') }}</p>
             <button
               type="submit"
               :disabled="!nickname.trim()"
               class="w-full mt-4 px-4 py-2.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              참여 요청
+              {{ $t('meetings.join.request') }}
             </button>
           </form>
         </div>
@@ -268,12 +269,12 @@ const otherParticipants = computed(() => participants.value.filter(p => p !== sc
         <!-- 대기 중 -->
         <div v-else-if="step === 'waiting'" class="rounded-lg border bg-card p-6 text-center">
           <div class="inline-block h-10 w-10 animate-spin rounded-full border-4 border-primary border-r-transparent mb-4" />
-          <h2 class="text-lg font-semibold mb-1">승인 대기 중</h2>
+          <h2 class="text-lg font-semibold mb-1">{{ $t('meetings.join.waiting') }}</h2>
           <p class="text-sm text-muted-foreground">
-            호스트가 참여를 승인할 때까지 잠시 기다려 주세요
+            {{ $t('meetings.join.waitingDesc') }}
           </p>
           <p class="text-xs text-muted-foreground mt-3">
-            "{{ nickname }}" (으)로 참여 요청됨
+            "{{ nickname }}" {{ $t('meetings.join.requestedAs') }}
           </p>
         </div>
 
@@ -284,13 +285,13 @@ const otherParticipants = computed(() => participants.value.filter(p => p !== sc
               <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
             </svg>
           </div>
-          <h2 class="text-lg font-semibold mb-1">참여가 거절되었습니다</h2>
-          <p class="text-sm text-muted-foreground">호스트가 참여 요청을 거절했습니다</p>
+          <h2 class="text-lg font-semibold mb-1">{{ $t('meetings.join.denied') }}</h2>
+          <p class="text-sm text-muted-foreground">{{ $t('meetings.join.deniedDesc') }}</p>
           <button
             @click="step = 'form'; nickname = ''; requestId = null"
             class="mt-4 px-4 py-2 text-sm rounded-md border hover:bg-accent transition-colors"
           >
-            다시 시도
+            {{ $t('common.retry') }}
           </button>
         </div>
 
@@ -301,7 +302,7 @@ const otherParticipants = computed(() => participants.value.filter(p => p !== sc
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <h2 class="text-lg font-semibold mb-1">오류</h2>
+          <h2 class="text-lg font-semibold mb-1">{{ $t('common.error') }}</h2>
           <p class="text-sm text-muted-foreground">{{ errorMsg }}</p>
         </div>
 

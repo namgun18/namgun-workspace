@@ -94,7 +94,7 @@ function downloadFile() {
         <div v-if="fileMeta && isImage" class="mt-1">
           <img
             :src="imagePreviewUrl"
-            :alt="fileMeta.name || '이미지'"
+            :alt="fileMeta.name || $t('chat.file.image')"
             class="max-w-[400px] max-h-[300px] rounded-lg border cursor-pointer object-contain"
             loading="lazy"
             @click="downloadFile"
@@ -108,7 +108,7 @@ function downloadFile() {
             <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><polyline points="13 2 13 9 20 9" />
           </svg>
           <div class="min-w-0">
-            <p class="text-sm font-medium truncate">{{ fileMeta.name || '파일' }}</p>
+            <p class="text-sm font-medium truncate">{{ fileMeta.name || $t('chat.file.file') }}</p>
             <p v-if="fileSize" class="text-[10px] text-muted-foreground">{{ fileSize }}</p>
           </div>
         </div>

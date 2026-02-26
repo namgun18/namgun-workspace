@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import GitMarkdownRenderer from './GitMarkdownRenderer.vue'
 
+const { t } = useI18n()
 const { selectedIssue, issueComments, loading, addIssueComment } = useGit()
 
 const newComment = ref('')
@@ -10,11 +11,11 @@ function timeAgo(dateStr: string) {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}분 전`
+  if (mins < 60) return t('common.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}일 전`
+  if (days < 30) return t('common.daysAgo', { n: days })
   return new Date(dateStr).toLocaleDateString('ko-KR')
 }
 
@@ -77,7 +78,7 @@ async function submitComment() {
     <div class="px-4 py-4">
       <textarea
         v-model="newComment"
-        placeholder="댓글을 작성하세요... (마크다운 지원)"
+        :placeholder="$t('git.issue.commentPlaceholder')"
         class="w-full h-24 px-3 py-2 text-sm rounded-md border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
       />
       <div class="flex justify-end mt-2">
@@ -86,7 +87,7 @@ async function submitComment() {
           :disabled="!newComment.trim() || submitting"
           class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {{ submitting ? '전송 중...' : '댓글 작성' }}
+          {{ submitting ? $t('git.issue.commentSubmitting') : $t('git.issue.commentSubmit') }}
         </button>
       </div>
     </div>

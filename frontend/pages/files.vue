@@ -3,6 +3,10 @@ import type { FileItem } from '~/composables/useFiles'
 
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.files')} | ${appName.value}`) })
+
 const {
   viewMode,
   fetchFiles,
@@ -43,7 +47,7 @@ async function confirmNewFolder() {
     await createFolder(newFolderName.value.trim())
     showNewFolder.value = false
   } catch (e: any) {
-    alert(e?.data?.detail || '폴더 생성 실패')
+    alert(e?.data?.detail || t('files.newFolder.createError'))
   }
 }
 
@@ -59,23 +63,23 @@ function handleContextMenu(e: MouseEvent, item: FileItem) {
 
 // Actions
 async function handleDelete(item: FileItem) {
-  if (!confirm(`"${item.name}"을(를) 삭제하시겠습니까?`)) return
+  if (!confirm(t('files.delete.confirm', { name: item.name }))) return
   try {
     await deleteItems([item.path])
     if (detailItem.value?.path === item.path) detailItem.value = null
   } catch (e: any) {
-    alert(e?.data?.detail || '삭제 실패')
+    alert(e?.data?.detail || t('files.delete.error'))
   }
 }
 
 async function handleRename(item: FileItem) {
-  const newName = prompt('새 이름을 입력하세요:', item.name)
+  const newName = prompt(t('files.rename.prompt'), item.name)
   if (!newName || newName === item.name) return
   try {
     await renameItem(item.path, newName)
     detailItem.value = null
   } catch (e: any) {
-    alert(e?.data?.detail || '이름 변경 실패')
+    alert(e?.data?.detail || t('files.rename.error'))
   }
 }
 
@@ -114,7 +118,7 @@ async function handleDrop(e: DragEvent) {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-12 w-12 mx-auto mb-2 text-primary">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        <p class="text-lg font-medium text-primary">여기에 파일을 놓으세요</p>
+        <p class="text-lg font-medium text-primary">{{ $t('files.upload.dropHere') }}</p>
       </div>
     </div>
 
@@ -209,23 +213,23 @@ async function handleDrop(e: DragEvent) {
     <!-- New folder dialog -->
     <div v-if="showNewFolder" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showNewFolder = false">
       <div class="bg-background rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
-        <h3 class="text-lg font-semibold mb-4">새 폴더</h3>
+        <h3 class="text-lg font-semibold mb-4">{{ $t('files.newFolder.title') }}</h3>
         <input
           v-model="newFolderName"
-          placeholder="폴더 이름"
+          :placeholder="$t('files.newFolder.placeholder')"
           class="w-full px-3 py-2 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
           @keydown.enter="confirmNewFolder"
         />
         <div class="flex justify-end gap-2 mt-4">
           <button @click="showNewFolder = false" class="px-4 py-2 text-sm rounded-md hover:bg-accent transition-colors">
-            취소
+            {{ $t('common.cancel') }}
           </button>
           <button
             @click="confirmNewFolder"
             :disabled="!newFolderName.trim()"
             class="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            생성
+            {{ $t('common.create') }}
           </button>
         </div>
       </div>

@@ -69,7 +69,7 @@ onMounted(scrollToBottom)
   <div ref="listRef" @scroll="onScroll" class="flex-1 overflow-y-auto px-4 py-2">
     <!-- Loading more indicator -->
     <div v-if="loadingMore" class="text-center py-2">
-      <span class="text-xs text-muted-foreground">이전 메시지 불러오는 중...</span>
+      <span class="text-xs text-muted-foreground">{{ $t('chat.messages.loadingMore') }}</span>
     </div>
 
     <!-- Loading skeleton -->
@@ -106,7 +106,7 @@ onMounted(scrollToBottom)
 
       <!-- Empty -->
       <div v-if="messages.length === 0 && !loading" class="flex items-center justify-center h-full text-sm text-muted-foreground">
-        아직 메시지가 없습니다. 첫 메시지를 보내보세요!
+        {{ $t('chat.messages.empty') }}
       </div>
     </template>
   </div>

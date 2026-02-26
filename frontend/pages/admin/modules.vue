@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('admin.modules.title')} | ${appName.value}`) })
+
 const { user } = useAuth()
 const { modules, toggleModule, fetchModules } = usePlatform()
 
@@ -34,8 +38,8 @@ onMounted(async () => {
 
 <template>
   <div v-if="user?.is_admin" class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-2">모듈 관리</h1>
-    <p class="text-muted-foreground mb-6">기능 모듈을 활성화/비활성화합니다. 비활성화된 모듈은 네비게이션에서 숨겨지고 API도 차단됩니다.</p>
+    <h1 class="text-2xl font-bold mb-2">{{ $t('admin.modules.title') }}</h1>
+    <p class="text-muted-foreground mb-6">{{ $t('admin.modules.description') }}</p>
 
     <div class="space-y-3">
       <div
@@ -72,6 +76,6 @@ onMounted(async () => {
     </div>
   </div>
   <div v-else class="flex items-center justify-center h-96 text-muted-foreground">
-    관리자 권한이 필요합니다
+    {{ $t('error.adminRequired') }}
   </div>
 </template>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { AccessLogPage } from '~/composables/useAdminAnalytics'
 
+const { t } = useI18n()
+
 const props = defineProps<{
   data: AccessLogPage | null
 }>()
@@ -13,10 +15,10 @@ const emit = defineEmits<{
 const serviceFilter = ref<string>('')
 
 const services = ['', 'mail', 'calendar', 'contacts', 'files', 'meetings', 'git', 'lab', 'admin', 'auth']
-const serviceLabels: Record<string, string> = {
-  '': '전체', mail: '메일', calendar: '캘린더', contacts: '연락처', files: '파일',
-  meetings: '회의', git: 'Git', lab: 'Lab', admin: '관리', auth: '인증',
-}
+const serviceLabels = computed<Record<string, string>>(() => ({
+  '': t('admin.analytics.services.all'), mail: t('admin.analytics.services.mail'), calendar: t('admin.analytics.services.calendar'), contacts: t('admin.analytics.services.contacts'), files: t('admin.analytics.services.files'),
+  meetings: t('admin.analytics.services.meetings'), git: 'Git', lab: 'Lab', admin: t('admin.analytics.services.admin'), auth: t('admin.analytics.services.auth'),
+}))
 
 function onFilterChange() {
   emit('filter', serviceFilter.value || undefined)
@@ -44,7 +46,7 @@ const totalPages = computed(() => {
 <template>
   <div class="rounded-lg border bg-card p-4">
     <div class="flex items-center justify-between mb-3">
-      <h3 class="text-sm font-medium text-muted-foreground">접속 로그</h3>
+      <h3 class="text-sm font-medium text-muted-foreground">{{ $t('admin.analytics.accessLogs.title') }}</h3>
       <select
         v-model="serviceFilter"
         @change="onFilterChange"
@@ -55,19 +57,19 @@ const totalPages = computed(() => {
     </div>
 
     <div v-if="!data || data.logs.length === 0" class="text-sm text-muted-foreground py-4 text-center">
-      로그 없음
+      {{ $t('admin.analytics.accessLogs.empty') }}
     </div>
     <div v-else class="overflow-x-auto">
       <table class="w-full text-xs">
         <thead>
           <tr class="border-b">
-            <th class="text-left py-2 px-2 font-medium text-muted-foreground">시간</th>
-            <th class="text-left py-2 px-2 font-medium text-muted-foreground">IP</th>
-            <th class="text-left py-2 px-2 font-medium text-muted-foreground">경로</th>
-            <th class="text-left py-2 px-2 font-medium text-muted-foreground">상태</th>
-            <th class="text-left py-2 px-2 font-medium text-muted-foreground">응답</th>
-            <th class="text-left py-2 px-2 font-medium text-muted-foreground">브라우저</th>
-            <th class="text-left py-2 px-2 font-medium text-muted-foreground">사용자</th>
+            <th class="text-left py-2 px-2 font-medium text-muted-foreground">{{ $t('admin.analytics.accessLogs.col.time') }}</th>
+            <th class="text-left py-2 px-2 font-medium text-muted-foreground">{{ $t('admin.analytics.accessLogs.col.ip') }}</th>
+            <th class="text-left py-2 px-2 font-medium text-muted-foreground">{{ $t('admin.analytics.accessLogs.col.path') }}</th>
+            <th class="text-left py-2 px-2 font-medium text-muted-foreground">{{ $t('admin.analytics.accessLogs.col.status') }}</th>
+            <th class="text-left py-2 px-2 font-medium text-muted-foreground">{{ $t('admin.analytics.accessLogs.col.response') }}</th>
+            <th class="text-left py-2 px-2 font-medium text-muted-foreground">{{ $t('admin.analytics.accessLogs.col.browser') }}</th>
+            <th class="text-left py-2 px-2 font-medium text-muted-foreground">{{ $t('admin.analytics.accessLogs.col.user') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -86,7 +88,7 @@ const totalPages = computed(() => {
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="flex items-center justify-between mt-3 pt-3 border-t">
         <span class="text-xs text-muted-foreground">
-          {{ data.total.toLocaleString() }}건 중 {{ ((data.page - 1) * data.limit) + 1 }}-{{ Math.min(data.page * data.limit, data.total) }}
+          {{ $t('admin.analytics.accessLogs.pagination', { total: data.total.toLocaleString(), from: ((data.page - 1) * data.limit) + 1, to: Math.min(data.page * data.limit, data.total) }) }}
         </span>
         <div class="flex gap-1">
           <button
@@ -94,14 +96,14 @@ const totalPages = computed(() => {
             @click="emit('page', data.page - 1)"
             class="px-2 py-1 text-xs rounded border hover:bg-accent disabled:opacity-50"
           >
-            이전
+            {{ $t('common.pagination.prev') }}
           </button>
           <button
             :disabled="data.page >= totalPages"
             @click="emit('page', data.page + 1)"
             class="px-2 py-1 text-xs rounded border hover:bg-accent disabled:opacity-50"
           >
-            다음
+            {{ $t('common.pagination.next') }}
           </button>
         </div>
       </div>

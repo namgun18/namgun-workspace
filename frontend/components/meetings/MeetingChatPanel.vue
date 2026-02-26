@@ -89,13 +89,13 @@ onUnmounted(() => {
   <div class="flex flex-col h-full bg-background border-l w-72">
     <!-- Header -->
     <div class="px-3 py-2 border-b">
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">회의 채팅</h4>
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ $t('meetings.chat.title') }}</h4>
     </div>
 
     <!-- Messages -->
     <div ref="listRef" class="flex-1 overflow-y-auto px-2 py-1 space-y-1">
       <div v-if="loading" class="flex items-center justify-center py-4">
-        <span class="text-xs text-muted-foreground">불러오는 중...</span>
+        <span class="text-xs text-muted-foreground">{{ $t('common.loading') }}</span>
       </div>
 
       <div v-for="msg in messages" :key="msg.id" class="py-0.5">
@@ -120,7 +120,7 @@ onUnmounted(() => {
         <input
           v-model="newMessage"
           @keydown="onKeydown"
-          placeholder="메시지 입력..."
+          :placeholder="$t('meetings.chat.placeholder')"
           class="flex-1 px-2 py-1 text-xs border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
         />
         <button
@@ -128,7 +128,7 @@ onUnmounted(() => {
           :disabled="!newMessage.trim()"
           class="px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          전송
+          {{ $t('common.send') }}
         </button>
       </div>
     </div>

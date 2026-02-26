@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.git')} | ${appName.value}`) })
+
 const {
   currentView,
   fetchRepos,

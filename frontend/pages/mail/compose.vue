@@ -5,6 +5,10 @@ import DOMPurify from 'dompurify'
 
 definePageMeta({ layout: false })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('mail.compose.new')} | ${appName.value}`) })
+
 const route = useRoute()
 const { user } = useAuth()
 const { sendMessage, uploadAttachment } = useMail()
@@ -35,10 +39,10 @@ const sigLoaded = ref(false)
 
 const modeLabel = computed(() => {
   switch (mode.value) {
-    case 'reply': return '답장'
-    case 'replyAll': return '전체 답장'
-    case 'forward': return '전달'
-    default: return '새 메일'
+    case 'reply': return t('mail.compose.reply')
+    case 'replyAll': return t('mail.compose.replyAll')
+    case 'forward': return t('mail.compose.forward')
+    default: return t('mail.compose.new')
   }
 })
 
@@ -159,7 +163,7 @@ async function handleFiles(files: FileList | null) {
   let totalSize = attachments.value.reduce((s, a) => s + a.size, 0)
   for (const file of Array.from(files)) {
     if (totalSize + file.size > 25 * 1024 * 1024) {
-      error.value = '첨부파일 총 크기는 25MB를 초과할 수 없습니다.'
+      error.value = t('mail.compose.attachSizeError')
       return
     }
     uploading.value = true
@@ -168,7 +172,7 @@ async function handleFiles(files: FileList | null) {
       attachments.value.push(uploaded)
       totalSize += uploaded.size
     } catch (e: any) {
-      error.value = e?.data?.detail || '파일 업로드에 실패했습니다.'
+      error.value = e?.data?.detail || t('mail.compose.uploadError')
     } finally {
       uploading.value = false
     }
@@ -191,7 +195,7 @@ function handleDrop(e: DragEvent) {
 async function handleSend() {
   const to = parseAddresses(toField.value)
   if (to.length === 0) {
-    error.value = '받는사람을 입력해주세요.'
+    error.value = t('mail.compose.toRequired')
     return
   }
   error.value = ''
@@ -216,7 +220,7 @@ async function handleSend() {
     }
     window.close()
   } catch (e: any) {
-    error.value = e?.data?.detail || '메일 발송에 실패했습니다.'
+    error.value = e?.data?.detail || t('mail.compose.sendError')
   } finally {
     sending.value = false
   }
@@ -224,7 +228,7 @@ async function handleSend() {
 
 function handleClose() {
   if (bodyField.value.trim() || subjectField.value.trim()) {
-    if (!confirm('작성 중인 메일을 취소하시겠습니까?')) return
+    if (!confirm(t('mail.compose.cancelConfirm'))) return
   }
   window.close()
 }
@@ -254,60 +258,60 @@ function handleClose() {
     <div v-else class="flex-1 overflow-auto px-4 py-3 space-y-3">
       <!-- From (readonly) -->
       <div class="flex items-center gap-2 text-sm">
-        <label class="w-16 text-muted-foreground shrink-0">보내는사람</label>
+        <label class="w-16 text-muted-foreground shrink-0">{{ $t('mail.compose.from') }}</label>
         <span class="text-foreground">{{ user?.display_name || user?.username }} &lt;{{ user?.email }}&gt;</span>
       </div>
 
       <!-- To -->
       <div class="flex items-center gap-2 text-sm">
-        <label class="w-16 text-muted-foreground shrink-0">받는사람</label>
+        <label class="w-16 text-muted-foreground shrink-0">{{ $t('mail.compose.to') }}</label>
         <input
           v-model="toField"
           type="text"
-          placeholder="이메일 주소 (쉼표로 구분)"
+          :placeholder="$t('mail.compose.toPlaceholder')"
           class="flex-1 px-2 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <button
           v-if="!showCc"
           @click="showCc = true"
           class="text-xs text-muted-foreground hover:text-foreground shrink-0"
-        >참조</button>
+        >{{ $t('mail.compose.cc') }}</button>
         <button
           v-if="!showBcc"
           @click="showBcc = true"
           class="text-xs text-muted-foreground hover:text-foreground shrink-0"
-        >숨은참조</button>
+        >{{ $t('mail.compose.bcc') }}</button>
       </div>
 
       <!-- CC -->
       <div v-if="showCc" class="flex items-center gap-2 text-sm">
-        <label class="w-16 text-muted-foreground shrink-0">참조</label>
+        <label class="w-16 text-muted-foreground shrink-0">{{ $t('mail.compose.cc') }}</label>
         <input
           v-model="ccField"
           type="text"
-          placeholder="이메일 주소"
+          :placeholder="$t('mail.compose.emailPlaceholder')"
           class="flex-1 px-2 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
       <!-- BCC -->
       <div v-if="showBcc" class="flex items-center gap-2 text-sm">
-        <label class="w-16 text-muted-foreground shrink-0">숨은참조</label>
+        <label class="w-16 text-muted-foreground shrink-0">{{ $t('mail.compose.bcc') }}</label>
         <input
           v-model="bccField"
           type="text"
-          placeholder="이메일 주소"
+          :placeholder="$t('mail.compose.emailPlaceholder')"
           class="flex-1 px-2 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
       <!-- Subject -->
       <div class="flex items-center gap-2 text-sm">
-        <label class="w-16 text-muted-foreground shrink-0">제목</label>
+        <label class="w-16 text-muted-foreground shrink-0">{{ $t('mail.compose.subject') }}</label>
         <input
           v-model="subjectField"
           type="text"
-          placeholder="제목"
+          :placeholder="$t('mail.compose.subjectPlaceholder')"
           class="flex-1 px-2 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
@@ -323,14 +327,14 @@ function handleClose() {
 
       <!-- Signature selector -->
       <div class="flex items-center gap-2 text-sm">
-        <label class="w-16 text-muted-foreground shrink-0">서명</label>
+        <label class="w-16 text-muted-foreground shrink-0">{{ $t('mail.compose.signature') }}</label>
         <select
           v-model="selectedSignatureId"
           class="flex-1 px-2 py-1.5 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
         >
-          <option :value="null">서명 없음</option>
+          <option :value="null">{{ $t('mail.compose.noSignature') }}</option>
           <option v-for="sig in signatures" :key="sig.id" :value="sig.id">
-            {{ sig.name }}{{ sig.is_default ? ' (기본)' : '' }}
+            {{ sig.name }}{{ sig.is_default ? ` ${$t('mail.compose.signatureDefault')}` : '' }}
           </option>
         </select>
       </div>
@@ -358,7 +362,7 @@ function handleClose() {
       <!-- Upload progress -->
       <div v-if="uploading" class="flex items-center gap-2 text-sm text-muted-foreground">
         <div class="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        파일 업로드 중...
+        {{ $t('mail.compose.uploading') }}
       </div>
 
       <input ref="fileInput" type="file" multiple class="hidden" @change="handleFiles(($event.target as HTMLInputElement).files)" />
@@ -374,13 +378,13 @@ function handleClose() {
           @click="handleClose"
           class="px-4 py-2 text-sm rounded-md hover:bg-accent transition-colors"
         >
-          취소
+          {{ $t('common.cancel') }}
         </button>
         <button
           @click="handleFileSelect"
           :disabled="uploading"
           class="h-9 w-9 flex items-center justify-center rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-          title="파일 첨부"
+          :title="$t('mail.compose.attachFile')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
@@ -392,7 +396,7 @@ function handleClose() {
             type="checkbox"
             class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/50"
           />
-          수신확인
+          {{ $t('mail.compose.readReceipt') }}
         </label>
       </div>
       <button
@@ -404,7 +408,7 @@ function handleClose() {
         <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
           <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
         </svg>
-        보내기
+        {{ $t('mail.compose.send') }}
       </button>
     </div>
   </div>

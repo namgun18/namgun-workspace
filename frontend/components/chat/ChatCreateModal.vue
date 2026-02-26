@@ -4,6 +4,7 @@ const emit = defineEmits<{
 }>()
 
 const { createChannel, searchUsers, selectChannel } = useChat()
+const { t } = useI18n()
 
 const name = ref('')
 const type = ref<'public' | 'private'>('public')
@@ -52,8 +53,8 @@ async function onSubmit() {
     await selectChannel(result.id)
     emit('close')
   } catch (e: any) {
-    const detail = e?.data?.detail || e?.message || '채널 생성에 실패했습니다.'
-    errorMessage.value = typeof detail === 'string' ? detail : '채널 생성에 실패했습니다.'
+    const detail = e?.data?.detail || e?.message || t('chat.create.error')
+    errorMessage.value = typeof detail === 'string' ? detail : t('chat.create.error')
   } finally {
     creating.value = false
   }
@@ -61,11 +62,11 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="$emit('close')">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="$emit('close')" role="dialog" aria-modal="true">
     <div class="bg-background border rounded-lg shadow-xl w-full max-w-md mx-4">
       <div class="flex items-center justify-between px-5 py-4 border-b">
-        <h3 class="text-base font-semibold">새 채널 만들기</h3>
-        <button @click="$emit('close')" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent">
+        <h3 class="text-base font-semibold">{{ $t('chat.create.title') }}</h3>
+        <button @click="$emit('close')" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent" :aria-label="$t('common.close')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -75,11 +76,11 @@ async function onSubmit() {
       <form @submit.prevent="onSubmit" class="p-5 space-y-4">
         <!-- Name -->
         <div>
-          <label class="block text-sm font-medium mb-1">채널 이름</label>
+          <label class="block text-sm font-medium mb-1">{{ $t('chat.create.name') }}</label>
           <input
             v-model="name"
             type="text"
-            placeholder="일반"
+            :placeholder="$t('chat.create.namePlaceholder')"
             class="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
             maxlength="100"
             required
@@ -88,26 +89,26 @@ async function onSubmit() {
 
         <!-- Type -->
         <div>
-          <label class="block text-sm font-medium mb-1">유형</label>
+          <label class="block text-sm font-medium mb-1">{{ $t('chat.create.type') }}</label>
           <div class="flex gap-4">
             <label class="flex items-center gap-2 text-sm cursor-pointer">
               <input type="radio" v-model="type" value="public" class="accent-primary" />
-              공개
+              {{ $t('chat.create.public') }}
             </label>
             <label class="flex items-center gap-2 text-sm cursor-pointer">
               <input type="radio" v-model="type" value="private" class="accent-primary" />
-              비공개
+              {{ $t('chat.create.private') }}
             </label>
           </div>
         </div>
 
         <!-- Description -->
         <div>
-          <label class="block text-sm font-medium mb-1">설명 (선택)</label>
+          <label class="block text-sm font-medium mb-1">{{ $t('chat.create.description') }}</label>
           <input
             v-model="description"
             type="text"
-            placeholder="채널 설명"
+            :placeholder="$t('chat.create.descriptionPlaceholder')"
             class="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
             maxlength="500"
           />
@@ -115,12 +116,12 @@ async function onSubmit() {
 
         <!-- Members -->
         <div>
-          <label class="block text-sm font-medium mb-1">멤버 추가 (선택)</label>
+          <label class="block text-sm font-medium mb-1">{{ $t('chat.create.members') }}</label>
           <input
             v-model="memberQuery"
             @input="onSearchInput"
             type="text"
-            placeholder="사용자 검색..."
+            :placeholder="$t('chat.create.memberSearch')"
             class="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <!-- Search results -->
@@ -157,14 +158,14 @@ async function onSubmit() {
         <!-- Submit -->
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" @click="$emit('close')" class="px-4 py-2 text-sm border rounded-md hover:bg-accent transition-colors">
-            취소
+            {{ $t('common.cancel') }}
           </button>
           <button
             type="submit"
             :disabled="!name.trim() || creating"
             class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
-            {{ creating ? '생성 중...' : '만들기' }}
+            {{ creating ? $t('chat.create.creating') : $t('chat.create.submit') }}
           </button>
         </div>
       </form>

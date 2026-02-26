@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { CommentInfo } from '~/composables/useBoard'
 
+const { t } = useI18n()
+
 const props = defineProps<{
   comment: CommentInfo
   postId: string
@@ -40,7 +42,7 @@ async function saveEdit() {
 }
 
 async function handleDelete() {
-  if (!confirm('댓글을 삭제하시겠습니까?')) return
+  if (!confirm(t('board.comment.deleteConfirm'))) return
   await deleteComment(props.comment.id)
 }
 
@@ -53,7 +55,7 @@ async function submitReply() {
     showReply.value = false
   } catch (e: any) {
     console.error('Reply error:', e)
-    alert(e?.data?.detail || '답글 작성에 실패했습니다')
+    alert(e?.data?.detail || t('board.reply.createError'))
   } finally {
     submitting.value = false
   }
@@ -83,10 +85,10 @@ function formatDate(dateStr: string): string {
           class="h-5 w-5"
         />
         <span class="text-sm font-medium">
-          {{ comment.author?.display_name || comment.author?.username || '알 수 없음' }}
+          {{ comment.author?.display_name || comment.author?.username || $t('common.unknownUser') }}
         </span>
         <span class="text-xs text-muted-foreground">{{ formatDate(comment.created_at) }}</span>
-        <span v-if="comment.is_edited" class="text-xs text-muted-foreground">(수정됨)</span>
+        <span v-if="comment.is_edited" class="text-xs text-muted-foreground">{{ $t('board.comment.edited') }}</span>
       </div>
 
       <!-- Content -->
@@ -97,8 +99,8 @@ function formatDate(dateStr: string): string {
           rows="3"
         />
         <div class="flex gap-1 mt-1">
-          <UiButton size="sm" @click="saveEdit" :disabled="submitting">저장</UiButton>
-          <UiButton size="sm" variant="ghost" @click="editing = false">취소</UiButton>
+          <UiButton size="sm" @click="saveEdit" :disabled="submitting">{{ $t('common.save') }}</UiButton>
+          <UiButton size="sm" variant="ghost" @click="editing = false">{{ $t('common.cancel') }}</UiButton>
         </div>
       </div>
       <p v-else class="text-sm whitespace-pre-wrap mb-1">{{ comment.content }}</p>
@@ -110,11 +112,11 @@ function formatDate(dateStr: string): string {
           @click="showReply = !showReply"
           class="text-muted-foreground hover:text-foreground transition-colors"
         >
-          답글
+          {{ $t('board.reply.label') }}
         </button>
         <template v-if="canEdit">
-          <button @click="startEdit" class="text-muted-foreground hover:text-foreground transition-colors">수정</button>
-          <button @click="handleDelete" class="text-muted-foreground hover:text-destructive transition-colors">삭제</button>
+          <button @click="startEdit" class="text-muted-foreground hover:text-foreground transition-colors">{{ $t('common.edit') }}</button>
+          <button @click="handleDelete" class="text-muted-foreground hover:text-destructive transition-colors">{{ $t('common.delete') }}</button>
         </template>
       </div>
 
@@ -122,15 +124,15 @@ function formatDate(dateStr: string): string {
       <div v-if="showReply" class="mt-2 ml-2">
         <textarea
           v-model="replyContent"
-          placeholder="답글을 입력하세요"
+          :placeholder="$t('board.reply.placeholder')"
           class="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
           rows="2"
         />
         <div class="flex gap-1 mt-1">
           <UiButton size="sm" @click="submitReply" :disabled="submitting || !replyContent.trim()">
-            답글 등록
+            {{ $t('board.reply.submit') }}
           </UiButton>
-          <UiButton size="sm" variant="ghost" @click="showReply = false">취소</UiButton>
+          <UiButton size="sm" variant="ghost" @click="showReply = false">{{ $t('common.cancel') }}</UiButton>
         </div>
       </div>
     </template>

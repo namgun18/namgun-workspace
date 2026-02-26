@@ -87,7 +87,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="3.3.0",
+    version="3.4.0",
     lifespan=lifespan,
     docs_url="/api/docs" if settings.debug else None,
     redoc_url=None,
@@ -141,8 +141,10 @@ async def health_check():
     return {
         "status": "ok",
         "service": settings.app_name,
-        "version": "3.2.0",
+        "version": "3.4.0",
         "domain": settings.domain,
         "app_url": settings.app_url,
         "gitea_url": settings.gitea_external_url or f"{settings.app_url}/git/",
+        "brand_logo": settings.brand_logo,
+        "brand_color": settings.brand_color,
     }

@@ -41,10 +41,10 @@ function firstLine(msg: string) {
     <UiCardHeader class="pb-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-purple-500"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-          <UiCardTitle class="text-base">최근 Git 활동</UiCardTitle>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-purple-500" aria-hidden="true"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+          <UiCardTitle class="text-base">{{ $t('dashboard.recentGit.title') }}</UiCardTitle>
         </div>
-        <NuxtLink to="/git" class="text-xs text-primary hover:underline">전체 보기</NuxtLink>
+        <NuxtLink to="/git" class="text-xs text-primary hover:underline">{{ $t('common.viewAll') }}</NuxtLink>
       </div>
     </UiCardHeader>
     <UiCardContent>
@@ -58,7 +58,7 @@ function firstLine(msg: string) {
 
       <!-- Empty -->
       <p v-else-if="commits.length === 0" class="text-sm text-muted-foreground">
-        최근 커밋이 없습니다
+        {{ $t('dashboard.recentGit.empty') }}
       </p>
 
       <!-- Commit list -->

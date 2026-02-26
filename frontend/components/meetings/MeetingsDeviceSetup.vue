@@ -8,6 +8,8 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { t } = useI18n()
+
 // 초기화 상태
 const phase = ref<'requesting' | 'ready' | 'denied' | 'no-device'>('requesting')
 const permissionRequesting = ref(false)
@@ -47,12 +49,12 @@ function detectBrowser(): string {
 
 const permissionGuide = computed(() => {
   const guides: Record<string, string> = {
-    Chrome: '주소창 왼쪽 자물쇠(또는 설정) 아이콘 → 사이트 설정 → 카메라/마이크 → "허용"으로 변경 후 새로고침',
-    Edge: '주소창 왼쪽 자물쇠(또는 설정) 아이콘 → 사이트 설정 → 카메라/마이크 → "허용"으로 변경 후 새로고침',
-    Firefox: '주소창의 카메라/마이크 아이콘 클릭 → 차단 해제 후 새로고침',
-    Safari: 'Safari → 환경설정 → 웹사이트 → 카메라/마이크 → 이 사이트 "허용" 후 새로고침',
+    Chrome: t('meetings.device.permGuideChrome'),
+    Edge: t('meetings.device.permGuideEdge'),
+    Firefox: t('meetings.device.permGuideFirefox'),
+    Safari: t('meetings.device.permGuideSafari'),
   }
-  return guides[browserName.value] || '브라우저 설정에서 이 사이트의 카메라/마이크 권한을 허용해 주세요.'
+  return guides[browserName.value] || t('meetings.device.permGuideDefault')
 })
 
 // ── 1단계: 권한 요청 (getUserMedia 호출 → 브라우저 권한 팝업) ──
@@ -330,15 +332,15 @@ onBeforeUnmount(() => {
     <div class="w-full max-w-2xl">
       <div class="text-center mb-6">
         <h1 class="text-xl font-bold">{{ roomName }}</h1>
-        <p class="text-sm text-muted-foreground mt-1">회의 참여 전 장치를 확인하세요</p>
+        <p class="text-sm text-muted-foreground mt-1">{{ $t('meetings.device.subtitle') }}</p>
       </div>
 
       <!-- 권한 요청 중 -->
       <div v-if="phase === 'requesting'" class="max-w-md mx-auto">
         <div class="rounded-lg border bg-card p-8 text-center">
           <div class="inline-block h-10 w-10 animate-spin rounded-full border-4 border-primary border-r-transparent mb-4" />
-          <h3 class="text-lg font-semibold mb-2">카메라/마이크 권한 요청 중</h3>
-          <p class="text-sm text-muted-foreground">브라우저 상단의 권한 팝업에서 "허용"을 눌러주세요</p>
+          <h3 class="text-lg font-semibold mb-2">{{ $t('meetings.device.requesting') }}</h3>
+          <p class="text-sm text-muted-foreground">{{ $t('meetings.device.requestingDesc') }}</p>
           <p v-if="debugInfo" class="mt-4 text-xs text-muted-foreground font-mono bg-muted p-2 rounded">{{ debugInfo }}</p>
         </div>
       </div>
@@ -352,7 +354,7 @@ onBeforeUnmount(() => {
               <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             <div>
-              <h3 class="font-semibold mb-1">카메라/마이크 권한이 필요합니다</h3>
+              <h3 class="font-semibold mb-1">{{ $t('meetings.device.denied') }}</h3>
               <p class="text-sm text-muted-foreground mb-3">{{ permissionGuide }}</p>
               <p v-if="debugInfo" class="mb-3 text-xs font-mono bg-muted p-2 rounded text-left break-all">{{ debugInfo }}</p>
               <div class="flex gap-2">
@@ -360,13 +362,13 @@ onBeforeUnmount(() => {
                   @click="phase = 'requesting'; requestPermissions()"
                   class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  다시 시도
+                  {{ $t('common.retry') }}
                 </button>
                 <button
                   @click="phase = 'no-device'; cameraOn = false; micOn = false"
                   class="px-4 py-2 text-sm rounded-md border hover:bg-accent transition-colors"
                 >
-                  권한 없이 참여
+                  {{ $t('meetings.device.joinWithoutPerm') }}
                 </button>
               </div>
             </div>
@@ -382,21 +384,21 @@ onBeforeUnmount(() => {
             <path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2l10 10Z" />
             <line x1="2" y1="2" x2="22" y2="22" />
           </svg>
-          <h3 class="font-semibold mb-1">장치를 사용할 수 없습니다</h3>
-          <p class="text-sm text-muted-foreground mb-2">카메라/마이크 없이 회의에 참여합니다</p>
+          <h3 class="font-semibold mb-1">{{ $t('meetings.device.noDevice') }}</h3>
+          <p class="text-sm text-muted-foreground mb-2">{{ $t('meetings.device.noDeviceDesc') }}</p>
           <p v-if="debugInfo" class="mb-4 text-xs font-mono bg-muted p-2 rounded text-left break-all">{{ debugInfo }}</p>
           <div class="flex justify-center gap-2">
             <button
               @click="emit('cancel')"
               class="px-4 py-2 text-sm rounded-md border hover:bg-accent transition-colors"
             >
-              취소
+              {{ $t('common.cancel') }}
             </button>
             <button
               @click="handleJoin"
               class="px-6 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              그래도 참여
+              {{ $t('meetings.device.joinAnyway') }}
             </button>
           </div>
         </div>
@@ -427,7 +429,7 @@ onBeforeUnmount(() => {
                     <path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2l10 10Z" />
                     <line x1="2" y1="2" x2="22" y2="22" />
                   </svg>
-                  <p class="text-sm">카메라 꺼짐</p>
+                  <p class="text-sm">{{ $t('meetings.device.cameraOff') }}</p>
                 </div>
               </div>
             </div>
@@ -454,9 +456,9 @@ onBeforeUnmount(() => {
                   class="flex-1 text-sm px-2 py-1.5 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring truncate"
                   :disabled="cameras.length === 0"
                 >
-                  <option v-if="cameras.length === 0" value="">카메라 없음</option>
+                  <option v-if="cameras.length === 0" value="">{{ $t('meetings.device.noCamera') }}</option>
                   <option v-for="cam in cameras" :key="cam.deviceId" :value="cam.deviceId">
-                    {{ cam.label || `카메라 ${cameras.indexOf(cam) + 1}` }}
+                    {{ cam.label || $t('meetings.device.cameraLabel', { n: cameras.indexOf(cam) + 1 }) }}
                   </option>
                 </select>
               </div>
@@ -468,7 +470,7 @@ onBeforeUnmount(() => {
             <div class="p-4 space-y-4">
               <!-- 마이크 -->
               <div>
-                <label class="text-sm font-medium mb-2 block">마이크</label>
+                <label class="text-sm font-medium mb-2 block">{{ $t('meetings.device.mic') }}</label>
                 <div class="flex items-center gap-2">
                   <button
                     @click="micOn = !micOn"
@@ -493,9 +495,9 @@ onBeforeUnmount(() => {
                     class="flex-1 text-sm px-2 py-1.5 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring truncate"
                     :disabled="microphones.length === 0"
                   >
-                    <option v-if="microphones.length === 0" value="">마이크 없음</option>
+                    <option v-if="microphones.length === 0" value="">{{ $t('meetings.device.noMic') }}</option>
                     <option v-for="mic in microphones" :key="mic.deviceId" :value="mic.deviceId">
-                      {{ mic.label || `마이크 ${microphones.indexOf(mic) + 1}` }}
+                      {{ mic.label || $t('meetings.device.micLabel', { n: microphones.indexOf(mic) + 1 }) }}
                     </option>
                   </select>
                 </div>
@@ -508,13 +510,13 @@ onBeforeUnmount(() => {
                   />
                 </div>
                 <p class="text-xs text-muted-foreground mt-1">
-                  {{ micOn && micLevel > 5 ? '마이크가 작동 중입니다' : micOn ? '말해보세요...' : '마이크 꺼짐' }}
+                  {{ micOn && micLevel > 5 ? $t('meetings.device.micWorking') : micOn ? $t('meetings.device.micSpeak') : $t('meetings.device.micOff') }}
                 </p>
               </div>
 
               <!-- 스피커 선택 + 테스트 -->
               <div>
-                <label class="text-sm font-medium mb-2 block">스피커</label>
+                <label class="text-sm font-medium mb-2 block">{{ $t('meetings.device.speaker') }}</label>
                 <div class="flex items-center gap-2 mb-2">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-muted-foreground shrink-0">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -526,9 +528,9 @@ onBeforeUnmount(() => {
                     class="flex-1 text-sm px-2 py-1.5 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring truncate"
                     :disabled="speakers.length === 0"
                   >
-                    <option v-if="speakers.length === 0" value="">스피커 없음</option>
+                    <option v-if="speakers.length === 0" value="">{{ $t('meetings.device.noSpeaker') }}</option>
                     <option v-for="spk in speakers" :key="spk.deviceId" :value="spk.deviceId">
-                      {{ spk.label || `스피커 ${speakers.indexOf(spk) + 1}` }}
+                      {{ spk.label || $t('meetings.device.speakerLabel', { n: speakers.indexOf(spk) + 1 }) }}
                     </option>
                   </select>
                 </div>
@@ -540,7 +542,7 @@ onBeforeUnmount(() => {
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                     <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
                   </svg>
-                  테스트 사운드 재생
+                  {{ $t('meetings.device.testSound') }}
                 </button>
               </div>
             </div>
@@ -553,13 +555,13 @@ onBeforeUnmount(() => {
             @click="emit('cancel')"
             class="px-5 py-2.5 text-sm font-medium rounded-md border hover:bg-accent transition-colors"
           >
-            취소
+            {{ $t('common.cancel') }}
           </button>
           <button
             @click="handleJoin"
             class="px-8 py-2.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            회의 참여
+            {{ $t('meetings.device.join') }}
           </button>
         </div>
       </template>

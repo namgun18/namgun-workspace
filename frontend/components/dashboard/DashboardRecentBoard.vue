@@ -36,12 +36,12 @@ onMounted(fetchRecentPosts)
     <UiCardHeader class="pb-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-orange-500">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-orange-500" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
           </svg>
-          <UiCardTitle class="text-base">최근 게시글</UiCardTitle>
+          <UiCardTitle class="text-base">{{ $t('dashboard.recentBoard.title') }}</UiCardTitle>
         </div>
-        <NuxtLink to="/board" class="text-xs text-primary hover:underline">전체 보기</NuxtLink>
+        <NuxtLink to="/board" class="text-xs text-primary hover:underline">{{ $t('common.viewAll') }}</NuxtLink>
       </div>
     </UiCardHeader>
     <UiCardContent>
@@ -53,7 +53,7 @@ onMounted(fetchRecentPosts)
       </div>
 
       <p v-else-if="posts.length === 0" class="text-sm text-muted-foreground">
-        최근 게시글이 없습니다
+        {{ $t('dashboard.recentBoard.empty') }}
       </p>
 
       <div v-else class="space-y-1">
@@ -65,8 +65,8 @@ onMounted(fetchRecentPosts)
         >
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-1.5">
-              <UiBadge v-if="p.is_pinned" variant="secondary" class="text-[10px] py-0 shrink-0">공지</UiBadge>
-              <UiBadge v-if="p.is_must_read" variant="destructive" class="text-[10px] py-0 shrink-0">필독</UiBadge>
+              <UiBadge v-if="p.is_pinned" variant="secondary" class="text-[10px] py-0 shrink-0">{{ $t('common.notice') }}</UiBadge>
+              <UiBadge v-if="p.is_must_read" variant="destructive" class="text-[10px] py-0 shrink-0">{{ $t('common.mustRead') }}</UiBadge>
               <span class="text-sm truncate">{{ p.title }}</span>
               <span v-if="p.comment_count > 0" class="text-xs text-primary shrink-0">[{{ p.comment_count }}]</span>
             </div>

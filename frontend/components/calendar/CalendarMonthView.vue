@@ -3,7 +3,8 @@ import type { CalendarEvent } from '~/composables/useCalendar'
 
 const { selectedDate, visibleEvents, openCreateModal, openEditModal } = useCalendar()
 
-const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+const { t } = useI18n()
+const DAY_LABELS = computed(() => t('calendar.weekdaysShort') as unknown as string[])
 
 interface DayCell {
   date: Date
@@ -66,7 +67,7 @@ const weeks = computed((): DayCell[][] => {
         v-for="label in DAY_LABELS"
         :key="label"
         class="py-2 text-center text-xs font-medium text-muted-foreground"
-        :class="{ 'text-red-500 dark:text-red-400': label === '일' }"
+        :class="{ 'text-red-500 dark:text-red-400': label === DAY_LABELS[0] }"
       >
         {{ label }}
       </div>
@@ -102,7 +103,7 @@ const weeks = computed((): DayCell[][] => {
               @click="openEditModal(event)"
             />
             <div v-if="day.events.length > 3" class="text-xs text-muted-foreground px-1">
-              +{{ day.events.length - 3 }}개 더
+              {{ $t('calendar.event.moreCount', { n: day.events.length - 3 }) }}
             </div>
           </div>
         </div>

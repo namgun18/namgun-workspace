@@ -4,10 +4,12 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'ko' },
-      title: 'Workspace',
+      title: process.env.APP_NAME || 'Workspace',
+      titleTemplate: `%s | ${process.env.APP_NAME || 'Workspace'}`,
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'theme-color', content: process.env.BRAND_COLOR || '#3B82F6' },
       ],
     },
   },

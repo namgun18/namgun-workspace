@@ -10,19 +10,20 @@ import type { ServiceUsage } from '~/composables/useAdminAnalytics'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
+const { t } = useI18n()
 const props = defineProps<{ data: ServiceUsage[] }>()
 
 const colorMode = useColorMode()
 
 const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#64748b']
-const SERVICE_LABELS: Record<string, string> = {
-  mail: '메일', calendar: '캘린더', contacts: '연락처', files: '파일',
-  meetings: '회의', git: 'Git', lab: 'Lab', dashboard: '대시보드',
-  admin: '관리', auth: '인증', services: '서비스',
-}
+const SERVICE_LABELS = computed<Record<string, string>>(() => ({
+  mail: t('admin.analytics.services.mail'), calendar: t('admin.analytics.services.calendar'), contacts: t('admin.analytics.services.contacts'), files: t('admin.analytics.services.files'),
+  meetings: t('admin.analytics.services.meetings'), git: 'Git', lab: 'Lab', dashboard: t('admin.analytics.services.dashboard'),
+  admin: t('admin.analytics.services.admin'), auth: t('admin.analytics.services.auth'), services: t('admin.analytics.services.services'),
+}))
 
 const chartData = computed(() => ({
-  labels: props.data.map(d => SERVICE_LABELS[d.service] || d.service),
+  labels: props.data.map(d => SERVICE_LABELS.value[d.service] || d.service),
   datasets: [{
     data: props.data.map(d => d.count),
     backgroundColor: props.data.map((_, i) => COLORS[i % COLORS.length]),
@@ -49,11 +50,11 @@ const chartOptions = computed(() => ({
 
 <template>
   <div class="rounded-lg border bg-card p-4">
-    <h3 class="text-sm font-medium text-muted-foreground mb-3">서비스 사용량</h3>
+    <h3 class="text-sm font-medium text-muted-foreground mb-3">{{ $t('admin.analytics.serviceUsage.title') }}</h3>
     <div class="h-[240px]">
       <Doughnut v-if="data.length" :data="chartData" :options="chartOptions" />
       <div v-else class="flex items-center justify-center h-full text-muted-foreground text-sm">
-        데이터 없음
+        {{ $t('common.noData') }}
       </div>
     </div>
   </div>

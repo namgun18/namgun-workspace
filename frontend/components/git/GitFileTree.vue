@@ -62,7 +62,7 @@ function formatSize(bytes: number): string {
     </table>
 
     <div v-if="contents.length === 0" class="px-4 py-8 text-center text-sm text-muted-foreground">
-      빈 디렉토리
+      {{ $t('git.fileTree.emptyDir') }}
     </div>
   </div>
 </template>

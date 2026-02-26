@@ -45,17 +45,17 @@ function avatarColor(contact: Contact) {
           v-model="localSearch"
           @input="onSearchInput"
           type="text"
-          placeholder="연락처 검색..."
+          :placeholder="$t('contacts.list.searchPlaceholder')"
           class="w-full pl-9 pr-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
       </div>
-      <div class="mt-1 text-xs text-muted-foreground">{{ totalContacts }}명의 연락처</div>
+      <div class="mt-1 text-xs text-muted-foreground">{{ $t('contacts.list.totalCount', { n: totalContacts }) }}</div>
     </div>
 
     <!-- List -->
     <div class="flex-1 overflow-y-auto">
-      <div v-if="loadingContacts" class="p-4 text-sm text-muted-foreground text-center">불러오는 중...</div>
-      <div v-else-if="contacts.length === 0" class="p-4 text-sm text-muted-foreground text-center">연락처가 없습니다</div>
+      <div v-if="loadingContacts" class="p-4 text-sm text-muted-foreground text-center">{{ $t('common.loading') }}</div>
+      <div v-else-if="contacts.length === 0" class="p-4 text-sm text-muted-foreground text-center">{{ $t('contacts.list.empty') }}</div>
       <div v-else>
         <button
           v-for="contact in contacts"
@@ -85,9 +85,9 @@ function avatarColor(contact: Contact) {
 
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="flex items-center justify-between px-3 py-2 border-t text-xs shrink-0">
-      <button @click="prevPage" :disabled="!hasPrevPage" class="px-2 py-1 rounded hover:bg-accent disabled:opacity-30">이전</button>
+      <button @click="prevPage" :disabled="!hasPrevPage" class="px-2 py-1 rounded hover:bg-accent disabled:opacity-30">{{ $t('common.pagination.prev') }}</button>
       <span class="text-muted-foreground">{{ currentPage + 1 }} / {{ totalPages }}</span>
-      <button @click="nextPage" :disabled="!hasNextPage" class="px-2 py-1 rounded hover:bg-accent disabled:opacity-30">다음</button>
+      <button @click="nextPage" :disabled="!hasNextPage" class="px-2 py-1 rounded hover:bg-accent disabled:opacity-30">{{ $t('common.pagination.next') }}</button>
     </div>
   </div>
 </template>

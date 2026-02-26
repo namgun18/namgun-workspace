@@ -6,6 +6,7 @@ const {
   createEvent, updateEvent, deleteEvent, closeModal,
 } = useCalendar()
 
+const { t } = useI18n()
 const form = reactive({
   calendar_id: '',
   title: '',
@@ -19,7 +20,7 @@ const error = ref('')
 const submitting = ref(false)
 
 const isEditing = computed(() => !!editingEvent.value)
-const modalTitle = computed(() => isEditing.value ? '일정 수정' : '새 일정')
+const modalTitle = computed(() => isEditing.value ? t('calendar.event.editTitle') : t('calendar.event.createTitle'))
 
 watch(showEventModal, (show) => {
   if (!show) return
@@ -64,15 +65,15 @@ function formatDateTimeLocal(iso: string) {
 
 async function handleSubmit() {
   if (!form.title.trim()) {
-    error.value = '제목을 입력해주세요.'
+    error.value = t('calendar.event.titleRequired')
     return
   }
   if (!form.calendar_id) {
-    error.value = '캘린더를 선택해주세요.'
+    error.value = t('calendar.event.calendarRequired')
     return
   }
   if (!form.start || !form.end) {
-    error.value = '시작/종료 시간을 입력해주세요.'
+    error.value = t('calendar.event.timeRequired')
     return
   }
 
@@ -96,7 +97,7 @@ async function handleSubmit() {
     }
     closeModal()
   } catch (e: any) {
-    error.value = e?.data?.detail || '일정 저장에 실패했습니다.'
+    error.value = e?.data?.detail || t('calendar.event.saveError')
   } finally {
     submitting.value = false
   }
@@ -104,7 +105,7 @@ async function handleSubmit() {
 
 async function handleDelete() {
   if (!editingEvent.value) return
-  if (!confirm('이 일정을 삭제하시겠습니까?')) return
+  if (!confirm(t('calendar.event.deleteConfirm'))) return
   await deleteEvent(editingEvent.value.id)
   closeModal()
 }
@@ -120,7 +121,7 @@ async function handleDelete() {
       <div class="absolute inset-0 bg-black/50" @click="closeModal" />
 
       <!-- Modal -->
-      <div class="relative w-full max-w-md bg-background border rounded-xl shadow-lg">
+      <div class="relative w-full max-w-md bg-background border rounded-xl shadow-lg" role="dialog">
         <div class="flex items-center justify-between px-5 py-4 border-b">
           <h2 class="text-lg font-semibold">{{ modalTitle }}</h2>
           <button @click="closeModal" class="p-1 rounded hover:bg-accent">
@@ -130,17 +131,17 @@ async function handleDelete() {
 
         <form @submit.prevent="handleSubmit" class="px-5 py-4 space-y-3">
           <div>
-            <label class="block text-sm font-medium mb-1">제목</label>
+            <label class="block text-sm font-medium mb-1">{{ $t('calendar.event.titleLabel') }}</label>
             <input
               v-model="form.title"
               type="text"
-              placeholder="일정 제목"
+              :placeholder="$t('calendar.event.titlePlaceholder')"
               class="w-full px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">캘린더</label>
+            <label class="block text-sm font-medium mb-1">{{ $t('calendar.event.calendarLabel') }}</label>
             <select
               v-model="form.calendar_id"
               class="w-full px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -153,12 +154,12 @@ async function handleDelete() {
 
           <div class="flex items-center gap-2">
             <input id="allDay" v-model="form.all_day" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary" />
-            <label for="allDay" class="text-sm">종일</label>
+            <label for="allDay" class="text-sm">{{ $t('calendar.allDay') }}</label>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium mb-1">시작</label>
+              <label class="block text-sm font-medium mb-1">{{ $t('calendar.event.startLabel') }}</label>
               <input
                 v-model="form.start"
                 :type="form.all_day ? 'date' : 'datetime-local'"
@@ -166,7 +167,7 @@ async function handleDelete() {
               />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">종료</label>
+              <label class="block text-sm font-medium mb-1">{{ $t('calendar.event.endLabel') }}</label>
               <input
                 v-model="form.end"
                 :type="form.all_day ? 'date' : 'datetime-local'"
@@ -176,21 +177,21 @@ async function handleDelete() {
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">장소</label>
+            <label class="block text-sm font-medium mb-1">{{ $t('calendar.event.locationLabel') }}</label>
             <input
               v-model="form.location"
               type="text"
-              placeholder="장소 (선택)"
+              :placeholder="$t('calendar.event.locationPlaceholder')"
               class="w-full px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">설명</label>
+            <label class="block text-sm font-medium mb-1">{{ $t('calendar.event.descriptionLabel') }}</label>
             <textarea
               v-model="form.description"
               rows="2"
-              placeholder="설명 (선택)"
+              :placeholder="$t('calendar.event.descriptionPlaceholder')"
               class="w-full px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
             />
           </div>
@@ -204,7 +205,7 @@ async function handleDelete() {
               @click="handleDelete"
               class="px-3 py-2 text-sm rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
             >
-              삭제
+              {{ $t('common.delete') }}
             </button>
             <div v-else />
             <div class="flex gap-2">
@@ -213,14 +214,14 @@ async function handleDelete() {
                 @click="closeModal"
                 class="px-4 py-2 text-sm rounded-lg hover:bg-accent transition-colors"
               >
-                취소
+                {{ $t('common.cancel') }}
               </button>
               <button
                 type="submit"
                 :disabled="submitting"
                 class="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
-                {{ submitting ? '저장 중...' : '저장' }}
+                {{ submitting ? $t('common.saving') : $t('common.save') }}
               </button>
             </div>
           </div>

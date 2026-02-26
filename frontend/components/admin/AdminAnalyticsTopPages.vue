@@ -45,11 +45,11 @@ const chartOptions = computed(() => ({
 
 <template>
   <div class="rounded-lg border bg-card p-4">
-    <h3 class="text-sm font-medium text-muted-foreground mb-3">인기 페이지</h3>
+    <h3 class="text-sm font-medium text-muted-foreground mb-3">{{ $t('admin.analytics.topPages.title') }}</h3>
     <div class="h-[240px]">
       <Bar v-if="data.length" :data="chartData" :options="chartOptions" />
       <div v-else class="flex items-center justify-center h-full text-muted-foreground text-sm">
-        데이터 없음
+        {{ $t('common.noData') }}
       </div>
     </div>
   </div>

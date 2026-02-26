@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import GitMarkdownRenderer from './GitMarkdownRenderer.vue'
 
+const { t } = useI18n()
 const { selectedPull } = useGit()
 
 function timeAgo(dateStr: string) {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}분 전`
+  if (mins < 60) return t('common.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}일 전`
+  if (days < 30) return t('common.daysAgo', { n: days })
   return new Date(dateStr).toLocaleDateString('ko-KR')
 }
 </script>
@@ -54,7 +55,7 @@ function timeAgo(dateStr: string) {
       <GitMarkdownRenderer :content="selectedPull.body" />
     </div>
     <div v-else class="px-4 py-8 text-center text-sm text-muted-foreground">
-      설명이 없습니다
+      {{ $t('git.pull.noDescription') }}
     </div>
   </div>
 </template>

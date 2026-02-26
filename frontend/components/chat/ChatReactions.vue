@@ -32,7 +32,7 @@ function onToggle(emoji: string) {
           : 'bg-muted/50 border-transparent hover:bg-accent',
         size === 'sm' ? 'py-0 text-[10px]' : 'py-0.5',
       ]"
-      :title="r.user_ids.length + '명'"
+      :title="$t('board.reaction.countLabel', { n: r.user_ids.length })"
     >
       <span>{{ r.emoji }}</span>
       <span>{{ r.count }}</span>
@@ -44,7 +44,7 @@ function onToggle(emoji: string) {
         @click="showPicker = !showPicker"
         class="inline-flex items-center justify-center rounded-full border border-dashed border-muted-foreground/30 hover:bg-accent transition-colors"
         :class="size === 'sm' ? 'h-4 w-4 text-[9px]' : 'h-5 w-5 text-[10px]'"
-        title="리액션 추가"
+        :title="$t('chat.reactions.add')"
       >
         +
       </button>

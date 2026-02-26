@@ -77,14 +77,14 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
         class="flex-1 py-2.5 text-xs font-medium text-center transition-colors border-b-2"
         :class="activeTab === 'participants' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
       >
-        참여자 ({{ participants.length }})
+        {{ $t('meetings.sidebar.participants', { n: participants.length }) }}
       </button>
       <button
         @click="setTab('waitingRoom')"
         class="flex-1 py-2.5 text-xs font-medium text-center transition-colors border-b-2 relative"
         :class="activeTab === 'waitingRoom' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
       >
-        대기실
+        {{ $t('meetings.sidebar.waitingRoom') }}
         <span
           v-if="pendingRequests.length > 0"
           class="absolute top-1.5 ml-0.5 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[10px] font-bold rounded-full bg-orange-500 text-white"
@@ -97,7 +97,7 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
         class="flex-1 py-2.5 text-xs font-medium text-center transition-colors border-b-2 relative"
         :class="activeTab === 'chat' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
       >
-        채팅
+        {{ $t('meetings.sidebar.chat') }}
         <span
           v-if="unreadChat > 0 && activeTab !== 'chat'"
           class="absolute top-1.5 ml-0.5 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[10px] font-bold rounded-full bg-blue-500 text-white"
@@ -108,7 +108,7 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
       <button
         @click="emit('close')"
         class="px-2 text-muted-foreground hover:text-foreground transition-colors"
-        title="닫기"
+        :title="$t('common.close')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -130,7 +130,7 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
           <div class="min-w-0 flex-1">
             <p class="text-sm font-medium truncate">
               {{ p.name }}
-              <span v-if="p.isLocal" class="text-muted-foreground font-normal"> (나)</span>
+              <span v-if="p.isLocal" class="text-muted-foreground font-normal"> {{ $t('meetings.participant.me') }}</span>
             </p>
           </div>
           <div class="shrink-0">
@@ -173,7 +173,7 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
     <div v-else-if="activeTab === 'waitingRoom'" class="flex-1 overflow-y-auto">
       <template v-if="isHost">
         <div v-if="pendingRequests.length === 0" class="px-4 py-8 text-center text-sm text-muted-foreground">
-          대기 중인 참가자가 없습니다
+          {{ $t('meetings.sidebar.noWaiting') }}
         </div>
         <div v-else class="divide-y">
           <div
@@ -183,27 +183,27 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
           >
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium truncate">{{ req.nickname }}</p>
-              <p class="text-[11px] text-muted-foreground">참가 요청</p>
+              <p class="text-[11px] text-muted-foreground">{{ $t('meetings.sidebar.joinRequest') }}</p>
             </div>
             <div class="flex gap-1 shrink-0 ml-2">
               <button
                 @click="approveRequest(req.id)"
                 class="px-2.5 py-1 text-xs font-medium rounded bg-green-600 text-white hover:bg-green-700 transition-colors"
               >
-                수락
+                {{ $t('meetings.sidebar.approve') }}
               </button>
               <button
                 @click="denyRequest(req.id)"
                 class="px-2.5 py-1 text-xs font-medium rounded border text-destructive hover:bg-destructive/10 transition-colors"
               >
-                거절
+                {{ $t('meetings.sidebar.deny') }}
               </button>
             </div>
           </div>
         </div>
       </template>
       <div v-else class="px-4 py-8 text-center text-sm text-muted-foreground">
-        호스트만 대기실을 관리할 수 있습니다
+        {{ $t('meetings.sidebar.hostOnly') }}
       </div>
     </div>
 
@@ -211,7 +211,7 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
     <template v-else-if="activeTab === 'chat'">
       <div ref="chatListEl" class="flex-1 overflow-y-auto px-3 py-2 space-y-3">
         <div v-if="chatMessages.length === 0" class="text-center text-sm text-muted-foreground py-8">
-          메시지가 없습니다
+          {{ $t('meetings.sidebar.noMessages') }}
         </div>
         <div
           v-for="msg in chatMessages"
@@ -234,7 +234,7 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
           <input
             v-model="chatInput"
             type="text"
-            placeholder="메시지 입력..."
+            :placeholder="$t('meetings.sidebar.chatPlaceholder')"
             maxlength="500"
             class="flex-1 text-sm px-3 py-1.5 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           />
@@ -243,7 +243,7 @@ function setTab(tab: 'participants' | 'waitingRoom' | 'chat') {
             :disabled="!chatInput.trim()"
             class="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            전송
+            {{ $t('common.send') }}
           </button>
         </form>
       </div>

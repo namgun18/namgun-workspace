@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.calendar')} | ${appName.value}`) })
+
 const {
   viewMode, selectedDate, loadingEvents,
   fetchCalendars, fetchEvents,
@@ -19,19 +23,19 @@ watch(selectedDate, () => {
 const headerLabel = computed(() => {
   const d = selectedDate.value
   if (viewMode.value === 'month') {
-    return `${d.getFullYear()}년 ${d.getMonth() + 1}월`
+    return t('calendar.monthLabel', { y: d.getFullYear(), m: d.getMonth() + 1 })
   } else if (viewMode.value === 'week') {
     const start = new Date(d)
     start.setDate(start.getDate() - start.getDay())
     const end = new Date(start)
     end.setDate(end.getDate() + 6)
     if (start.getMonth() === end.getMonth()) {
-      return `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()}일 ~ ${end.getDate()}일`
+      return t('calendar.toolbar.weekRange', { y: start.getFullYear(), m1: start.getMonth() + 1, d1: start.getDate(), d2: end.getDate() })
     }
-    return `${start.getMonth() + 1}월 ${start.getDate()}일 ~ ${end.getMonth() + 1}월 ${end.getDate()}일`
+    return t('calendar.toolbar.weekRangeCrossMonth', { m1: start.getMonth() + 1, d1: start.getDate(), m2: end.getMonth() + 1, d2: end.getDate() })
   } else {
-    const weekdays = ['일', '월', '화', '수', '목', '금', '토']
-    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${weekdays[d.getDay()]})`
+    const weekdays = t('calendar.weekdaysShort') as unknown as string[]
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} (${weekdays[d.getDay()]})`
   }
 })
 </script>
@@ -55,7 +59,7 @@ const headerLabel = computed(() => {
               @click="goToToday"
               class="px-3 py-1.5 text-sm border rounded-md hover:bg-accent transition-colors"
             >
-              오늘
+              {{ $t('calendar.toolbar.today') }}
             </button>
             <button @click="navigatePrev" class="p-1.5 rounded-md hover:bg-accent transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><polyline points="15 18 9 12 15 6"/></svg>
@@ -77,7 +81,7 @@ const headerLabel = computed(() => {
               class="px-3 py-1 text-sm rounded-md transition-colors"
               :class="viewMode === mode ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'"
             >
-              {{ mode === 'month' ? '월' : mode === 'week' ? '주' : '일' }}
+              {{ mode === 'month' ? $t('calendar.viewMode.month') : mode === 'week' ? $t('calendar.viewMode.week') : $t('calendar.viewMode.day') }}
             </button>
           </div>
         </div>
@@ -92,7 +96,7 @@ const headerLabel = computed(() => {
 
       <template #fallback>
         <div class="flex-1 flex items-center justify-center text-muted-foreground">
-          불러오는 중...
+          {{ $t('common.loading') }}
         </div>
       </template>
     </ClientOnly>

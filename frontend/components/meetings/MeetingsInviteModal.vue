@@ -40,11 +40,13 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 const inputRef = ref<HTMLInputElement | null>(null)
 
 // Duration options
-const durationOptions = [
-  { value: 30, label: '30분' },
-  { value: 60, label: '1시간' },
-  { value: 120, label: '2시간' },
-]
+const { t } = useI18n()
+
+const durationOptions = computed(() => [
+  { value: 30, label: t('meetings.invite.duration30') },
+  { value: 60, label: t('meetings.invite.duration60') },
+  { value: 120, label: t('meetings.invite.duration120') },
+])
 
 // Email validation
 function isValidEmail(str: string): boolean {
@@ -167,18 +169,20 @@ function onBlurInput() {
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click.self="handleBackdropClick"
+      role="dialog"
+      aria-modal="true"
     >
       <div class="bg-background rounded-lg border shadow-lg w-full max-w-md mx-4 p-6">
-        <h3 class="text-lg font-semibold mb-4">새 회의실</h3>
+        <h3 class="text-lg font-semibold mb-4">{{ $t('meetings.invite.title') }}</h3>
 
         <form @submit.prevent="handleSubmit" class="space-y-4">
           <!-- Room name -->
           <div>
-            <label class="block text-sm font-medium mb-1.5">회의실 이름</label>
+            <label class="block text-sm font-medium mb-1.5">{{ $t('meetings.invite.roomName') }}</label>
             <input
               v-model="roomName"
               type="text"
-              placeholder="예: 주간회의"
+              :placeholder="$t('meetings.invite.roomNamePlaceholder')"
               class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               autofocus
             />
@@ -186,7 +190,7 @@ function onBlurInput() {
 
           <!-- Invitees -->
           <div>
-            <label class="block text-sm font-medium mb-1.5">참가자 초대 <span class="text-muted-foreground font-normal">(선택)</span></label>
+            <label class="block text-sm font-medium mb-1.5">{{ $t('meetings.invite.invitees') }} <span class="text-muted-foreground font-normal">{{ $t('common.optional') }}</span></label>
 
             <!-- Chips -->
             <div v-if="invitees.length" class="flex flex-wrap gap-1.5 mb-2">
@@ -207,7 +211,7 @@ function onBlurInput() {
                 ref="inputRef"
                 v-model="searchQuery"
                 type="text"
-                placeholder="사용자 검색 또는 외부 이메일 입력"
+                :placeholder="$t('meetings.invite.searchPlaceholder')"
                 class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 @input="onSearchInput"
                 @keydown="handleKeydown"
@@ -239,7 +243,7 @@ function onBlurInput() {
                   class="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors border-t"
                   @mousedown.prevent="addExternalEmail"
                 >
-                  <span class="text-muted-foreground">외부 초대:</span>
+                  <span class="text-muted-foreground">{{ $t('meetings.invite.external') }}</span>
                   <span class="font-medium ml-1">{{ searchQuery.trim() }}</span>
                 </button>
               </div>
@@ -248,7 +252,7 @@ function onBlurInput() {
 
           <!-- Scheduled time -->
           <div>
-            <label class="block text-sm font-medium mb-1.5">예약 시간 <span class="text-muted-foreground font-normal">(선택, 비워두면 즉시)</span></label>
+            <label class="block text-sm font-medium mb-1.5">{{ $t('meetings.invite.scheduledTime') }} <span class="text-muted-foreground font-normal">{{ $t('meetings.invite.scheduledHint') }}</span></label>
             <div class="flex gap-2">
               <input
                 v-model="scheduledDate"
@@ -265,7 +269,7 @@ function onBlurInput() {
 
           <!-- Duration -->
           <div>
-            <label class="block text-sm font-medium mb-1.5">회의 시간</label>
+            <label class="block text-sm font-medium mb-1.5">{{ $t('meetings.invite.duration') }}</label>
             <select
               v-model="durationMinutes"
               class="w-full px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -277,7 +281,7 @@ function onBlurInput() {
           </div>
 
           <p class="text-xs text-muted-foreground">
-            {{ invitees.length > 0 ? `${invitees.length}명에게 초대 메일(ICS)이 발송됩니다` : '최대 10명까지 참여할 수 있습니다' }}
+            {{ invitees.length > 0 ? $t('meetings.invite.inviteInfo', { n: invitees.length }) : $t('meetings.invite.maxParticipants') }}
           </p>
 
           <!-- Buttons -->
@@ -288,14 +292,14 @@ function onBlurInput() {
               :disabled="creating"
               class="px-4 py-2 text-sm rounded-md border hover:bg-accent transition-colors disabled:opacity-50"
             >
-              취소
+              {{ $t('common.cancel') }}
             </button>
             <button
               type="submit"
               :disabled="creating || !roomName.trim()"
               class="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {{ creating ? '생성 중...' : (invitees.length > 0 ? '생성 및 초대' : '생성 및 참여') }}
+              {{ creating ? $t('meetings.invite.creating') : (invitees.length > 0 ? $t('meetings.invite.createAndInvite') : $t('meetings.invite.createAndJoin')) }}
             </button>
           </div>
         </form>

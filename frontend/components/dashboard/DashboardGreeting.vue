@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { t } = useI18n()
 const { user } = useAuth()
 
 const now = ref<Date | null>(null)
@@ -11,12 +12,12 @@ onMounted(() => {
 onUnmounted(() => clearInterval(timer))
 
 const greeting = computed(() => {
-  if (!now.value) return '안녕하세요'
+  if (!now.value) return t('greeting.hello')
   const h = now.value.getHours()
-  if (h < 6) return '늦은 밤이에요'
-  if (h < 12) return '좋은 아침이에요'
-  if (h < 18) return '좋은 오후예요'
-  return '좋은 저녁이에요'
+  if (h < 6) return t('greeting.lateNight')
+  if (h < 12) return t('greeting.goodMorning')
+  if (h < 18) return t('greeting.goodAfternoon')
+  return t('greeting.goodEvening')
 })
 
 const dateStr = computed(() => {
@@ -35,10 +36,10 @@ const dateStr = computed(() => {
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">
-          {{ greeting }}, {{ user?.display_name || user?.username }}님
+          {{ $t('greeting.withName', { greeting, name: user?.display_name || user?.username }) }}
         </h1>
         <p class="text-blue-100 dark:text-muted-foreground text-sm mt-0.5">
-          오늘도 좋은 하루 되세요
+          {{ $t('greeting.haveAGoodDay') }}
         </p>
       </div>
       <p v-if="dateStr" class="text-sm text-blue-200 dark:text-muted-foreground shrink-0">

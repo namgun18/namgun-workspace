@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     livekit_api_secret: str = ""
     livekit_ws_url: str = ""  # 브라우저용 WS URL (빈값이면 app_url에서 자동 파생)
 
+    # Branding
+    brand_logo: str = ""       # URL or path to logo image
+    brand_color: str = "#3B82F6"  # Primary brand color (hex)
+
     # Portal OAuth Provider (for Gitea etc.)
     oauth_clients_json: str = "{}"
 

@@ -81,7 +81,7 @@ onBeforeUnmount(() => {
     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
       <div class="flex items-center gap-1.5">
         <span class="text-white text-sm font-medium truncate">
-          {{ name }}{{ isLocal ? ' (나)' : '' }}
+          {{ name }}{{ isLocal ? ` ${$t('meetings.participant.me')}` : '' }}
         </span>
         <svg
           v-if="isMuted"

@@ -1,19 +1,20 @@
 <script setup lang="ts">
+const { t } = useI18n()
 const { openCompose } = useMail()
 
-const shortcuts = [
-  { label: '메일 쓰기', icon: 'mail', action: () => openCompose('new') },
-  { label: '캘린더', icon: 'calendar', to: '/calendar' },
-  { label: '연락처', icon: 'contacts', to: '/contacts' },
-  { label: '파일 업로드', icon: 'upload', to: '/files' },
-  { label: 'Git 저장소', icon: 'git', to: '/git' },
-]
+const shortcuts = computed(() => [
+  { label: t('dashboard.shortcuts.composeMail'), icon: 'mail', action: () => openCompose('new') },
+  { label: t('dashboard.shortcuts.calendar'), icon: 'calendar', to: '/calendar' },
+  { label: t('dashboard.shortcuts.contacts'), icon: 'contacts', to: '/contacts' },
+  { label: t('dashboard.shortcuts.fileUpload'), icon: 'upload', to: '/files' },
+  { label: t('dashboard.shortcuts.gitRepo'), icon: 'git', to: '/git' },
+])
 </script>
 
 <template>
   <UiCard>
     <UiCardHeader class="pb-3">
-      <UiCardTitle class="text-base">빠른 바로가기</UiCardTitle>
+      <UiCardTitle class="text-base">{{ $t('dashboard.shortcuts.title') }}</UiCardTitle>
     </UiCardHeader>
     <UiCardContent>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">

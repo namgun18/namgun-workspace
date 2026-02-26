@@ -38,7 +38,7 @@ function formatSize(bytes: number): string {
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-12 w-12 mb-3 opacity-50">
         <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
       </svg>
-      <p class="text-sm">이 폴더는 비어 있습니다</p>
+      <p class="text-sm">{{ $t('files.empty') }}</p>
     </div>
 
     <!-- Grid -->
@@ -64,7 +64,7 @@ function formatSize(bytes: number): string {
         <button
           @click.stop="emit('contextmenu', $event, item)"
           class="absolute top-1.5 right-1.5 z-10 h-6 w-6 flex items-center justify-center rounded-md bg-background/80 hover:bg-accent opacity-0 group-hover:opacity-100 transition-opacity"
-          title="더보기"
+          :title="$t('common.moreActions')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-3.5 w-3.5 text-muted-foreground">
             <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />

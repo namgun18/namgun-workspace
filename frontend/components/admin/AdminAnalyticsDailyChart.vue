@@ -15,6 +15,7 @@ import type { DailyVisit } from '~/composables/useAdminAnalytics'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
+const { t } = useI18n()
 const props = defineProps<{ data: DailyVisit[] }>()
 
 const colorMode = useColorMode()
@@ -28,7 +29,7 @@ const chartData = computed(() => {
     labels,
     datasets: [
       {
-        label: '전체',
+        label: t('admin.analytics.daily.labelTotal'),
         data: props.data.map(d => d.total),
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -36,14 +37,14 @@ const chartData = computed(() => {
         tension: 0.3,
       },
       {
-        label: '인증',
+        label: t('admin.analytics.daily.labelAuthenticated'),
         data: props.data.map(d => d.authenticated),
         borderColor: '#22c55e',
         backgroundColor: 'transparent',
         tension: 0.3,
       },
       {
-        label: '비인증',
+        label: t('admin.analytics.daily.labelUnauthenticated'),
         data: props.data.map(d => d.unauthenticated),
         borderColor: '#f59e0b',
         backgroundColor: 'transparent',
@@ -75,11 +76,11 @@ const chartOptions = computed(() => ({
 
 <template>
   <div class="rounded-lg border bg-card p-4">
-    <h3 class="text-sm font-medium text-muted-foreground mb-3">일별 방문 추이</h3>
+    <h3 class="text-sm font-medium text-muted-foreground mb-3">{{ $t('admin.analytics.daily.title') }}</h3>
     <div class="h-[240px]">
       <Line v-if="data.length" :data="chartData" :options="chartOptions" />
       <div v-else class="flex items-center justify-center h-full text-muted-foreground text-sm">
-        데이터 없음
+        {{ $t('common.noData') }}
       </div>
     </div>
   </div>

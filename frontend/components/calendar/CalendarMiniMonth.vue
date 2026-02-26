@@ -13,12 +13,13 @@ watch(() => props.selectedDate, (d) => {
   viewDate.value = new Date(d)
 })
 
-const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+const { t } = useI18n()
+const DAY_LABELS = computed(() => t('calendar.weekdaysShort') as unknown as string[])
 
 const monthLabel = computed(() => {
   const y = viewDate.value.getFullYear()
   const m = viewDate.value.getMonth() + 1
-  return `${y}년 ${m}월`
+  return t('calendar.monthLabel', { y, m })
 })
 
 const days = computed(() => {

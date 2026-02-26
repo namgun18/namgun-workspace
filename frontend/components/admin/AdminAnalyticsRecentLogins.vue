@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import type { RecentLogin } from '~/composables/useAdminAnalytics'
 
+const { t } = useI18n()
 defineProps<{ data: RecentLogin[] }>()
 
 function timeAgo(iso: string) {
   if (!iso) return '-'
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return '방금'
-  if (mins < 60) return `${mins}분 전`
+  if (mins < 1) return t('common.justNow')
+  if (mins < 60) return t('common.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}시간 전`
-  return `${Math.floor(hours / 24)}일 전`
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
+  return t('common.daysAgo', { n: Math.floor(hours / 24) })
 }
 
 function maskIp(ip: string) {
@@ -23,9 +24,9 @@ function maskIp(ip: string) {
 
 <template>
   <div class="rounded-lg border bg-card p-4">
-    <h3 class="text-sm font-medium text-muted-foreground mb-3">최근 로그인</h3>
+    <h3 class="text-sm font-medium text-muted-foreground mb-3">{{ $t('admin.analytics.recentLogins.title') }}</h3>
     <div v-if="data.length === 0" class="text-sm text-muted-foreground py-4 text-center">
-      로그인 기록 없음
+      {{ $t('admin.analytics.recentLogins.empty') }}
     </div>
     <div v-else class="space-y-2">
       <div

@@ -8,6 +8,7 @@ const {
   selectedRepo, loading, latestCommit, commitCount, cloneUrl,
   currentBranch, branches,
 } = useGit()
+const { t } = useI18n()
 
 const langColor = computed(() =>
   selectedRepo.value?.language ? (LANG_COLORS[selectedRepo.value.language] || '#8b949e') : '#8b949e'
@@ -47,11 +48,11 @@ function timeAgo(dateStr: string) {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}분 전`
+  if (mins < 60) return t('common.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}일 전`
+  if (days < 30) return t('common.daysAgo', { n: days })
   return new Date(dateStr).toLocaleDateString('ko-KR')
 }
 
@@ -120,7 +121,7 @@ function formatSize(bytes: number): string {
                     <button
                       @click="copyCloneUrl"
                       class="inline-flex items-center justify-center h-8 w-8 rounded-md border hover:bg-accent transition-colors shrink-0"
-                      :title="copied ? '복사됨!' : 'URL 복사'"
+                      :title="copied ? $t('common.copied') : $t('git.repoDetail.copyUrl')"
                     >
                       <svg v-if="!copied" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="h-3.5 w-3.5">
                         <path fill="currentColor" d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25ZM5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z" />
@@ -196,7 +197,7 @@ function formatSize(bytes: number): string {
           <p v-if="selectedRepo.description" class="text-sm text-muted-foreground leading-relaxed mb-4">
             {{ selectedRepo.description }}
           </p>
-          <p v-else class="text-sm text-muted-foreground italic mb-4">설명 없음</p>
+          <p v-else class="text-sm text-muted-foreground italic mb-4">{{ $t('git.repoDetail.noDescription') }}</p>
 
           <div class="space-y-2.5 text-sm">
             <!-- Stars -->

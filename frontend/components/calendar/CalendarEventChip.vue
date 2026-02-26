@@ -5,12 +5,13 @@ const props = defineProps<{
   event: CalendarEvent
 }>()
 
+const { t } = useI18n()
 const emit = defineEmits<{
   click: [event: CalendarEvent]
 }>()
 
 const timeLabel = computed(() => {
-  if (props.event.all_day) return '종일'
+  if (props.event.all_day) return t('calendar.allDay')
   try {
     const d = new Date(props.event.start)
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`

@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('admin.users.title')} | ${appName.value}`) })
+
 const { user } = useAuth()
 
 // Redirect non-admin users
@@ -55,33 +59,33 @@ async function approveUser(userId: string) {
     await $fetch(`/api/admin/users/${userId}/approve`, { method: 'POST' })
     await loadData()
   } catch (e: any) {
-    alert(e?.data?.detail || '승인 처리 중 오류가 발생했습니다.')
+    alert(e?.data?.detail || t('admin.users.approveError'))
   } finally {
     actionLoading.value = null
   }
 }
 
 async function rejectUser(userId: string) {
-  if (!confirm('이 가입 신청을 거절하시겠습니까? 사용자가 삭제됩니다.')) return
+  if (!confirm(t('admin.users.confirmReject'))) return
   actionLoading.value = userId
   try {
     await $fetch(`/api/admin/users/${userId}/reject`, { method: 'POST' })
     await loadData()
   } catch (e: any) {
-    alert(e?.data?.detail || '거절 처리 중 오류가 발생했습니다.')
+    alert(e?.data?.detail || t('admin.users.rejectError'))
   } finally {
     actionLoading.value = null
   }
 }
 
 async function deactivateUser(userId: string) {
-  if (!confirm('이 사용자를 비활성화하시겠습니까?')) return
+  if (!confirm(t('admin.users.confirmDeactivate'))) return
   actionLoading.value = userId
   try {
     await $fetch(`/api/admin/users/${userId}/deactivate`, { method: 'POST' })
     await loadData()
   } catch (e: any) {
-    alert(e?.data?.detail || '비활성화 처리 중 오류가 발생했습니다.')
+    alert(e?.data?.detail || t('admin.users.deactivateError'))
   } finally {
     actionLoading.value = null
   }
@@ -89,9 +93,10 @@ async function deactivateUser(userId: string) {
 
 async function toggleAdmin(u: AdminUser) {
   const newRole = !u.is_admin
+  const name = u.display_name || u.username
   const msg = newRole
-    ? `${u.display_name || u.username}에게 관리자 권한을 부여하시겠습니까?`
-    : `${u.display_name || u.username}의 관리자 권한을 해제하시겠습니까?`
+    ? t('admin.users.confirmGrantAdmin', { name })
+    : t('admin.users.confirmRevokeAdmin', { name })
   if (!confirm(msg)) return
   actionLoading.value = u.id
   try {
@@ -101,7 +106,7 @@ async function toggleAdmin(u: AdminUser) {
     })
     await loadData()
   } catch (e: any) {
-    alert(e?.data?.detail || '권한 변경 중 오류가 발생했습니다.')
+    alert(e?.data?.detail || t('admin.users.roleChangeError'))
   } finally {
     actionLoading.value = null
   }
@@ -122,8 +127,8 @@ function formatDate(dateStr: string | null) {
 <template>
   <div v-if="user?.is_admin" class="h-full overflow-auto px-4 sm:px-6 lg:px-8 py-6">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold tracking-tight">사용자 관리</h1>
-      <p class="text-muted-foreground mt-1">회원가입 승인 및 사용자를 관리하세요</p>
+      <h1 class="text-2xl font-bold tracking-tight">{{ $t('admin.users.title') }}</h1>
+      <p class="text-muted-foreground mt-1">{{ $t('admin.users.subtitle') }}</p>
     </div>
 
     <!-- Admin sub tabs -->
@@ -133,13 +138,13 @@ function formatDate(dateStr: string | null) {
           to="/admin/dashboard"
           class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
         >
-          대시보드
+          {{ $t('nav.dashboard') }}
         </NuxtLink>
         <NuxtLink
           to="/admin/users"
           class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-primary text-primary"
         >
-          사용자 관리
+          {{ $t('admin.users.title') }}
         </NuxtLink>
       </div>
     </div>
@@ -153,7 +158,7 @@ function formatDate(dateStr: string | null) {
           ? 'border-primary text-primary'
           : 'border-transparent text-muted-foreground hover:text-foreground'"
       >
-        승인 대기
+        {{ $t('admin.users.tabs.pending') }}
         <span
           v-if="pendingUsers.length > 0"
           class="ml-1.5 inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-xs font-medium bg-destructive text-destructive-foreground"
@@ -168,7 +173,7 @@ function formatDate(dateStr: string | null) {
           ? 'border-primary text-primary'
           : 'border-transparent text-muted-foreground hover:text-foreground'"
       >
-        전체 사용자
+        {{ $t('admin.users.tabs.all') }}
       </button>
     </div>
 
@@ -183,7 +188,7 @@ function formatDate(dateStr: string | null) {
     <!-- Pending users tab -->
     <div v-else-if="activeTab === 'pending'">
       <div v-if="pendingUsers.length === 0" class="text-center py-12 text-muted-foreground">
-        승인 대기 중인 사용자가 없습니다
+        {{ $t('admin.users.pendingEmpty') }}
       </div>
       <div v-else class="space-y-3">
         <div
@@ -197,7 +202,7 @@ function formatDate(dateStr: string | null) {
               {{ u.username }} &middot; {{ u.email }}
             </div>
             <div v-if="u.recovery_email" class="text-xs text-muted-foreground">
-              복구: {{ u.recovery_email }}
+              {{ $t('admin.users.recoveryEmail') }} {{ u.recovery_email }}
             </div>
             <div class="text-xs text-muted-foreground">
               {{ formatDate(u.created_at) }}
@@ -209,7 +214,7 @@ function formatDate(dateStr: string | null) {
               @click="approveUser(u.id)"
               :disabled="actionLoading === u.id"
             >
-              승인
+              {{ $t('admin.users.approve') }}
             </UiButton>
             <UiButton
               size="sm"
@@ -218,7 +223,7 @@ function formatDate(dateStr: string | null) {
               @click="rejectUser(u.id)"
               :disabled="actionLoading === u.id"
             >
-              거절
+              {{ $t('admin.users.reject') }}
             </UiButton>
           </div>
         </div>
@@ -228,18 +233,18 @@ function formatDate(dateStr: string | null) {
     <!-- All users tab -->
     <div v-else-if="activeTab === 'all'">
       <div v-if="allUsers.length === 0" class="text-center py-12 text-muted-foreground">
-        등록된 사용자가 없습니다
+        {{ $t('admin.users.allEmpty') }}
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b">
-              <th class="text-left py-3 px-4 font-medium text-muted-foreground">사용자</th>
-              <th class="text-left py-3 px-4 font-medium text-muted-foreground">이메일</th>
-              <th class="text-left py-3 px-4 font-medium text-muted-foreground">상태</th>
-              <th class="text-left py-3 px-4 font-medium text-muted-foreground">권한</th>
-              <th class="text-left py-3 px-4 font-medium text-muted-foreground">가입일</th>
-              <th class="text-right py-3 px-4 font-medium text-muted-foreground">작업</th>
+              <th class="text-left py-3 px-4 font-medium text-muted-foreground">{{ $t('admin.users.table.user') }}</th>
+              <th class="text-left py-3 px-4 font-medium text-muted-foreground">{{ $t('admin.users.table.email') }}</th>
+              <th class="text-left py-3 px-4 font-medium text-muted-foreground">{{ $t('admin.users.table.status') }}</th>
+              <th class="text-left py-3 px-4 font-medium text-muted-foreground">{{ $t('admin.users.table.role') }}</th>
+              <th class="text-left py-3 px-4 font-medium text-muted-foreground">{{ $t('admin.users.table.joinedAt') }}</th>
+              <th class="text-right py-3 px-4 font-medium text-muted-foreground">{{ $t('admin.users.table.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -256,7 +261,7 @@ function formatDate(dateStr: string | null) {
                     ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                     : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'"
                 >
-                  {{ u.is_active ? '활성' : '비활성' }}
+                  {{ u.is_active ? $t('common.status.active') : $t('common.status.inactive') }}
                 </span>
               </td>
               <td class="py-3 px-4">
@@ -269,19 +274,19 @@ function formatDate(dateStr: string | null) {
                     ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
                 >
-                  {{ u.is_admin ? '관리자' : '일반' }}
+                  {{ u.is_admin ? $t('common.role.admin') : $t('common.role.user') }}
                 </button>
                 <span
                   v-else-if="u.is_admin"
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                 >
-                  관리자
+                  {{ $t('common.role.admin') }}
                 </span>
                 <span
                   v-else
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                 >
-                  일반
+                  {{ $t('common.role.user') }}
                 </span>
               </td>
               <td class="py-3 px-4 text-muted-foreground text-xs">{{ formatDate(u.created_at) }}</td>
@@ -294,7 +299,7 @@ function formatDate(dateStr: string | null) {
                   @click="deactivateUser(u.id)"
                   :disabled="actionLoading === u.id"
                 >
-                  비활성화
+                  {{ $t('admin.users.deactivate') }}
                 </UiButton>
                 <UiButton
                   v-else-if="!u.is_active"
@@ -302,7 +307,7 @@ function formatDate(dateStr: string | null) {
                   @click="approveUser(u.id)"
                   :disabled="actionLoading === u.id"
                 >
-                  활성화
+                  {{ $t('admin.users.activate') }}
                 </UiButton>
               </td>
             </tr>

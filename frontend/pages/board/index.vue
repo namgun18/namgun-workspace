@@ -3,6 +3,10 @@ import { timeAgo } from '~/lib/date'
 
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.board')} | ${appName.value}`) })
+
 const { init, cleanup, boards, loadingBoards, mustReadPosts, fetchBookmarks, searchPosts } = useBoard()
 const { user } = useAuth()
 const route = useRoute()
@@ -143,7 +147,7 @@ function formatDate(dateStr: string): string {
       <div class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 border-b bg-background">
         <button
           @click="showMobileSidebar = !showMobileSidebar"
-          class="md:hidden inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent transition-colors shrink-0"
+          class="md:hidden inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent transition-colors shrink-0" :aria-label="$t('common.menu')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
@@ -151,13 +155,13 @@ function formatDate(dateStr: string): string {
         </button>
 
         <h2 class="text-sm font-semibold">
-          {{ currentView === 'bookmarks' ? '내 북마크' : currentView === 'search' ? '검색' : currentView === 'must-read' ? '미확인 필독' : '전체 게시판' }}
+          {{ currentView === 'bookmarks' ? $t('board.sidebar.myBookmarks') : currentView === 'search' ? $t('common.search') : currentView === 'must-read' ? $t('board.sidebar.unreadMustRead') : $t('board.index.allBoards') }}
         </h2>
 
         <div class="flex-1" />
 
         <UiButton v-if="user?.is_admin && !currentView" size="sm" @click="showCreateModal = true">
-          <span class="hidden sm:inline">게시판 만들기</span>
+          <span class="hidden sm:inline">{{ $t('board.create.buttonLabel') }}</span>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 sm:hidden">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
@@ -170,7 +174,7 @@ function formatDate(dateStr: string): string {
         <template v-if="currentView === 'must-read'">
           <div class="p-4 sm:p-6 space-y-2">
             <div v-if="mustReadPosts.length === 0" class="text-center py-12 text-sm text-muted-foreground">
-              미확인 필독 게시글이 없습니다
+              {{ $t('board.mustRead.empty') }}
             </div>
             <NuxtLink
               v-for="p in mustReadPosts"
@@ -179,7 +183,7 @@ function formatDate(dateStr: string): string {
               class="block rounded-md border px-4 py-3 hover:bg-accent/50 transition-colors"
             >
               <div class="flex items-center gap-1.5">
-                <UiBadge variant="destructive" class="text-[10px] py-0">필독</UiBadge>
+                <UiBadge variant="destructive" class="text-[10px] py-0">{{ $t('board.post.mustReadBadge') }}</UiBadge>
                 <span class="text-sm font-medium truncate">{{ p.title }}</span>
               </div>
               <div class="text-xs text-muted-foreground mt-1">
@@ -196,7 +200,7 @@ function formatDate(dateStr: string): string {
               <div v-for="i in 5" :key="i" class="h-12 bg-muted/50 rounded animate-pulse" />
             </div>
             <div v-else-if="bookmarks.length === 0" class="text-center py-12 text-sm text-muted-foreground">
-              저장한 게시글이 없습니다
+              {{ $t('board.bookmarks.empty') }}
             </div>
             <NuxtLink
               v-for="p in bookmarks"
@@ -219,16 +223,16 @@ function formatDate(dateStr: string): string {
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="제목, 내용으로 검색"
+                :placeholder="$t('board.search.placeholder')"
                 class="flex-1 h-9 rounded-md border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              <UiButton size="sm" type="submit" :disabled="searchLoading">검색</UiButton>
+              <UiButton size="sm" type="submit" :disabled="searchLoading">{{ $t('common.search') }}</UiButton>
             </form>
             <div v-if="searchLoading" class="space-y-2">
               <div v-for="i in 3" :key="i" class="h-12 bg-muted/50 rounded animate-pulse" />
             </div>
             <div v-else-if="searchResults.length > 0" class="space-y-2">
-              <p class="text-xs text-muted-foreground mb-2">{{ searchTotal }}건</p>
+              <p class="text-xs text-muted-foreground mb-2">{{ searchTotal }}{{ $t('board.search.resultCount') }}</p>
               <NuxtLink
                 v-for="p in searchResults"
                 :key="p.id"
@@ -245,7 +249,7 @@ function formatDate(dateStr: string): string {
               </NuxtLink>
             </div>
             <div v-else-if="searchQuery && !searchLoading" class="text-center py-12 text-sm text-muted-foreground">
-              검색 결과가 없습니다
+              {{ $t('board.search.noResults') }}
             </div>
           </div>
         </template>
@@ -264,8 +268,8 @@ function formatDate(dateStr: string): string {
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-12 w-12 mx-auto mb-3 opacity-50">
                 <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
               </svg>
-              <p>게시판이 없습니다</p>
-              <p v-if="user?.is_admin" class="text-sm mt-1">게시판을 만들어 보세요</p>
+              <p>{{ $t('board.index.empty') }}</p>
+              <p v-if="user?.is_admin" class="text-sm mt-1">{{ $t('board.index.emptyAdmin') }}</p>
             </div>
 
             <div v-else class="space-y-6">
@@ -275,12 +279,12 @@ function formatDate(dateStr: string): string {
                     {{ bwp.name }}
                   </NuxtLink>
                   <NuxtLink :to="`/board/${bwp.id}`" class="text-xs text-primary hover:underline">
-                    더보기
+                    {{ $t('common.more') }}
                   </NuxtLink>
                 </div>
 
                 <div v-if="bwp.recent_posts.length === 0" class="text-sm text-muted-foreground py-3 border rounded-md px-3">
-                  게시글이 없습니다
+                  {{ $t('board.post.empty') }}
                 </div>
 
                 <div v-else class="border rounded-md overflow-hidden">
@@ -291,8 +295,8 @@ function formatDate(dateStr: string): string {
                     class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
                     :class="idx < bwp.recent_posts.length - 1 ? 'border-b' : ''"
                   >
-                    <UiBadge v-if="post.is_pinned" variant="secondary" class="text-[10px] py-0 shrink-0">공지</UiBadge>
-                    <UiBadge v-if="post.is_must_read" variant="destructive" class="text-[10px] py-0 shrink-0">필독</UiBadge>
+                    <UiBadge v-if="post.is_pinned" variant="secondary" class="text-[10px] py-0 shrink-0">{{ $t('board.post.noticeBadge') }}</UiBadge>
+                    <UiBadge v-if="post.is_must_read" variant="destructive" class="text-[10px] py-0 shrink-0">{{ $t('board.post.mustReadBadge') }}</UiBadge>
                     <span class="flex-1 truncate">{{ post.title }}</span>
                     <span v-if="post.comment_count > 0" class="text-xs text-primary shrink-0">[{{ post.comment_count }}]</span>
                     <span v-if="post.has_attachments" class="text-muted-foreground shrink-0">

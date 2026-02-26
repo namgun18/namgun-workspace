@@ -20,6 +20,8 @@ const {
   joinRoomWithToken,
 } = useMeetings()
 
+const { t } = useI18n()
+
 // 3단계: device-setup → meeting → ended
 const phase = ref<'device-setup' | 'meeting' | 'ended'>('device-setup')
 
@@ -71,7 +73,7 @@ async function handleDeviceReady(opts: { cameraEnabled: boolean; micEnabled: boo
     }
     phase.value = 'meeting'
   } catch (e: any) {
-    alert(e?.data?.detail || '회의 참여에 실패했습니다')
+    alert(e?.data?.detail || t('meetings.join.joinFail'))
   }
 }
 
@@ -132,7 +134,7 @@ onBeforeUnmount(() => {
           <h2 class="font-semibold text-base truncate">{{ currentRoomName }}</h2>
           <div class="flex items-center gap-2 shrink-0">
             <span class="text-sm text-muted-foreground hidden sm:inline">
-              {{ participants.length }}명 참여 중
+              {{ participants.length }}{{ $t('meetings.room.participantCount') }}
             </span>
             <button
               v-if="shareToken"
@@ -143,7 +145,7 @@ onBeforeUnmount(() => {
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
-              {{ linkCopied ? '복사됨' : '초대 링크' }}
+              {{ linkCopied ? $t('common.copied') : $t('meetings.room.inviteLink') }}
             </button>
           </div>
         </div>
@@ -210,13 +212,13 @@ onBeforeUnmount(() => {
             <path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="1" y="6" rx="2" ry="2" />
           </svg>
         </div>
-        <h2 class="text-lg font-semibold mb-1">회의가 종료되었습니다</h2>
-        <p class="text-sm text-muted-foreground mb-4">이 창을 닫아도 됩니다</p>
+        <h2 class="text-lg font-semibold mb-1">{{ $t('meetings.room.ended') }}</h2>
+        <p class="text-sm text-muted-foreground mb-4">{{ $t('meetings.room.endedDesc') }}</p>
         <button
           @click="closeWindow"
           class="px-5 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
-          창 닫기
+          {{ $t('meetings.room.closeWindow') }}
         </button>
       </div>
     </div>

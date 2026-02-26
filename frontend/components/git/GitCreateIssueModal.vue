@@ -26,9 +26,9 @@ async function submit() {
     <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
 
     <!-- Modal -->
-    <div class="relative w-full max-w-lg bg-background rounded-lg border shadow-xl">
+    <div class="relative w-full max-w-lg bg-background rounded-lg border shadow-xl" role="dialog">
       <div class="flex items-center justify-between px-4 py-3 border-b">
-        <h3 class="text-sm font-semibold">새 이슈 생성</h3>
+        <h3 class="text-sm font-semibold">{{ $t('git.issue.createTitle') }}</h3>
         <button
           @click="emit('close')"
           class="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent transition-colors"
@@ -43,12 +43,12 @@ async function submit() {
         <input
           v-model="title"
           type="text"
-          placeholder="이슈 제목"
+          :placeholder="$t('git.issue.titlePlaceholder')"
           class="w-full h-9 px-3 text-sm rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <textarea
           v-model="body"
-          placeholder="설명 (선택, 마크다운 지원)"
+          :placeholder="$t('git.issue.bodyPlaceholder')"
           class="w-full h-32 px-3 py-2 text-sm rounded-md border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
@@ -58,14 +58,14 @@ async function submit() {
           @click="emit('close')"
           class="px-4 py-2 text-sm font-medium rounded-md border hover:bg-accent transition-colors"
         >
-          취소
+          {{ $t('common.cancel') }}
         </button>
         <button
           @click="submit"
           :disabled="!title.trim() || submitting"
           class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {{ submitting ? '생성 중...' : '이슈 생성' }}
+          {{ submitting ? $t('common.creating') : $t('git.issue.createButton') }}
         </button>
       </div>
     </div>

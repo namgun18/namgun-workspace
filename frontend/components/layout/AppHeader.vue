@@ -1,6 +1,7 @@
 <script setup lang="ts">
+const { t } = useI18n()
 const { user, logout } = useAuth()
-const { appName } = useAppConfig()
+const { appName, brandLogo } = useAppConfig()
 const colorMode = useColorMode()
 const route = useRoute()
 const mobileMenuOpen = ref(false)
@@ -9,7 +10,7 @@ const { enabledModules } = usePlatform()
 
 // Static nav items (always visible)
 const staticNavItems = [
-  { route: '/', name: '대시보드', matchExact: true },
+  { route: '/', name: t('nav.dashboard'), matchExact: true },
 ]
 
 // Map module icons to display — modules come from platform API
@@ -49,12 +50,12 @@ function formatNotifTime(iso: string) {
   const now = new Date()
   const diffMs = now.getTime() - d.getTime()
   const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return '방금'
-  if (diffMin < 60) return `${diffMin}분 전`
+  if (diffMin < 1) return t('common.justNow')
+  if (diffMin < 60) return t('common.minutesAgo', { n: diffMin })
   const diffHr = Math.floor(diffMin / 60)
-  if (diffHr < 24) return `${diffHr}시간 전`
+  if (diffHr < 24) return t('common.hoursAgo', { n: diffHr })
   const diffDay = Math.floor(diffHr / 24)
-  return `${diffDay}일 전`
+  return t('common.daysAgo', { n: diffDay })
 }
 
 async function onNotificationClick(notif: any) {
@@ -90,7 +91,8 @@ function toggleDark() {
       <!-- Logo + Nav -->
       <div class="flex items-center gap-2 sm:gap-6">
         <NuxtLink to="/" class="flex items-center gap-2 font-bold text-lg shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+          <img v-if="brandLogo" :src="brandLogo" :alt="appName" class="h-6 w-6 object-contain" />
+          <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6" aria-hidden="true">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
@@ -114,7 +116,7 @@ function toggleDark() {
             class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
             :class="route.path.startsWith('/admin') ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
           >
-            관리
+            {{ $t('nav.admin') }}
           </NuxtLink>
         </nav>
       </div>
@@ -126,11 +128,12 @@ function toggleDark() {
           v-if="user"
           @click="mobileMenuOpen = !mobileMenuOpen"
           class="sm:hidden inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-accent transition-colors"
+          :aria-label="$t('common.menu')"
         >
-          <svg v-if="!mobileMenuOpen" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+          <svg v-if="!mobileMenuOpen" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
             <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
           </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+          <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
@@ -140,9 +143,9 @@ function toggleDark() {
           <button
             @click="toggleNotifications"
             class="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-accent transition-colors relative"
-            title="알림"
+            :aria-label="$t('notifications.title')"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
             <span
@@ -159,18 +162,18 @@ function toggleDark() {
             class="absolute right-0 top-full mt-1 w-80 bg-popover border rounded-lg shadow-lg z-50 overflow-hidden"
           >
             <div class="flex items-center justify-between px-3 py-2 border-b">
-              <span class="text-sm font-semibold">알림</span>
+              <span class="text-sm font-semibold">{{ $t('notifications.title') }}</span>
               <button
                 v-if="unreadCount > 0"
                 @click="markAllAsRead"
                 class="text-xs text-primary hover:underline"
               >
-                모두 읽음
+                {{ $t('notifications.markAllRead') }}
               </button>
             </div>
             <div class="max-h-80 overflow-y-auto">
               <div v-if="notifications.length === 0" class="px-3 py-6 text-center text-sm text-muted-foreground">
-                알림이 없습니다
+                {{ $t('notifications.empty') }}
               </div>
               <div
                 v-for="notif in notifications"
@@ -234,20 +237,20 @@ function toggleDark() {
               to="/profile"
               class="block w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
             >
-              프로필
+              {{ $t('nav.profile') }}
             </NuxtLink>
             <NuxtLink
               v-if="user.is_admin"
               to="/admin/dashboard"
               class="block w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors"
             >
-              관리 대시보드
+              {{ $t('nav.adminDashboard') }}
             </NuxtLink>
             <button
               @click="logout"
               class="w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors text-destructive border-t"
             >
-              로그아웃
+              {{ $t('auth.logout') }}
             </button>
           </template>
         </UiDropdownMenu>
@@ -276,7 +279,7 @@ function toggleDark() {
         class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
         :class="route.path.startsWith('/admin') ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
       >
-        관리
+        {{ $t('nav.admin') }}
       </NuxtLink>
     </div>
     <div class="h-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-80" />

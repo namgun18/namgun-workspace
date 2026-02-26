@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import type { AnalyticsOverview } from '~/composables/useAdminAnalytics'
 
+const { t } = useI18n()
 const props = defineProps<{ data: AnalyticsOverview | null }>()
 
 const stats = computed(() => {
   if (!props.data) return []
   return [
-    { label: '총 방문', value: props.data.total_visits.toLocaleString() },
-    { label: '유니크 방문자', value: props.data.unique_ips.toLocaleString() },
-    { label: '인증 방문', value: props.data.authenticated_visits.toLocaleString() },
-    { label: '평균 응답시간', value: `${props.data.avg_response_time_ms}ms` },
+    { label: t('admin.analytics.overview.totalVisits'), value: props.data.total_visits.toLocaleString() },
+    { label: t('admin.analytics.overview.uniqueVisitors'), value: props.data.unique_ips.toLocaleString() },
+    { label: t('admin.analytics.overview.authenticatedVisits'), value: props.data.authenticated_visits.toLocaleString() },
+    { label: t('admin.analytics.overview.avgResponseTime'), value: `${props.data.avg_response_time_ms}ms` },
   ]
 })
 </script>

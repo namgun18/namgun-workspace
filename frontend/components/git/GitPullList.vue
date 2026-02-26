@@ -1,15 +1,16 @@
 <script setup lang="ts">
+const { t } = useI18n()
 const { pulls, pullState, loading, fetchPulls, selectPull } = useGit()
 
 function timeAgo(dateStr: string) {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}분 전`
+  if (mins < 60) return t('common.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}일 전`
+  if (days < 30) return t('common.daysAgo', { n: days })
   return new Date(dateStr).toLocaleDateString('ko-KR')
 }
 
@@ -48,7 +49,7 @@ async function toggleState(state: 'open' | 'closed') {
 
     <!-- Empty -->
     <div v-else-if="pulls.length === 0" class="text-center py-12 text-sm text-muted-foreground">
-      {{ pullState === 'open' ? '열린 PR이 없습니다' : '닫힌 PR이 없습니다' }}
+      {{ pullState === 'open' ? $t('git.pull.emptyOpen') : $t('git.pull.emptyClosed') }}
     </div>
 
     <!-- List -->

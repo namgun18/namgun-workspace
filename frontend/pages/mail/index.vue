@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.mail')} | ${appName.value}`) })
+
 const {
   fetchMailboxes,
   fetchMessages,
@@ -46,7 +50,7 @@ onMounted(async () => {
         <button
           @click="showMobileSidebar = !showMobileSidebar"
           class="md:hidden inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent transition-colors shrink-0"
-          title="메뉴"
+          :title="$t('common.menu')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
@@ -61,19 +65,19 @@ onMounted(async () => {
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          <span class="hidden sm:inline">새 메일</span>
+          <span class="hidden sm:inline">{{ $t('mail.compose.new') }}</span>
         </button>
 
         <!-- Refresh -->
         <button
           @click="refresh"
           class="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm font-medium rounded-md border hover:bg-accent transition-colors"
-          title="새로고침"
+          :title="$t('common.refresh')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
           </svg>
-          <span class="hidden sm:inline">새로고침</span>
+          <span class="hidden sm:inline">{{ $t('common.refresh') }}</span>
         </button>
 
         <div class="flex-1" />

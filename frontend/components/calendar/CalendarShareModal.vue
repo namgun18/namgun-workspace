@@ -6,6 +6,7 @@ const {
   fetchCalendarShares, setCalendarShares, removeCalendarShare, closeShareModal,
 } = useCalendar()
 
+const { t } = useI18n()
 const shares = ref<CalendarShareInfo[]>([])
 const loading = ref(false)
 const newEmail = ref('')
@@ -33,7 +34,7 @@ async function handleAdd() {
   const email = newEmail.value.trim()
   if (!email || !sharingCalendar.value) return
   if (shares.value.some(s => s.email === email)) {
-    error.value = '이미 공유된 사용자입니다.'
+    error.value = t('calendar.share.alreadyShared')
     return
   }
   error.value = ''
@@ -45,7 +46,7 @@ async function handleAdd() {
     newEmail.value = ''
     newCanWrite.value = false
   } catch {
-    error.value = '공유 설정에 실패했습니다.'
+    error.value = t('calendar.share.setError')
   }
 }
 
@@ -55,7 +56,7 @@ async function handleRemove(email: string) {
     await removeCalendarShare(sharingCalendar.value.id, email)
     shares.value = shares.value.filter(s => s.email !== email)
   } catch {
-    error.value = '공유 해제에 실패했습니다.'
+    error.value = t('calendar.share.removeError')
   }
 }
 
@@ -68,7 +69,7 @@ async function toggleWrite(share: CalendarShareInfo) {
     await setCalendarShares(sharingCalendar.value.id, updated)
     shares.value = updated
   } catch {
-    error.value = '권한 변경에 실패했습니다.'
+    error.value = t('calendar.share.permissionError')
   }
 }
 </script>
@@ -80,11 +81,11 @@ async function toggleWrite(share: CalendarShareInfo) {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click.self="closeShareModal"
     >
-      <div class="bg-background border rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden">
+      <div class="bg-background border rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden" role="dialog">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b">
           <div>
-            <h2 class="text-lg font-semibold">캘린더 공유</h2>
+            <h2 class="text-lg font-semibold">{{ $t('calendar.share.title') }}</h2>
             <p v-if="sharingCalendar" class="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
               <span
                 class="w-2.5 h-2.5 rounded-full inline-block"
@@ -101,12 +102,12 @@ async function toggleWrite(share: CalendarShareInfo) {
         <div class="px-5 py-4 space-y-4">
           <!-- Add new share -->
           <div class="space-y-2">
-            <label class="text-sm font-medium">사용자 추가</label>
+            <label class="text-sm font-medium">{{ $t('calendar.share.addUser') }}</label>
             <div class="flex gap-2">
               <input
                 v-model="newEmail"
                 type="email"
-                placeholder="이메일 주소"
+                :placeholder="$t('calendar.share.emailPlaceholder')"
                 class="flex-1 px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
                 @keyup.enter="handleAdd"
               />
@@ -115,12 +116,12 @@ async function toggleWrite(share: CalendarShareInfo) {
                 :disabled="!newEmail.trim()"
                 class="px-3 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
-                추가
+                {{ $t('common.add') }}
               </button>
             </div>
             <label class="flex items-center gap-2 text-sm text-muted-foreground">
               <input v-model="newCanWrite" type="checkbox" class="h-3.5 w-3.5 rounded border-gray-300" />
-              쓰기 권한 부여
+              {{ $t('calendar.share.grantWrite') }}
             </label>
           </div>
 
@@ -128,10 +129,10 @@ async function toggleWrite(share: CalendarShareInfo) {
 
           <!-- Current shares -->
           <div>
-            <h3 class="text-sm font-medium mb-2">공유 중인 사용자</h3>
-            <div v-if="loading" class="text-sm text-muted-foreground py-2">불러오는 중...</div>
+            <h3 class="text-sm font-medium mb-2">{{ $t('calendar.share.currentShares') }}</h3>
+            <div v-if="loading" class="text-sm text-muted-foreground py-2">{{ $t('common.loading') }}</div>
             <div v-else-if="shares.length === 0" class="text-sm text-muted-foreground py-2">
-              아직 공유된 사용자가 없습니다.
+              {{ $t('calendar.share.noShares') }}
             </div>
             <div v-else class="space-y-1 max-h-48 overflow-y-auto">
               <div
@@ -149,13 +150,13 @@ async function toggleWrite(share: CalendarShareInfo) {
                     class="text-xs transition-colors"
                     :class="share.can_write ? 'text-emerald-600' : 'text-muted-foreground hover:text-foreground'"
                   >
-                    {{ share.can_write ? '읽기/쓰기' : '읽기 전용' }}
+                    {{ share.can_write ? $t('calendar.share.readWrite') : $t('calendar.share.readOnly') }}
                   </button>
                 </div>
                 <button
                   @click="handleRemove(share.email)"
                   class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-accent text-muted-foreground hover:text-destructive transition-all"
-                  title="공유 해제"
+                  :title="$t('calendar.share.unshare')"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
@@ -170,7 +171,7 @@ async function toggleWrite(share: CalendarShareInfo) {
             @click="closeShareModal"
             class="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            완료
+            {{ $t('common.done') }}
           </button>
         </div>
       </div>

@@ -15,7 +15,7 @@ defineProps<{
     </div>
 
     <div v-else-if="comments.length === 0" class="py-8 text-center text-sm text-muted-foreground">
-      아직 댓글이 없습니다
+      {{ $t('board.comment.empty') }}
     </div>
 
     <div v-else class="space-y-0">

@@ -5,12 +5,14 @@ const props = defineProps<{
   typingUsers: ReadonlyMap<string, TypingUser>
 }>()
 
+const { t } = useI18n()
+
 const typingText = computed(() => {
   const users = Array.from(props.typingUsers.values())
   if (users.length === 0) return ''
-  if (users.length === 1) return `${users[0].username}님이 입력 중...`
-  if (users.length === 2) return `${users[0].username}, ${users[1].username}님이 입력 중...`
-  return `${users[0].username} 외 ${users.length - 1}명이 입력 중...`
+  if (users.length === 1) return t('chat.typing.one', { name: users[0].username })
+  if (users.length === 2) return t('chat.typing.two', { name1: users[0].username, name2: users[1].username })
+  return t('chat.typing.many', { name: users[0].username, n: users.length - 1 })
 })
 </script>
 

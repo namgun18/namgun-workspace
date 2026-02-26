@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.meetings')} | ${appName.value}`) })
+
 const { user } = useAuth()
 const {
   rooms,
@@ -42,7 +46,7 @@ async function handleCreate(payload: {
     showCreateModal.value = false
     openMeetingWindow(room.name, room.share_token, room.is_host)
   } catch (e: any) {
-    alert(e?.data?.detail || '회의실 생성 실패')
+    alert(e?.data?.detail || t('meetings.index.createFail'))
   }
 }
 
@@ -57,11 +61,11 @@ function handleJoin(name: string) {
 }
 
 async function handleDelete(name: string) {
-  if (!confirm(`"${name}" 회의실을 삭제하시겠습니까?`)) return
+  if (!confirm(t('meetings.index.deleteConfirm', { name }))) return
   try {
     await deleteRoom(name)
   } catch (e: any) {
-    alert(e?.data?.detail || '삭제 실패')
+    alert(e?.data?.detail || t('meetings.index.deleteFail'))
   }
 }
 </script>
@@ -70,7 +74,7 @@ async function handleDelete(name: string) {
   <ClientOnly>
     <template #fallback>
       <div class="flex items-center justify-center h-full">
-        <div class="text-muted-foreground">로딩 중...</div>
+        <div class="text-muted-foreground">{{ $t('common.loading') }}</div>
       </div>
     </template>
 

@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.board')} | ${appName.value}`) })
+
 const route = useRoute()
 const router = useRouter()
 const boardId = route.params.boardId as string
@@ -64,7 +68,7 @@ const canEdit = computed(() => {
 })
 
 async function handleDelete() {
-  if (!confirm('이 게시글을 삭제하시겠습니까?')) return
+  if (!confirm(t('board.post.deleteConfirm'))) return
   await deletePost(postId)
   router.push(`/board/${boardId}`)
 }
@@ -97,7 +101,7 @@ async function handleDelete() {
       <div class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 border-b bg-background">
         <button
           @click="showMobileSidebar = !showMobileSidebar"
-          class="md:hidden inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent transition-colors shrink-0"
+          class="md:hidden inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent transition-colors shrink-0" :aria-label="$t('common.menu')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
@@ -108,7 +112,7 @@ async function handleDelete() {
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
             <polyline points="15 18 9 12 15 6" />
           </svg>
-          <span class="hidden sm:inline">목록</span>
+          <span class="hidden sm:inline">{{ $t('board.post.listLink') }}</span>
         </NuxtLink>
 
         <div class="flex-1" />
@@ -121,7 +125,7 @@ async function handleDelete() {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
-            <span class="hidden sm:inline">수정</span>
+            <span class="hidden sm:inline">{{ $t('common.edit') }}</span>
           </NuxtLink>
           <button
             @click="handleDelete"
@@ -130,7 +134,7 @@ async function handleDelete() {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
               <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
-            <span class="hidden sm:inline">삭제</span>
+            <span class="hidden sm:inline">{{ $t('common.delete') }}</span>
           </button>
         </template>
       </div>
@@ -146,9 +150,9 @@ async function handleDelete() {
 
         <!-- Not found -->
         <div v-else-if="!currentPost" class="text-center py-16 text-muted-foreground">
-          <p>게시글을 찾을 수 없습니다</p>
+          <p>{{ $t('board.post.notFound') }}</p>
           <NuxtLink :to="`/board/${boardId}`" class="text-sm text-primary hover:underline mt-2 block">
-            목록으로 돌아가기
+            {{ $t('board.post.backToList') }}
           </NuxtLink>
         </div>
 
@@ -156,8 +160,8 @@ async function handleDelete() {
           <!-- Header -->
           <div class="mb-6">
             <div class="flex items-center gap-1.5 mb-2 flex-wrap">
-              <UiBadge v-if="currentPost.is_pinned" variant="secondary" class="text-xs">공지</UiBadge>
-              <UiBadge v-if="currentPost.is_must_read" variant="destructive" class="text-xs">필독</UiBadge>
+              <UiBadge v-if="currentPost.is_pinned" variant="secondary" class="text-xs">{{ $t('board.post.noticeBadge') }}</UiBadge>
+              <UiBadge v-if="currentPost.is_must_read" variant="destructive" class="text-xs">{{ $t('board.post.mustReadBadge') }}</UiBadge>
               <UiBadge v-if="currentPost.category" variant="outline" class="text-xs">{{ currentPost.category }}</UiBadge>
             </div>
 
@@ -166,11 +170,11 @@ async function handleDelete() {
             <div class="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
               <div class="flex items-center gap-2">
                 <UiAvatar :src="currentPost.author?.avatar_url" :alt="currentPost.author?.display_name || currentPost.author?.username || ''" class="h-6 w-6" />
-                <span>{{ currentPost.author?.display_name || currentPost.author?.username || '알 수 없음' }}</span>
+                <span>{{ currentPost.author?.display_name || currentPost.author?.username || $t('common.unknownUser') }}</span>
               </div>
               <span>{{ formatDate(currentPost.created_at) }}</span>
-              <span>조회 {{ currentPost.view_count }}</span>
-              <span v-if="currentPost.is_edited" class="text-xs">(수정됨)</span>
+              <span>{{ $t('board.post.viewCount', { n: currentPost.view_count }) }}</span>
+              <span v-if="currentPost.is_edited" class="text-xs">{{ $t('board.post.edited') }}</span>
             </div>
           </div>
 
@@ -184,7 +188,7 @@ async function handleDelete() {
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" :fill="currentPost.is_bookmarked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" class="h-4 w-4">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
-              <span>{{ currentPost.is_bookmarked ? '저장됨' : '저장' }}</span>
+              <span>{{ currentPost.is_bookmarked ? $t('board.post.bookmarked') : $t('board.post.bookmark') }}</span>
             </button>
           </div>
 
@@ -206,7 +210,7 @@ async function handleDelete() {
 
           <!-- Comments -->
           <div class="mt-8 border-t pt-6">
-            <h3 class="text-sm font-semibold mb-4">댓글 {{ currentPost.comment_count }}</h3>
+            <h3 class="text-sm font-semibold mb-4">{{ $t('board.comment.heading', { n: currentPost.comment_count }) }}</h3>
             <BoardCommentInput :post-id="postId" class="mb-6" />
             <BoardCommentList
               :comments="comments"

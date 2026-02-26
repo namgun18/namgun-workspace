@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.adminDashboard')} | ${appName.value}`) })
+
 const { user } = useAuth()
 const route = useRoute()
 
@@ -47,8 +51,8 @@ onMounted(async () => {
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">관리 대시보드</h1>
-        <p class="text-muted-foreground mt-1">방문자 분석 및 서비스 현황</p>
+        <h1 class="text-2xl font-bold tracking-tight">{{ $t('admin.dashboard.title') }}</h1>
+        <p class="text-muted-foreground mt-1">{{ $t('admin.dashboard.subtitle') }}</p>
       </div>
     </div>
 
@@ -62,13 +66,13 @@ onMounted(async () => {
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground hover:text-foreground'"
         >
-          대시보드
+          {{ $t('nav.dashboard') }}
         </NuxtLink>
         <NuxtLink
           to="/admin/users"
           class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
         >
-          사용자 관리
+          {{ $t('admin.users.title') }}
         </NuxtLink>
       </div>
       <div class="flex gap-1 mb-1">
@@ -81,7 +85,7 @@ onMounted(async () => {
             ? 'bg-primary text-primary-foreground'
             : 'text-muted-foreground hover:bg-accent'"
         >
-          {{ p === 'today' ? '오늘' : p === '7d' ? '7일' : '30일' }}
+          {{ $t(`admin.period.${p}`) }}
         </button>
       </div>
     </div>

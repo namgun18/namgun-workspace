@@ -23,6 +23,8 @@ const {
   bulkAction,
 } = useMail()
 
+const { t } = useI18n()
+
 const hasSelection = computed(() => selectedIds.value.size > 0)
 const allSelected = computed(() =>
   messages.value.length > 0 && messages.value.every(m => selectedIds.value.has(m.id))
@@ -69,7 +71,7 @@ function formatDate(dateStr: string | null): string {
 }
 
 function senderName(msg: any): string {
-  if (!msg.from_ || msg.from_.length === 0) return '(발신자 없음)'
+  if (!msg.from_ || msg.from_.length === 0) return t('mail.sender.none')
   const addr = msg.from_[0]
   return addr.name || addr.email
 }
@@ -97,7 +99,7 @@ function handleReadClick(e: Event, id: string) {
           v-model="localSearch"
           @input="handleSearchInput"
           type="text"
-          placeholder="메일 검색..."
+          :placeholder="$t('mail.search.placeholder')"
           class="w-full pl-9 pr-8 py-1.5 text-sm bg-muted/50 border-0 rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <button
@@ -120,13 +122,13 @@ function handleReadClick(e: Event, id: string) {
         @change="handleSelectAll"
         class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/50"
       />
-      <span class="text-sm text-muted-foreground">{{ selectedIds.size }}건 선택</span>
+      <span class="text-sm text-muted-foreground">{{ selectedIds.size }}{{ $t('mail.bulk.selected') }}</span>
       <div class="flex items-center gap-1 ml-auto">
-        <button @click="bulkAction('read')" class="px-2 py-1 text-xs rounded hover:bg-accent" title="읽음 표시">읽음</button>
-        <button @click="bulkAction('unread')" class="px-2 py-1 text-xs rounded hover:bg-accent" title="안읽음 표시">안읽음</button>
-        <button @click="bulkAction('spam')" class="px-2 py-1 text-xs rounded hover:bg-accent text-orange-600" title="스팸">스팸</button>
-        <button @click="bulkAction('delete')" class="px-2 py-1 text-xs rounded hover:bg-accent text-destructive" title="삭제">삭제</button>
-        <button @click="deselectAll" class="px-2 py-1 text-xs rounded hover:bg-accent" title="선택 해제">취소</button>
+        <button @click="bulkAction('read')" class="px-2 py-1 text-xs rounded hover:bg-accent" :title="$t('mail.bulk.markRead')">{{ $t('mail.bulk.read') }}</button>
+        <button @click="bulkAction('unread')" class="px-2 py-1 text-xs rounded hover:bg-accent" :title="$t('mail.bulk.markUnread')">{{ $t('mail.bulk.unread') }}</button>
+        <button @click="bulkAction('spam')" class="px-2 py-1 text-xs rounded hover:bg-accent text-orange-600" :title="$t('mail.bulk.spam')">{{ $t('mail.bulk.spam') }}</button>
+        <button @click="bulkAction('delete')" class="px-2 py-1 text-xs rounded hover:bg-accent text-destructive" :title="$t('mail.bulk.delete')">{{ $t('mail.bulk.delete') }}</button>
+        <button @click="deselectAll" class="px-2 py-1 text-xs rounded hover:bg-accent" :title="$t('common.cancel')">{{ $t('common.cancel') }}</button>
       </div>
     </div>
 
@@ -137,10 +139,10 @@ function handleReadClick(e: Event, id: string) {
 
     <!-- Empty state -->
     <div v-else-if="messages.length === 0" class="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-12 w-12 mb-3 opacity-50">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-12 w-12 mb-3 opacity-50" aria-hidden="true">
         <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
       </svg>
-      <p class="text-sm">메일이 없습니다</p>
+      <p class="text-sm">{{ $t('mail.empty') }}</p>
     </div>
 
     <!-- Message list -->
@@ -173,7 +175,7 @@ function handleReadClick(e: Event, id: string) {
             <div
               v-if="msg.is_unread"
               class="w-2 h-2 rounded-full bg-primary"
-              title="읽지 않음"
+              :title="$t('mail.message.unread')"
               @click="handleReadClick($event, msg.id)"
             />
             <div
@@ -188,7 +190,7 @@ function handleReadClick(e: Event, id: string) {
         <button
           @click="handleStarClick($event, msg.id)"
           class="shrink-0 mt-0.5"
-          :title="msg.is_flagged ? '별표 해제' : '별표'"
+          :title="msg.is_flagged ? $t('mail.message.unstar') : $t('mail.message.star')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
@@ -219,7 +221,7 @@ function handleReadClick(e: Event, id: string) {
               class="text-sm truncate"
               :class="msg.is_unread ? 'font-medium text-foreground' : 'text-muted-foreground'"
             >
-              {{ msg.subject || '(제목 없음)' }}
+              {{ msg.subject || $t('mail.subject.none') }}
             </span>
             <!-- Attachment icon -->
             <svg
@@ -241,7 +243,7 @@ function handleReadClick(e: Event, id: string) {
     <!-- Pagination -->
     <div v-if="totalMessages > 0" class="flex items-center justify-between px-3 sm:px-4 py-2 border-t bg-background text-xs text-muted-foreground">
       <span>
-        {{ currentPage * limit + 1 }}-{{ Math.min((currentPage + 1) * limit, totalMessages) }} / {{ totalMessages }}건
+        {{ currentPage * limit + 1 }}-{{ Math.min((currentPage + 1) * limit, totalMessages) }} / {{ totalMessages }}{{ $t('mail.pagination.count') }}
       </span>
       <div class="flex items-center gap-1">
         <button

@@ -19,6 +19,8 @@ const {
   sendReadReceipt,
 } = useMail()
 
+const { t } = useI18n()
+
 const showHeaders = ref(false)
 const rawHeaders = ref<string | null>(null)
 const loadingHeaders = ref(false)
@@ -149,7 +151,7 @@ if (import.meta.client && !_iframeListenerRegistered) {
 
 function handleDelete() {
   if (!selectedMessage.value) return
-  if (!confirm('이 메일을 삭제하시겠습니까?')) return
+  if (!confirm(t('mail.view.deleteConfirm'))) return
   deleteMessage(selectedMessage.value.id)
 }
 
@@ -186,7 +188,7 @@ function handleForward() {
         <button
           @click="clearSelectedMessage"
           class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
-          title="닫기"
+          :title="$t('common.close')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -194,17 +196,17 @@ function handleForward() {
         </button>
         <div class="flex-1" />
         <!-- Action buttons -->
-        <button @click="handleReply" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="답장">
+        <button @click="handleReply" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" :title="$t('mail.view.reply')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" />
           </svg>
         </button>
-        <button @click="handleReplyAll" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="전체 답장">
+        <button @click="handleReplyAll" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" :title="$t('mail.view.replyAll')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <polyline points="7 17 2 12 7 7" /><polyline points="12 17 7 12 12 7" /><path d="M22 18v-2a4 4 0 0 0-4-4H7" />
           </svg>
         </button>
-        <button @click="handleForward" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="전달">
+        <button @click="handleForward" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors" :title="$t('mail.view.forward')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <polyline points="15 17 20 12 15 7" /><path d="M4 18v-2a4 4 0 0 1 4-4h12" />
           </svg>
@@ -212,7 +214,7 @@ function handleForward() {
         <button
           @click="() => selectedMessage && toggleStar(selectedMessage.id)"
           class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
-          title="별표"
+          :title="$t('mail.message.star')"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
@@ -227,7 +229,7 @@ function handleForward() {
         <button
           @click="handleSpam"
           class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-orange-100 text-orange-600 transition-colors"
-          title="스팸"
+          :title="$t('mail.message.spam')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
@@ -237,7 +239,7 @@ function handleForward() {
           @click="toggleHeaders"
           class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors"
           :class="showHeaders ? 'bg-accent' : ''"
-          title="헤더 보기"
+          :title="$t('mail.view.showHeaders')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
@@ -246,7 +248,7 @@ function handleForward() {
         <button
           @click="handleDelete"
           class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive transition-colors"
-          title="삭제"
+          :title="$t('common.delete')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
             <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -258,7 +260,7 @@ function handleForward() {
       <div class="flex-1 overflow-auto">
         <!-- Subject + sender -->
         <div class="px-6 pt-5 pb-4">
-          <h2 class="text-lg font-semibold mb-4">{{ selectedMessage.subject || '(제목 없음)' }}</h2>
+          <h2 class="text-lg font-semibold mb-4">{{ selectedMessage.subject || $t('mail.subject.none') }}</h2>
           <div class="flex items-start gap-3">
             <!-- Avatar -->
             <div class="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
@@ -267,17 +269,17 @@ function handleForward() {
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline gap-2">
                 <span class="text-sm font-medium">
-                  {{ selectedMessage.from_?.[0]?.name || selectedMessage.from_?.[0]?.email || '(발신자 없음)' }}
+                  {{ selectedMessage.from_?.[0]?.name || selectedMessage.from_?.[0]?.email || $t('mail.sender.none') }}
                 </span>
                 <span class="text-xs text-muted-foreground truncate">
                   &lt;{{ selectedMessage.from_?.[0]?.email }}&gt;
                 </span>
               </div>
               <div class="text-xs text-muted-foreground mt-0.5">
-                받는사람: {{ formatAddrs(selectedMessage.to) }}
+                {{ $t('mail.view.to') }} {{ formatAddrs(selectedMessage.to) }}
               </div>
               <div v-if="selectedMessage.cc.length > 0" class="text-xs text-muted-foreground">
-                참조: {{ formatAddrs(selectedMessage.cc) }}
+                {{ $t('mail.view.cc') }} {{ formatAddrs(selectedMessage.cc) }}
               </div>
               <div class="text-xs text-muted-foreground mt-0.5">
                 {{ formatDate(selectedMessage.received_at) }}
@@ -294,20 +296,20 @@ function handleForward() {
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5 text-blue-600 shrink-0">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
           </svg>
-          <span class="text-sm text-blue-800 dark:text-blue-200 flex-1">발신자가 수신확인을 요청했습니다.</span>
+          <span class="text-sm text-blue-800 dark:text-blue-200 flex-1">{{ $t('mail.view.mdnRequest') }}</span>
           <button
             @click="handleMdnAccept"
             :disabled="mdnSending"
             class="px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {{ mdnSending ? '전송 중...' : '확인' }}
+            {{ mdnSending ? $t('common.sending') : $t('common.confirm') }}
           </button>
         </div>
 
         <!-- Raw headers (collapsible) -->
         <div v-if="showHeaders" class="mx-6 mt-3">
           <div class="rounded-md border bg-muted/30 p-3">
-            <h4 class="text-xs font-medium text-muted-foreground mb-2">원본 헤더</h4>
+            <h4 class="text-xs font-medium text-muted-foreground mb-2">{{ $t('mail.view.rawHeaders') }}</h4>
             <div v-if="loadingHeaders" class="h-20 bg-muted/50 rounded animate-pulse" />
             <pre v-else class="text-xs whitespace-pre-wrap font-mono text-muted-foreground max-h-64 overflow-auto">{{ rawHeaders }}</pre>
           </div>
@@ -330,14 +332,14 @@ function handleForward() {
             v-else-if="selectedMessage.text_body"
             class="text-sm whitespace-pre-wrap font-sans text-foreground"
           >{{ selectedMessage.text_body }}</pre>
-          <p v-else class="text-sm text-muted-foreground italic">본문 없음</p>
+          <p v-else class="text-sm text-muted-foreground italic">{{ $t('mail.view.noBody') }}</p>
         </div>
 
         <!-- Attachments -->
         <div v-if="selectedMessage.attachments.length > 0" class="px-6 pb-4">
           <div class="border rounded-lg p-3">
             <h4 class="text-xs font-medium text-muted-foreground mb-2">
-              첨부파일 ({{ selectedMessage.attachments.length }})
+              {{ $t('mail.view.attachments', { n: selectedMessage.attachments.length }) }}
             </h4>
             <div class="space-y-1.5">
               <button
@@ -372,28 +374,29 @@ function handleForward() {
         <button
           @click="clearSelectedMessage"
           class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent"
+          :aria-label="$t('common.back')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
         <div class="flex-1" />
-        <button @click="handleReply" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent" title="답장">
+        <button @click="handleReply" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent" :title="$t('mail.view.reply')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" />
           </svg>
         </button>
-        <button @click="handleForward" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent" title="전달">
+        <button @click="handleForward" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent" :title="$t('mail.view.forward')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <polyline points="15 17 20 12 15 7" /><path d="M4 18v-2a4 4 0 0 1 4-4h12" />
           </svg>
         </button>
-        <button @click="handleSpam" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-orange-100 text-orange-600" title="스팸">
+        <button @click="handleSpam" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-orange-100 text-orange-600" :title="$t('mail.message.spam')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         </button>
-        <button @click="handleDelete" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive" title="삭제">
+        <button @click="handleDelete" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive" :title="$t('common.delete')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
             <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
@@ -403,7 +406,7 @@ function handleForward() {
       <!-- Mobile body -->
       <div class="flex-1 overflow-auto">
         <div class="px-4 pt-4 pb-3">
-          <h2 class="text-base font-semibold mb-3">{{ selectedMessage.subject || '(제목 없음)' }}</h2>
+          <h2 class="text-base font-semibold mb-3">{{ selectedMessage.subject || $t('mail.subject.none') }}</h2>
           <div class="flex items-start gap-3">
             <div class="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
               {{ getInitial(selectedMessage) }}
@@ -413,7 +416,7 @@ function handleForward() {
                 {{ selectedMessage.from_?.[0]?.name || selectedMessage.from_?.[0]?.email }}
               </span>
               <div class="text-xs text-muted-foreground">
-                받는사람: {{ formatAddrs(selectedMessage.to) }}
+                {{ $t('mail.view.to') }} {{ formatAddrs(selectedMessage.to) }}
               </div>
               <div class="text-xs text-muted-foreground">
                 {{ formatDate(selectedMessage.received_at) }}
@@ -438,7 +441,7 @@ function handleForward() {
         </div>
         <div v-if="selectedMessage.attachments.length > 0" class="px-4 pb-4">
           <div class="border rounded-lg p-3">
-            <h4 class="text-xs font-medium text-muted-foreground mb-2">첨부파일</h4>
+            <h4 class="text-xs font-medium text-muted-foreground mb-2">{{ $t('mail.view.attachments', { n: selectedMessage.attachments.length }) }}</h4>
             <div class="space-y-1.5">
               <button
                 v-for="att in selectedMessage.attachments"

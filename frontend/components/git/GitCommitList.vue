@@ -1,15 +1,16 @@
 <script setup lang="ts">
+const { t } = useI18n()
 const { commits, loading } = useGit()
 
 function timeAgo(dateStr: string) {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}분 전`
+  if (mins < 60) return t('common.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}시간 전`
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}일 전`
+  if (days < 30) return t('common.daysAgo', { n: days })
   return new Date(dateStr).toLocaleDateString('ko-KR')
 }
 
@@ -28,7 +29,7 @@ const groupedCommits = computed(() => {
   for (const c of commits.value) {
     const date = c.author?.date
       ? new Date(c.author.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
-      : '알 수 없음'
+      : t('common.unknown')
     if (date !== currentDate) {
       currentDate = date
       groups.push({ date, commits: [] })
@@ -46,7 +47,7 @@ const groupedCommits = computed(() => {
     </div>
 
     <div v-else-if="commits.length === 0" class="text-center py-12 text-sm text-muted-foreground">
-      커밋이 없습니다
+      {{ $t('git.commit.empty') }}
     </div>
 
     <div v-else class="space-y-6">

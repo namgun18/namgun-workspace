@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { t } = useI18n()
 const {
   addressBooks, selectedBookId, loadingBooks,
   fetchAddressBooks, selectBook, createAddressBook, deleteAddressBook, openCreateModal,
@@ -21,7 +22,7 @@ async function handleCreate() {
 }
 
 async function handleDelete(id: string, name: string) {
-  if (!confirm(`'${name}' 주소록을 삭제하시겠습니까?`)) return
+  if (!confirm(t('contacts.sidebar.deleteConfirm', { name }))) return
   await deleteAddressBook(id)
 }
 </script>
@@ -33,18 +34,18 @@ async function handleDelete(id: string, name: string) {
       class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition-colors"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      새 연락처
+      {{ $t('contacts.sidebar.newContact') }}
     </button>
 
     <div>
       <div class="flex items-center justify-between mb-2">
-        <h3 class="text-sm font-medium">주소록</h3>
-        <button @click="showNewForm = !showNewForm" class="p-1 rounded hover:bg-accent" title="주소록 추가">
+        <h3 class="text-sm font-medium">{{ $t('contacts.sidebar.addressBooks') }}</h3>
+        <button @click="showNewForm = !showNewForm" class="p-1 rounded hover:bg-accent" :title="$t('contacts.sidebar.addAddressBook')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
 
-      <div v-if="loadingBooks" class="text-sm text-muted-foreground">불러오는 중...</div>
+      <div v-if="loadingBooks" class="text-sm text-muted-foreground">{{ $t('common.loading') }}</div>
 
       <div v-else class="space-y-0.5">
         <!-- All contacts -->
@@ -54,7 +55,7 @@ async function handleDelete(id: string, name: string) {
           :class="!selectedBookId ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          전체 연락처
+          {{ $t('contacts.sidebar.allContacts') }}
         </button>
 
         <div
@@ -73,7 +74,7 @@ async function handleDelete(id: string, name: string) {
           <button
             @click="handleDelete(book.id, book.name)"
             class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-accent text-muted-foreground shrink-0"
-            title="삭제"
+            :title="$t('common.delete')"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -85,13 +86,13 @@ async function handleDelete(id: string, name: string) {
         <input
           v-model="newName"
           type="text"
-          placeholder="주소록 이름"
+          :placeholder="$t('contacts.sidebar.addressBookNamePlaceholder')"
           class="w-full px-2 py-1.5 text-sm border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/50"
           @keyup.enter="handleCreate"
         />
         <div class="flex gap-1">
-          <button @click="handleCreate" class="px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90">추가</button>
-          <button @click="showNewForm = false" class="px-2 py-1 text-xs rounded hover:bg-accent">취소</button>
+          <button @click="handleCreate" class="px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90">{{ $t('common.add') }}</button>
+          <button @click="showNewForm = false" class="px-2 py-1 text-xs rounded hover:bg-accent">{{ $t('common.cancel') }}</button>
         </div>
       </div>
     </div>

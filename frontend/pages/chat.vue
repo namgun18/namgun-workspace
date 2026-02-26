@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+const { appName } = useAppConfig()
+useHead({ title: computed(() => `${t('nav.chat')} | ${appName.value}`) })
+
 const { init, cleanup, showMemberPanel, activeThreadId, showSearchPanel, selectChannel } = useChat()
 const route = useRoute()
 

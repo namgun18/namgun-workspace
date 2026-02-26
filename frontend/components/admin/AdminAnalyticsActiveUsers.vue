@@ -1,22 +1,23 @@
 <script setup lang="ts">
 import type { ActiveUser } from '~/composables/useAdminAnalytics'
 
+const { t } = useI18n()
 defineProps<{ data: ActiveUser[] }>()
 
 function timeAgo(iso: string) {
   if (!iso) return '-'
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return '방금'
-  return `${mins}분 전`
+  if (mins < 1) return t('common.justNow')
+  return t('common.minutesAgo', { n: mins })
 }
 </script>
 
 <template>
   <div class="rounded-lg border bg-card p-4">
-    <h3 class="text-sm font-medium text-muted-foreground mb-3">활성 사용자 (5분 이내)</h3>
+    <h3 class="text-sm font-medium text-muted-foreground mb-3">{{ $t('admin.analytics.activeUsers.title') }}</h3>
     <div v-if="data.length === 0" class="text-sm text-muted-foreground py-4 text-center">
-      현재 활성 사용자 없음
+      {{ $t('admin.analytics.activeUsers.empty') }}
     </div>
     <div v-else class="space-y-2">
       <div
