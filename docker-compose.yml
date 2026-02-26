@@ -5,9 +5,9 @@
 ## 선택: nginx, mailserver, gitea, livekit (COMPOSE_PROFILES로 활성화)
 ##
 ## 배포 예시:
-##   풀스택:      COMPOSE_PROFILES=nginx,mailserver,gitea,livekit
-##   클라우드 메일: COMPOSE_PROFILES=nginx,gitea,livekit (IMAP/SMTP로 외부 메일 연결)
-##   namgun.or.kr: COMPOSE_PROFILES=livekit
+##   풀스택:      COMPOSE_PROFILES=nginx,certbot,mailserver,gitea,livekit
+##   클라우드 메일: COMPOSE_PROFILES=nginx,certbot,gitea,livekit
+##   외부 프록시:  COMPOSE_PROFILES=certbot,mailserver,livekit (현재 namgun.or.kr)
 ##   최소:        COMPOSE_PROFILES= (코어만)
 ## ===========================================
 
@@ -100,6 +100,24 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # ─── 5½. Certbot (TLS 인증서 자동 발급/갱신) — profiles: certbot ───
+  certbot:
+    image: certbot/certbot:latest
+    container_name: ws-certbot
+    profiles: ["certbot"]
+    ports:
+      - "${ACME_HTTP_PORT:-80}:80"
+    volumes:
+      - certbot-data:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+      - ./scripts/certbot-entrypoint.sh:/entrypoint.sh:ro
+    environment:
+      ACME_MODE: ${ACME_MODE:-standalone}
+      ACME_DOMAINS: ${DOMAIN:-localhost},mail.${DOMAIN:-localhost}
+      ACME_EMAIL: ${LETSENCRYPT_EMAIL:-admin@localhost}
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    restart: unless-stopped
+
   # ─── 6. Mail Server (Postfix+Dovecot+Rspamd) — profiles: mailserver ───
   # docker-mailserver (MIT) — https://github.com/docker-mailserver/docker-mailserver
   mailserver:
@@ -113,13 +131,12 @@ services:
       - "587:587"
       - "993:993"
       - "143:143"
-    expose:
-      - "80"
     volumes:
       - mail-data:/var/mail
       - mail-state:/var/mail-state
       - mail-logs:/var/log/mail
       - ./mailserver/config:/tmp/docker-mailserver
+      - certbot-data:/etc/letsencrypt:ro
       - /etc/localtime:/etc/localtime:ro
     environment:
       ENABLE_RSPAMD: 1
@@ -131,10 +148,6 @@ services:
       ENABLE_FAIL2BAN: 0
       RSPAMD_GREYLISTING: 0
       SSL_TYPE: ${MAIL_SSL_TYPE:-letsencrypt}
-      SSL_CERT_PATH: /tmp/docker-mailserver/ssl/fullchain.pem
-      SSL_KEY_PATH: /tmp/docker-mailserver/ssl/privkey.pem
-      LETSENCRYPT_DOMAIN: mail.${DOMAIN:-localhost}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@localhost}
       POSTMASTER_ADDRESS: postmaster@${DOMAIN:-localhost}
       PERMIT_DOCKER: connected-networks
       ONE_DIR: 1
