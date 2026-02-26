@@ -103,13 +103,20 @@ cd namgun-workspace
 |-------|------|------|
 | Phase 1 | 자체 인증 | Done |
 | Phase 2 | 서비스 컨테이너 구성 (Nginx, Gitea, Stalwart, LiveKit) | Done |
-| Phase 3 | 실시간 채팅 (자체 구현) | Planned |
+| Phase 3 | 실시간 채팅 (자체 구현) | Done |
 | Phase 4 | 배포 자동화 (setup.sh) | Planned |
 | Phase 5 | 화이트라벨링 + i18n | Planned |
 | Phase 6 | 문서/메모 + 웹 오피스 (ONLYOFFICE) | Planned |
 | Phase 7 | 운영 도구 (업데이트, 백업, 헬스체크) | Planned |
 | Phase 8 | PWA + 모바일 | Planned |
 | Phase 9 | 오픈코어 모델 | Planned |
+
+## 변경이력
+
+| 버전 | 날짜 | 내용 |
+|------|------|------|
+| v2.1.0 | 2026-02-26 | Phase 3-2: 스레드(답글), 이모지 리액션, 메시지 검색, Gitea 웹훅 알림, LiveKit 회의 채팅 |
+| v2.0.0 | 2026-02-26 | Phase 3-1: 실시간 채팅 기본 기능 (채널, DM, WebSocket, 파일 첨부, @멘션, 알림, 읽음 확인) |
 
 ## 라이선스
 
