@@ -94,4 +94,4 @@ app.include_router(webhook_router)
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok", "service": settings.app_name, "version": "2.0.0"}
+    return {"status": "ok", "service": settings.app_name, "version": "2.1.0"}
