@@ -10,7 +10,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.db.models import MailAccount, User
+from app.db.models import User
 from app.db.session import get_db
 from app.config import get_settings as _get_settings
 from app.rate_limit import limiter
@@ -133,31 +133,13 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     db.add(user)
     await db.commit()
 
-    # Create mail account if built-in mail server is enabled
+    # Create mail account in docker-mailserver if built-in mail server is enabled
     if getattr(settings, 'feature_builtin_mailserver', False):
         try:
             from app.mail.mailserver import create_account
             await create_account(email, body.password)
         except Exception:
             pass  # Don't fail registration if mail server is unreachable
-
-        # Create MailAccount record so /mail works without manual setup
-        try:
-            from app.mail.crypto import encrypt_password
-            mail_account = MailAccount(
-                user_id=user.id,
-                display_name=f"{settings.domain} 메일",
-                email=email,
-                imap_host="mailserver", imap_port=993, imap_security="ssl",
-                smtp_host="mailserver", smtp_port=587, smtp_security="starttls",
-                username=email,
-                password_encrypted=encrypt_password(body.password),
-                is_default=True,
-            )
-            db.add(mail_account)
-            await db.commit()
-        except Exception:
-            pass
 
     # Send verification email to recovery_email
     try:
@@ -309,22 +291,6 @@ async def change_password(
         except Exception:
             pass
 
-        # Sync MailAccount password
-        try:
-            from app.mail.crypto import encrypt_password
-            result = await db.execute(
-                select(MailAccount).where(
-                    MailAccount.user_id == user.id,
-                    MailAccount.imap_host == "mailserver",
-                )
-            )
-            for ma in result.scalars():
-                ma.password_encrypted = encrypt_password(body.new_password)
-                ma.sync_error = None
-            await db.commit()
-        except Exception:
-            pass
-
     return {"message": "비밀번호가 변경되었습니다"}
 
 
@@ -393,22 +359,6 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
         try:
             from app.mail.mailserver import update_password as mail_update_password
             await mail_update_password(user.email, body.new_password)
-        except Exception:
-            pass
-
-        # Sync MailAccount password
-        try:
-            from app.mail.crypto import encrypt_password
-            result = await db.execute(
-                select(MailAccount).where(
-                    MailAccount.user_id == user.id,
-                    MailAccount.imap_host == "mailserver",
-                )
-            )
-            for ma in result.scalars():
-                ma.password_encrypted = encrypt_password(body.new_password)
-                ma.sync_error = None
-            await db.commit()
         except Exception:
             pass
 

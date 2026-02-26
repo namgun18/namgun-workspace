@@ -12,7 +12,7 @@ from sqlalchemy import func, select, and_, case, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user
-from app.db.models import AccessLog, MailAccount, User
+from app.db.models import AccessLog, User
 from app.db.session import get_db
 from app.config import get_settings
 from app.admin.schemas import (
@@ -129,7 +129,7 @@ async def approve_user(
     if user.is_active:
         raise HTTPException(status_code=400, detail="이미 활성화된 사용자입니다")
 
-    # Ensure mail account exists (only if built-in mailserver is enabled)
+    # Ensure mail account exists in docker-mailserver (only if built-in mailserver is enabled)
     mail_created = True
     if getattr(settings, 'feature_builtin_mailserver', False):
         try:
@@ -139,32 +139,6 @@ async def approve_user(
                 mail_created = await create_account(user.email, "")
         except Exception:
             mail_created = False
-
-    # Ensure MailAccount exists in portal DB (builtin mailserver)
-    if getattr(settings, 'feature_builtin_mailserver', False):
-        try:
-            result = await db.execute(
-                select(MailAccount).where(
-                    MailAccount.user_id == user.id,
-                    MailAccount.imap_host == "mailserver",
-                )
-            )
-            if not result.scalar_one_or_none():
-                from app.mail.crypto import encrypt_password
-                ma = MailAccount(
-                    user_id=user.id,
-                    display_name=f"{settings.domain} 메일",
-                    email=user.email,
-                    imap_host="mailserver", imap_port=993, imap_security="ssl",
-                    smtp_host="mailserver", smtp_port=587, smtp_security="starttls",
-                    username=user.email,
-                    password_encrypted=encrypt_password(""),
-                    is_default=True,
-                    sync_error="비밀번호를 변경하면 메일 연동이 활성화됩니다.",
-                )
-                db.add(ma)
-        except Exception as e:
-            logger.warning("Failed to create MailAccount for %s: %s", user.username, e)
 
     # Activate in portal DB
     user.is_active = True

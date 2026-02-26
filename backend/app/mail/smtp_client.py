@@ -28,7 +28,22 @@ async def send_message(
     attachments: list[dict] | None = None,
 ) -> bool:
     """Send email via SMTP. Returns True on success."""
-    password = decrypt_password(account.password_encrypted)
+    from app.config import get_settings
+
+    settings = get_settings()
+
+    # Master user for builtin mailserver, per-account for external
+    is_builtin = (
+        account.smtp_host == "mailserver"
+        and settings.dovecot_master_user
+        and settings.dovecot_master_password
+    )
+    if is_builtin:
+        smtp_user = f"{account.username}*{settings.dovecot_master_user}"
+        password = settings.dovecot_master_password
+    else:
+        smtp_user = account.username
+        password = decrypt_password(account.password_encrypted)
 
     # Build the email message
     if attachments:
@@ -97,7 +112,7 @@ async def send_message(
             msg,
             hostname=account.smtp_host,
             port=account.smtp_port,
-            username=account.username,
+            username=smtp_user,
             password=password,
             use_tls=use_tls,
             start_tls=start_tls,
@@ -114,7 +129,22 @@ async def send_message(
 async def test_connection(account: MailAccount) -> tuple[bool, str]:
     """Test SMTP connection. Returns (success, message)."""
     import ssl as _ssl
-    password = decrypt_password(account.password_encrypted)
+    from app.config import get_settings
+
+    settings = get_settings()
+
+    is_builtin = (
+        account.smtp_host == "mailserver"
+        and settings.dovecot_master_user
+        and settings.dovecot_master_password
+    )
+    if is_builtin:
+        smtp_user = f"{account.username}*{settings.dovecot_master_user}"
+        password = settings.dovecot_master_password
+    else:
+        smtp_user = account.username
+        password = decrypt_password(account.password_encrypted)
+
     use_tls = account.smtp_security == "ssl"
     start_tls = account.smtp_security == "starttls"
     tls_context = _ssl.create_default_context()
@@ -131,7 +161,7 @@ async def test_connection(account: MailAccount) -> tuple[bool, str]:
             timeout=15,
         )
         await smtp.connect()
-        await smtp.login(account.username, password)
+        await smtp.login(smtp_user, password)
         await smtp.quit()
         return True, "연결 성공"
     except Exception as e:

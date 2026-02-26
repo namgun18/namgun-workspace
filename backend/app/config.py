@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     stalwart_admin_user: str = "admin"
     stalwart_admin_password: str = ""
 
+    # Dovecot master user (SSO: backend accesses any mailbox without per-user passwords)
+    dovecot_master_user: str = ""
+    dovecot_master_password: str = ""
+
     # SMTP (noreply sender)
     smtp_host: str = "stalwart"
     smtp_port: int = 587

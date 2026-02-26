@@ -162,5 +162,6 @@ class MailAccountResponse(BaseModel):
     smtp_security: str
     username: str
     is_default: bool
+    is_builtin: bool = False
     last_sync_at: str | None = None
     sync_error: str | None = None

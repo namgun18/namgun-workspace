@@ -9,6 +9,8 @@ const testing = ref<string | null>(null)
 const testResult = ref<any>(null)
 const saving = ref(false)
 
+const hasBuiltin = computed(() => accounts.value.some(a => a.is_builtin))
+
 const form = ref({
   display_name: '',
   email: '',
@@ -106,7 +108,9 @@ onMounted(() => fetchAccounts())
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold">메일 계정 설정</h1>
-        <p class="text-muted-foreground text-sm mt-1">Gmail, Outlook 등 외부 메일 계정을 연결합니다.</p>
+        <p class="text-muted-foreground text-sm mt-1">
+          {{ hasBuiltin ? '포털 메일 계정은 자동으로 연동됩니다. 외부 메일 계정을 추가로 연결할 수 있습니다.' : 'Gmail, Outlook 등 외부 메일 계정을 연결합니다.' }}
+        </p>
       </div>
       <button @click="openCreate" class="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90">
         계정 추가
@@ -122,9 +126,12 @@ onMounted(() => fetchAccounts())
       >
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="font-medium">{{ acct.display_name }}</h3>
+            <div class="flex items-center gap-2">
+              <h3 class="font-medium">{{ acct.display_name }}</h3>
+              <span v-if="acct.is_builtin" class="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded">빌트인</span>
+            </div>
             <p class="text-sm text-muted-foreground">{{ acct.email }}</p>
-            <p class="text-xs text-muted-foreground mt-1">
+            <p v-if="!acct.is_builtin" class="text-xs text-muted-foreground mt-1">
               IMAP: {{ acct.imap_host }}:{{ acct.imap_port }} &middot;
               SMTP: {{ acct.smtp_host }}:{{ acct.smtp_port }}
             </p>
@@ -135,8 +142,10 @@ onMounted(() => fetchAccounts())
                     class="px-3 py-1.5 text-xs border rounded-md hover:bg-accent">
               {{ testing === acct.id ? '테스트 중...' : '접속 테스트' }}
             </button>
-            <button @click="openEdit(acct)" class="px-3 py-1.5 text-xs border rounded-md hover:bg-accent">수정</button>
-            <button @click="deleteAccount(acct.id)" class="px-3 py-1.5 text-xs border rounded-md hover:bg-destructive/10 text-destructive">삭제</button>
+            <template v-if="!acct.is_builtin">
+              <button @click="openEdit(acct)" class="px-3 py-1.5 text-xs border rounded-md hover:bg-accent">수정</button>
+              <button @click="deleteAccount(acct.id)" class="px-3 py-1.5 text-xs border rounded-md hover:bg-destructive/10 text-destructive">삭제</button>
+            </template>
           </div>
         </div>
         <div v-if="testResult && testing === null && testResult !== null" class="mt-3 text-sm">

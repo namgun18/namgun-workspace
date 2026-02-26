@@ -1,0 +1,8 @@
+# Dovecot master user — allows portal backend to access any mailbox
+# via "user@domain*portal" / master_password authentication
+auth_master_user_separator = *
+passdb {
+  driver = passwd-file
+  master = yes
+  args = /tmp/docker-mailserver/dovecot-masters.cf
+}

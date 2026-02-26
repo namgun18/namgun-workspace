@@ -136,7 +136,22 @@ def _extract_attachments(msg: EmailMessage) -> list[dict]:
 async def _connect(account: MailAccount) -> aioimaplib.IMAP4_SSL | aioimaplib.IMAP4:
     """Connect and authenticate to IMAP server."""
     import ssl as _ssl
-    password = decrypt_password(account.password_encrypted)
+    from app.config import get_settings
+
+    settings = get_settings()
+
+    # Determine login credentials: master user for builtin, per-account for external
+    is_builtin = (
+        account.imap_host == "mailserver"
+        and settings.dovecot_master_user
+        and settings.dovecot_master_password
+    )
+    if is_builtin:
+        login_user = f"{account.username}*{settings.dovecot_master_user}"
+        login_password = settings.dovecot_master_password
+    else:
+        login_user = account.username
+        login_password = decrypt_password(account.password_encrypted)
 
     # Create SSL context that doesn't verify certificates for internal servers
     ssl_context = _ssl.create_default_context()
@@ -162,7 +177,7 @@ async def _connect(account: MailAccount) -> aioimaplib.IMAP4_SSL | aioimaplib.IM
     if account.imap_security == "starttls":
         await imap.starttls(ssl_context=ssl_context)
 
-    response = await imap.login(account.username, password)
+    response = await imap.login(login_user, login_password)
     if response.result != "OK":
         raise ConnectionError(f"IMAP login failed: {response.result}")
 

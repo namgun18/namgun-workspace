@@ -71,6 +71,7 @@ export interface MailAccountInfo {
   smtp_security: string
   username: string
   is_default: boolean
+  is_builtin: boolean
   last_sync_at: string | null
   sync_error: string | null
 }

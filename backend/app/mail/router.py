@@ -13,7 +13,7 @@ from app.config import get_settings
 from app.db.models import MailAccount, MailSignature, User
 from app.db.session import get_db
 from app.mail import imap_client, smtp_client
-from app.mail.crypto import encrypt_password, decrypt_password
+from app.mail.crypto import encrypt_password
 from app.mail.schemas import (
     Mailbox,
     MailboxListResponse,
@@ -43,40 +43,27 @@ router = APIRouter(prefix="/api/mail", tags=["mail"])
 _settings = get_settings()
 
 
-async def _ensure_builtin_account(db: AsyncSession, user: User) -> MailAccount | None:
-    """Auto-provision a builtin MailAccount for the user if FEATURE_BUILTIN_MAILSERVER is enabled.
+def _builtin_account(user: User) -> MailAccount | None:
+    """Return an in-memory MailAccount for the builtin mailserver (no DB record).
 
-    Returns the created/existing account, or None if builtin mail is disabled.
+    When dovecot_master_user is configured, the backend authenticates via
+    master user — no per-user password storage needed.
+    Returns None if builtin mail is disabled.
     """
     if not getattr(_settings, "feature_builtin_mailserver", False):
         return None
 
-    # Check if builtin account already exists
-    result = await db.execute(
-        select(MailAccount).where(
-            MailAccount.user_id == user.id,
-            MailAccount.imap_host == "mailserver",
-        )
-    )
-    existing = result.scalar_one_or_none()
-    if existing:
-        return existing
-
-    # Create with empty password (user must change password to sync)
     account = MailAccount(
+        id=f"builtin-{user.id}",
         user_id=user.id,
         display_name=f"{_settings.domain} 메일",
         email=user.email,
         imap_host="mailserver", imap_port=993, imap_security="ssl",
         smtp_host="mailserver", smtp_port=587, smtp_security="starttls",
         username=user.email,
-        password_encrypted=encrypt_password(""),
+        password_encrypted="",
         is_default=True,
-        sync_error="비밀번호를 변경하면 메일 연동이 활성화됩니다.",
     )
-    db.add(account)
-    await db.commit()
-    await db.refresh(account)
     return account
 
 
@@ -84,11 +71,23 @@ async def _get_account(
     db: AsyncSession, user: User, account_id: str | None = None
 ) -> MailAccount:
     """Get user's mail account (default if account_id not specified)."""
+    # Handle builtin virtual account id
+    if account_id and account_id.startswith("builtin-"):
+        builtin = _builtin_account(user)
+        if builtin and account_id == builtin.id:
+            return builtin
+        raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
+
     if account_id:
         account = await db.get(MailAccount, account_id)
         if not account or account.user_id != user.id:
             raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
         return account
+
+    # Builtin account takes priority as default
+    builtin = _builtin_account(user)
+    if builtin:
+        return builtin
 
     # Get default account
     result = await db.execute(
@@ -110,11 +109,6 @@ async def _get_account(
     if account:
         return account
 
-    # Fallback: auto-provision builtin account for existing users
-    builtin = await _ensure_builtin_account(db, user)
-    if builtin:
-        return builtin
-
     raise HTTPException(
         status_code=404,
         detail="메일 계정이 설정되지 않았습니다. 설정에서 메일 계정을 추가해주세요.",
@@ -122,6 +116,7 @@ async def _get_account(
 
 
 def _account_response(account: MailAccount) -> dict:
+    is_builtin = getattr(account, "id", "").startswith("builtin-")
     return {
         "id": account.id,
         "display_name": account.display_name,
@@ -134,34 +129,38 @@ def _account_response(account: MailAccount) -> dict:
         "smtp_security": account.smtp_security,
         "username": account.username,
         "is_default": account.is_default,
-        "last_sync_at": account.last_sync_at.isoformat() if account.last_sync_at else None,
-        "sync_error": account.sync_error,
+        "is_builtin": is_builtin,
+        "last_sync_at": account.last_sync_at.isoformat() if not is_builtin and account.last_sync_at else None,
+        "sync_error": account.sync_error if not is_builtin else None,
     }
 
 
 # ─── Mail Account CRUD ───
 
 
-@router.get("/accounts", response_model=list[MailAccountResponse])
+@router.get("/accounts")
 @require_module("mail")
 async def list_accounts(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    items = []
+
+    # Builtin virtual account (no DB record)
+    builtin = _builtin_account(user)
+    if builtin:
+        items.append(_account_response(builtin))
+
+    # External accounts from DB
     result = await db.execute(
         select(MailAccount)
         .where(MailAccount.user_id == user.id)
         .order_by(MailAccount.created_at)
     )
-    accounts = result.scalars().all()
+    for a in result.scalars():
+        items.append(_account_response(a))
 
-    # Auto-provision builtin account if user has none
-    if not accounts:
-        builtin = await _ensure_builtin_account(db, user)
-        if builtin:
-            accounts = [builtin]
-
-    return [_account_response(a) for a in accounts]
+    return items
 
 
 @router.post("/accounts", response_model=MailAccountResponse, status_code=201)
@@ -235,6 +234,8 @@ async def update_account(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if account_id.startswith("builtin-"):
+        raise HTTPException(status_code=400, detail="빌트인 메일 계정은 수정할 수 없습니다")
     account = await db.get(MailAccount, account_id)
     if not account or account.user_id != user.id:
         raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
@@ -284,6 +285,8 @@ async def delete_account(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if account_id.startswith("builtin-"):
+        raise HTTPException(status_code=400, detail="빌트인 메일 계정은 삭제할 수 없습니다")
     account = await db.get(MailAccount, account_id)
     if not account or account.user_id != user.id:
         raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
@@ -299,9 +302,16 @@ async def test_account(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    account = await db.get(MailAccount, account_id)
-    if not account or account.user_id != user.id:
-        raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
+    # Builtin virtual account
+    if account_id.startswith("builtin-"):
+        builtin = _builtin_account(user)
+        if not builtin or account_id != builtin.id:
+            raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
+        account = builtin
+    else:
+        account = await db.get(MailAccount, account_id)
+        if not account or account.user_id != user.id:
+            raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
 
     imap_ok, imap_msg = await imap_client.test_connection(account)
     smtp_ok, smtp_msg = await smtp_client.test_connection(account)
