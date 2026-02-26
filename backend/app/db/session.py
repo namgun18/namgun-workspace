@@ -22,23 +22,25 @@ async def _migrate_columns(conn):
         ("users", "email_verified", "BOOLEAN DEFAULT TRUE"),
         ("users", "email_verify_token", "VARCHAR(64)"),
         ("users", "email_verify_sent_at", "TIMESTAMPTZ"),
-        ("messages", "parent_id", "VARCHAR(36) REFERENCES messages(id) ON DELETE SET NULL"),
+        ("messages", "parent_id", "VARCHAR(36)"),
     ]
     for table, column, col_type in migrations:
         try:
             await conn.execute(
                 text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
             )
+            print(f"[DB] migrate: added {table}.{column}")
         except Exception:
             pass  # Column already exists
 
-    # Indexes
-    indexes = [
+    # Indexes & constraints
+    extra_ddl = [
         "CREATE INDEX IF NOT EXISTS ix_messages_parent_id ON messages(parent_id)",
+        "ALTER TABLE messages ADD CONSTRAINT fk_messages_parent_id FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE SET NULL",
     ]
-    for idx_sql in indexes:
+    for sql in extra_ddl:
         try:
-            await conn.execute(text(idx_sql))
+            await conn.execute(text(sql))
         except Exception:
             pass
 
