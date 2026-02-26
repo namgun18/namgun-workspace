@@ -149,6 +149,19 @@ async def approve_user(
     user.is_active = True
     await db.commit()
 
+    # Create default calendar + address book for the new user
+    try:
+        from app.calendar.service import get_calendars, create_calendar
+        from app.contacts.service import get_address_books, create_address_book
+        cals = await get_calendars(db, user.id)
+        if not cals:
+            await create_calendar(db, user.id, "내 캘린더", "#3b82f6")
+        books = await get_address_books(db, user.id)
+        if not books:
+            await create_address_book(db, user.id, "내 연락처")
+    except Exception as e:
+        logger.warning("Failed to create default calendar/address book for %s: %s", user.username, e)
+
     try:
         await _send_welcome_email(user.email, user.username)
         logger.info("Welcome email sent to %s", user.email)

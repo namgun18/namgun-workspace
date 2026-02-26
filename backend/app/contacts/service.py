@@ -12,12 +12,20 @@ from app.db.models import AddressBookDB, ContactDB
 
 
 async def get_address_books(db: AsyncSession, user_id: str) -> list[dict]:
+    """Get all address books. Auto-creates a default one if none exist."""
     result = await db.execute(
         select(AddressBookDB)
         .where(AddressBookDB.user_id == user_id)
         .order_by(AddressBookDB.name)
     )
-    return [{"id": ab.id, "name": ab.name} for ab in result.scalars().all()]
+    books = [{"id": ab.id, "name": ab.name} for ab in result.scalars().all()]
+
+    # Auto-create default address book if none exist
+    if not books:
+        default = await create_address_book(db, user_id, "내 연락처")
+        books.append(default)
+
+    return books
 
 
 async def create_address_book(db: AsyncSession, user_id: str, name: str) -> dict:

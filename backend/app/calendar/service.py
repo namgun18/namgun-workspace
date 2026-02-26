@@ -13,7 +13,9 @@ from app.db.models import CalendarDB, CalendarEventDB, CalendarShareDB, User
 
 
 async def get_calendars(db: AsyncSession, user_id: str) -> list[dict]:
-    """Get all calendars owned by or shared with the user."""
+    """Get all calendars owned by or shared with the user.
+    Auto-creates a default calendar if the user has none.
+    """
     # Own calendars
     result = await db.execute(
         select(CalendarDB)
@@ -29,6 +31,11 @@ async def get_calendars(db: AsyncSession, user_id: str) -> list[dict]:
             "is_visible": cal.is_visible,
             "sort_order": cal.sort_order,
         })
+
+    # Auto-create default calendar if none exist
+    if not calendars:
+        default = await create_calendar(db, user_id, "내 캘린더", "#3b82f6")
+        calendars.append({**default, "is_visible": True, "sort_order": 0})
 
     # Shared calendars
     shared_result = await db.execute(
