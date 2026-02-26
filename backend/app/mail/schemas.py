@@ -78,14 +78,8 @@ class MessageUpdateRequest(BaseModel):
     mailbox_ids: list[str] | None = None  # move to mailbox
 
 
-class SendAttachment(BaseModel):
-    blobId: str
-    type: str = "application/octet-stream"
-    name: str = "attachment"
-    size: int = 0
-
-
 class SendMessageRequest(BaseModel):
+    account_id: str | None = None  # which account to send from
     to: list[EmailAddress]
     cc: list[EmailAddress] = []
     bcc: list[EmailAddress] = []
@@ -94,10 +88,10 @@ class SendMessageRequest(BaseModel):
     html_body: str | None = None
     in_reply_to: str | None = None  # message id for threading
     references: list[str] = []
-    attachments: list[SendAttachment] = []
 
 
 class BulkActionRequest(BaseModel):
+    account_id: str | None = None
     message_ids: list[str]
     action: str  # "read", "unread", "star", "unstar", "delete", "move"
     mailbox_id: str | None = None  # target mailbox for "move"
@@ -123,3 +117,50 @@ class SignatureResponse(BaseModel):
     created_at: str
 
     model_config = {"from_attributes": True}
+
+
+# ─── Mail Account schemas ───
+
+
+class MailAccountCreate(BaseModel):
+    display_name: str = Field(..., max_length=100)
+    email: str = Field(..., max_length=255)
+    imap_host: str = Field(..., max_length=255)
+    imap_port: int = 993
+    imap_security: str = "ssl"
+    smtp_host: str = Field(..., max_length=255)
+    smtp_port: int = 587
+    smtp_security: str = "starttls"
+    username: str = Field(..., max_length=255)
+    password: str = Field(..., max_length=500)
+    is_default: bool = False
+
+
+class MailAccountUpdate(BaseModel):
+    display_name: str | None = Field(None, max_length=100)
+    email: str | None = Field(None, max_length=255)
+    imap_host: str | None = Field(None, max_length=255)
+    imap_port: int | None = None
+    imap_security: str | None = None
+    smtp_host: str | None = Field(None, max_length=255)
+    smtp_port: int | None = None
+    smtp_security: str | None = None
+    username: str | None = Field(None, max_length=255)
+    password: str | None = Field(None, max_length=500)
+    is_default: bool | None = None
+
+
+class MailAccountResponse(BaseModel):
+    id: str
+    display_name: str
+    email: str
+    imap_host: str
+    imap_port: int
+    imap_security: str
+    smtp_host: str
+    smtp_port: int
+    smtp_security: str
+    username: str
+    is_default: bool
+    last_sync_at: str | None = None
+    sync_error: str | None = None

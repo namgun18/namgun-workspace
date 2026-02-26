@@ -15,8 +15,6 @@ from app.auth.deps import get_current_user
 from app.db.models import AccessLog, User
 from app.db.session import get_db
 from app.config import get_settings
-from app.mail import jmap
-from app.mail import stalwart
 from app.admin.schemas import (
     AccessLogEntry,
     AccessLogPage,
@@ -131,23 +129,26 @@ async def approve_user(
     if user.is_active:
         raise HTTPException(status_code=400, detail="이미 활성화된 사용자입니다")
 
-    # Ensure Stalwart mail principal exists (normally created at registration)
-    mail_created = await stalwart.principal_exists(user.username)
-    if not mail_created:
-        # Fallback: create with empty password (user must reset via portal)
-        mail_created = await stalwart.create_principal(
-            username=user.username,
-            password="",
-            email=user.email,
-            display_name=user.display_name,
-        )
+    # Ensure mail principal exists (only if built-in mailserver is enabled)
+    mail_created = True
+    if getattr(settings, 'feature_builtin_mailserver', False):
+        try:
+            from app.mail import stalwart
+            mail_created = await stalwart.principal_exists(user.username)
+            if not mail_created:
+                mail_created = await stalwart.create_principal(
+                    username=user.username,
+                    password="",
+                    email=user.email,
+                    display_name=user.display_name,
+                )
+        except Exception:
+            mail_created = False
 
     # Activate in portal DB
     user.is_active = True
     await db.commit()
 
-    # Send welcome email
-    jmap.clear_cache()
     try:
         await _send_welcome_email(user.email, user.username)
         logger.info("Welcome email sent to %s", user.email)
@@ -175,8 +176,13 @@ async def reject_user(
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
 
-    # Clean up Stalwart principal if it exists
-    await stalwart.delete_principal(user.username)
+    # Clean up mail principal if built-in mailserver is enabled
+    if getattr(settings, 'feature_builtin_mailserver', False):
+        try:
+            from app.mail import stalwart
+            await stalwart.delete_principal(user.username)
+        except Exception:
+            pass
 
     # Delete from portal DB
     await db.delete(user)

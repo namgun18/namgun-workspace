@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.db.models import User
 from app.db.session import get_db
-from app.mail.stalwart import create_principal, update_password as stalwart_update_password
+from app.config import get_settings as _get_settings
 from app.rate_limit import limiter
 from app.auth.deps import (
     SESSION_COOKIE,
@@ -133,16 +133,18 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     db.add(user)
     await db.commit()
 
-    # Create Stalwart mail principal (평문 비밀번호를 알 수 있는 유일한 시점)
-    try:
-        await create_principal(
-            username=body.username,
-            password=body.password,
-            email=email,
-            display_name=body.display_name,
-        )
-    except Exception:
-        pass  # Don't fail registration if Stalwart is unreachable
+    # Create mail principal only if built-in mail server is enabled
+    if getattr(settings, 'feature_builtin_mailserver', False):
+        try:
+            from app.mail.stalwart import create_principal
+            await create_principal(
+                username=body.username,
+                password=body.password,
+                email=email,
+                display_name=body.display_name,
+            )
+        except Exception:
+            pass  # Don't fail registration if mail server is unreachable
 
     # Send verification email to recovery_email
     try:
@@ -286,11 +288,13 @@ async def change_password(
     user.password_hash = hash_password(body.new_password)
     await db.commit()
 
-    # Sync password to Stalwart
-    try:
-        await stalwart_update_password(user.username, body.new_password)
-    except Exception:
-        pass
+    # Sync password to built-in mail server if enabled
+    if getattr(settings, 'feature_builtin_mailserver', False):
+        try:
+            from app.mail.stalwart import update_password as stalwart_update_password
+            await stalwart_update_password(user.username, body.new_password)
+        except Exception:
+            pass
 
     return {"message": "비밀번호가 변경되었습니다"}
 
@@ -355,11 +359,13 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
     user.password_reset_sent_at = None
     await db.commit()
 
-    # Sync password to Stalwart
-    try:
-        await stalwart_update_password(user.username, body.new_password)
-    except Exception:
-        pass
+    # Sync password to built-in mail server if enabled
+    if getattr(settings, 'feature_builtin_mailserver', False):
+        try:
+            from app.mail.stalwart import update_password as stalwart_update_password
+            await stalwart_update_password(user.username, body.new_password)
+        except Exception:
+            pass
 
     return {"message": "비밀번호가 재설정되었습니다. 로그인해주세요."}
 

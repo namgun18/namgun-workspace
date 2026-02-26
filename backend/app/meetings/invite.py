@@ -11,8 +11,7 @@ from email.mime.text import MIMEText
 from email import encoders
 
 from app.config import get_settings
-from app.calendar import jmap_calendar
-from app.mail.jmap import resolve_account_id
+from app.calendar import service as calendar_service
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -128,33 +127,49 @@ async def send_invite_email(
 
 
 async def create_calendar_event(
-    username: str,
     meeting_name: str,
     join_url: str,
     scheduled_at: datetime,
     duration_minutes: int,
+    username: str | None = None,
+    user_id: str | None = None,
 ) -> bool:
-    """Create a calendar event for an internal user via JMAP."""
-    account_id = await resolve_account_id(username)
-    if not account_id:
-        logger.warning("Cannot create calendar event: no JMAP account for %s", username)
-        return False
+    """Create a calendar event for an internal user via PostgreSQL."""
+    from sqlalchemy import select
+    from app.db.session import async_session
+    from app.db.models import User
 
-    # Get first calendar (default)
-    calendars = await jmap_calendar.get_calendars(account_id)
-    if not calendars:
-        logger.warning("No calendars found for %s", username)
-        return False
-    calendar_id = calendars[0]["id"]
+    async with async_session() as db:
+        # Resolve user_id from username if needed
+        resolved_user_id = user_id
+        if not resolved_user_id and username:
+            result = await db.execute(
+                select(User.id).where(User.username == username)
+            )
+            row = result.scalar_one_or_none()
+            if not row:
+                logger.warning("Cannot create calendar event: user not found: %s", username)
+                return False
+            resolved_user_id = row
 
-    end_dt = scheduled_at + timedelta(minutes=duration_minutes)
-    event_data = {
-        "calendar_id": calendar_id,
-        "title": f"[회의] {meeting_name}",
-        "description": f"회의 참여: {join_url}",
-        "location": join_url,
-        "start": scheduled_at.isoformat(),
-        "end": end_dt.isoformat(),
-    }
-    result = await jmap_calendar.create_event(account_id, event_data)
-    return result is not None
+        if not resolved_user_id:
+            return False
+
+        # Get first calendar (default)
+        calendars = await calendar_service.get_calendars(db, resolved_user_id)
+        if not calendars:
+            logger.warning("No calendars found for user %s", resolved_user_id)
+            return False
+        calendar_id = calendars[0]["id"]
+
+        end_dt = scheduled_at + timedelta(minutes=duration_minutes)
+        event_data = {
+            "calendar_id": calendar_id,
+            "title": f"[회의] {meeting_name}",
+            "description": f"회의 참여: {join_url}",
+            "location": join_url,
+            "start": scheduled_at.isoformat(),
+            "end": end_dt.isoformat(),
+        }
+        result = await calendar_service.create_event(db, resolved_user_id, event_data)
+        return result is not None

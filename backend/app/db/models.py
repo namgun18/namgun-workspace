@@ -215,6 +215,176 @@ class Notification(Base):
     )
 
 
+class MailAccount(Base):
+    __tablename__ = "mail_accounts"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    display_name: Mapped[str] = mapped_column(String(100))
+    email: Mapped[str] = mapped_column(String(255))
+    # IMAP
+    imap_host: Mapped[str] = mapped_column(String(255))
+    imap_port: Mapped[int] = mapped_column(Integer, default=993)
+    imap_security: Mapped[str] = mapped_column(String(10), default="ssl")  # ssl, starttls, none
+    # SMTP
+    smtp_host: Mapped[str] = mapped_column(String(255))
+    smtp_port: Mapped[int] = mapped_column(Integer, default=587)
+    smtp_security: Mapped[str] = mapped_column(String(10), default="starttls")  # ssl, starttls, none
+    # Auth
+    username: Mapped[str] = mapped_column(String(255))
+    password_encrypted: Mapped[str] = mapped_column(Text)
+    # State
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_sync_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    sync_error: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class CalendarDB(Base):
+    __tablename__ = "calendars"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(100))
+    color: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    is_visible: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class CalendarEventDB(Base):
+    __tablename__ = "calendar_events"
+    __table_args__ = (
+        Index("ix_calendar_events_calendar_id", "calendar_id"),
+        Index("ix_calendar_events_start", "start"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    calendar_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("calendars.id", ondelete="CASCADE")
+    )
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    all_day: Mapped[bool] = mapped_column(Boolean, default=False)
+    location: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="confirmed")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class CalendarShareDB(Base):
+    __tablename__ = "calendar_shares"
+    __table_args__ = (
+        Index("ix_calendar_shares_unique", "calendar_id", "shared_with_user_id", unique=True),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    calendar_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("calendars.id", ondelete="CASCADE")
+    )
+    shared_with_user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    can_write: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class AddressBookDB(Base):
+    __tablename__ = "address_books"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(100))
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class ContactDB(Base):
+    __tablename__ = "contacts"
+    __table_args__ = (
+        Index("ix_contacts_address_book_id", "address_book_id"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    address_book_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("address_books.id", ondelete="CASCADE")
+    )
+    full_name: Mapped[str] = mapped_column(String(255))
+    given_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    surname: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    organization: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    emails: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    phones: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    addresses: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+
+    key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
 class AccessLog(Base):
     __tablename__ = "access_logs"
     __table_args__ = (

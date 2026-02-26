@@ -59,9 +59,27 @@ export interface UploadedAttachment {
   size: number
 }
 
+export interface MailAccountInfo {
+  id: string
+  display_name: string
+  email: string
+  imap_host: string
+  imap_port: number
+  imap_security: string
+  smtp_host: string
+  smtp_port: number
+  smtp_security: string
+  username: string
+  is_default: boolean
+  last_sync_at: string | null
+  sync_error: string | null
+}
+
 export type ComposeMode = 'new' | 'reply' | 'replyAll' | 'forward'
 
 // Module-level singleton state
+const accounts = ref<MailAccountInfo[]>([])
+const selectedAccountId = ref<string | null>(null)
 const mailboxes = ref<Mailbox[]>([])
 const selectedMailboxId = ref<string | null>(null)
 const messages = ref<MessageSummary[]>([])
@@ -94,12 +112,42 @@ export function useMail() {
     mailboxes.value.find(m => m.id === selectedMailboxId.value) || null
   )
 
+  const selectedAccount = computed(() =>
+    accounts.value.find(a => a.id === selectedAccountId.value) || null
+  )
+
+  // ─── Account actions ───
+
+  async function fetchAccounts() {
+    try {
+      const data = await $fetch<MailAccountInfo[]>('/api/mail/accounts')
+      accounts.value = data
+      if (!selectedAccountId.value && data.length > 0) {
+        const def = data.find(a => a.is_default) || data[0]
+        selectedAccountId.value = def.id
+      }
+    } catch (e: any) {
+      console.error('fetchAccounts error:', e)
+    }
+  }
+
+  async function selectAccount(id: string) {
+    selectedAccountId.value = id
+    selectedMailboxId.value = null
+    selectedMessage.value = null
+    currentPage.value = 0
+    searchQuery.value = ''
+    await fetchMailboxes()
+  }
+
   // ─── Actions ───
 
   async function fetchMailboxes() {
     loadingMailboxes.value = true
     try {
-      const data = await $fetch<{ mailboxes: Mailbox[] }>('/api/mail/mailboxes')
+      const params: Record<string, any> = {}
+      if (selectedAccountId.value) params.account_id = selectedAccountId.value
+      const data = await $fetch<{ mailboxes: Mailbox[] }>('/api/mail/mailboxes', { params })
       mailboxes.value = data.mailboxes
       // Auto-select inbox if nothing selected
       if (!selectedMailboxId.value) {
@@ -135,6 +183,7 @@ export function useMail() {
         page: currentPage.value,
         limit: limit.value,
       }
+      if (selectedAccountId.value) params.account_id = selectedAccountId.value
       if (searchQuery.value.trim()) {
         params.q = searchQuery.value.trim()
       }
@@ -163,7 +212,9 @@ export function useMail() {
   async function openMessage(id: string) {
     loadingMessage.value = true
     try {
-      selectedMessage.value = await $fetch<MessageDetail>(`/api/mail/messages/${id}`)
+      const params: Record<string, any> = { mailbox_id: selectedMailboxId.value || 'INBOX' }
+      if (selectedAccountId.value) params.account_id = selectedAccountId.value
+      selectedMessage.value = await $fetch<MessageDetail>(`/api/mail/messages/${id}`, { params })
       // Update unread status in list
       const msg = messages.value.find(m => m.id === id)
       if (msg && msg.is_unread) {
@@ -342,7 +393,8 @@ export function useMail() {
   }
 
   function downloadAttachment(blobId: string, name: string) {
-    const url = `/api/mail/blob/${encodeURIComponent(blobId)}?name=${encodeURIComponent(name)}`
+    let url = `/api/mail/attachments/${encodeURIComponent(blobId)}?mailbox_id=${encodeURIComponent(selectedMailboxId.value || 'INBOX')}`
+    if (selectedAccountId.value) url += `&account_id=${encodeURIComponent(selectedAccountId.value)}`
     window.open(url, '_blank')
   }
 
@@ -363,6 +415,9 @@ export function useMail() {
 
   return {
     // State (readonly)
+    accounts: readonly(accounts),
+    selectedAccountId,
+    selectedAccount,
     mailboxes: readonly(mailboxes),
     selectedMailboxId: readonly(selectedMailboxId),
     messages: readonly(messages),
@@ -383,6 +438,8 @@ export function useMail() {
     totalUnread,
     selectedMailbox,
     // Actions
+    fetchAccounts,
+    selectAccount,
     fetchMailboxes,
     selectMailbox,
     fetchMessages,

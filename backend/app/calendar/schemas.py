@@ -77,8 +77,3 @@ class CalendarListResponse(BaseModel):
 
 class EventListResponse(BaseModel):
     events: list[CalendarEvent]
-
-
-class SyncInfo(BaseModel):
-    caldav_url: str
-    description: str

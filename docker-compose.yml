@@ -2,10 +2,11 @@
 ## namgun-workspace — Docker Compose
 ## ===========================================
 ## 코어: postgres, redis, backend, frontend (항상 기동)
-## 선택: nginx, stalwart, gitea, livekit (COMPOSE_PROFILES로 활성화)
+## 선택: nginx, mailserver, gitea, livekit (COMPOSE_PROFILES로 활성화)
 ##
 ## 배포 예시:
-##   풀스택:      COMPOSE_PROFILES=nginx,stalwart,gitea,livekit
+##   풀스택:      COMPOSE_PROFILES=nginx,mailserver,gitea,livekit
+##   클라우드 메일: COMPOSE_PROFILES=nginx,gitea,livekit (IMAP/SMTP로 외부 메일 연결)
 ##   namgun.or.kr: COMPOSE_PROFILES=livekit
 ##   최소:        COMPOSE_PROFILES= (코어만)
 ## ===========================================
@@ -98,21 +99,49 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  # ─── 6. Stalwart Mail — profiles: stalwart ───
-  stalwart:
-    image: stalwartlabs/mail-server:latest
-    container_name: ws-stalwart
-    profiles: ["stalwart"]
+  # ─── 6. Postfix (MTA) — profiles: mailserver ───
+  postfix:
+    image: boky/postfix:latest
+    container_name: ws-postfix
+    profiles: ["mailserver"]
     ports:
       - "25:25"
       - "587:587"
-      - "993:993"
+    environment:
+      ALLOWED_SENDER_DOMAINS: ${DOMAIN:-localhost}
+      HOSTNAME: mail.${DOMAIN:-localhost}
     volumes:
-      - stalwart-data:/opt/stalwart-mail
-      - ./stalwart/config.toml:/opt/stalwart-mail/etc/config.toml:ro
+      - ./mailserver/postfix:/etc/postfix/custom:ro
+      - mail-data:/var/mail
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  # ─── 6b. Dovecot (IMAP) — profiles: mailserver ───
+  dovecot:
+    image: dovecot/dovecot:latest
+    container_name: ws-dovecot
+    profiles: ["mailserver"]
+    ports:
+      - "993:993"
+      - "143:143"
+    volumes:
+      - ./mailserver/dovecot:/etc/dovecot/conf.d/custom:ro
+      - mail-data:/var/mail
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── 6c. Rspamd (spam filter) — profiles: mailserver ───
+  rspamd:
+    image: rspamd/rspamd:latest
+    container_name: ws-rspamd
+    profiles: ["mailserver"]
+    volumes:
+      - ./mailserver/rspamd:/etc/rspamd/local.d:ro
+      - rspamd-data:/var/lib/rspamd
     restart: unless-stopped
 
   # ─── 7. Gitea — profiles: gitea ───
@@ -161,8 +190,10 @@ volumes:
   storage-vol:
     name: ${STORAGE_VOLUME:-ws-storage-data}
     external: true
-  stalwart-data:
-    name: ws-stalwart-data
+  mail-data:
+    name: ws-mail-data
+  rspamd-data:
+    name: ws-rspamd-data
   gitea-data:
     name: ws-gitea-data
   certbot-data:

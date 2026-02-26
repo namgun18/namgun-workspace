@@ -24,6 +24,7 @@ from app.meetings.router import router as meetings_router
 from app.chat.router import router as chat_router
 from app.chat.websocket import router as chat_ws_router
 from app.chat.webhook import router as webhook_router
+from app.modules.router import router as modules_router
 
 settings = get_settings()
 _health_task = None
@@ -38,6 +39,13 @@ async def lifespan(app: FastAPI):
     from app.chat.redis_client import get_redis, close_redis
 
     await init_db()
+
+    # Load module states from DB
+    from app.modules.registry import load_module_states
+    from app.db.session import async_session
+    async with async_session() as db:
+        await load_module_states(db)
+
     await get_redis()  # init Redis connection pool
     _health_task = asyncio.create_task(run_health_checker())
     _log_flusher_task = asyncio.create_task(run_log_flusher())
@@ -58,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="2.1.0",
+    version="3.0.0",
     lifespan=lifespan,
     docs_url="/api/docs" if settings.debug else None,
     redoc_url=None,
@@ -76,6 +84,7 @@ async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
         content={"detail": "Too many requests. Please try again later."},
     )
 
+app.include_router(modules_router)
 app.include_router(auth_router)
 app.include_router(oauth_router)
 app.include_router(services_router)
@@ -94,4 +103,4 @@ app.include_router(webhook_router)
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok", "service": settings.app_name, "version": "2.1.0"}
+    return {"status": "ok", "service": settings.app_name, "version": "3.0.0"}

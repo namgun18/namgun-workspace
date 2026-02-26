@@ -1,353 +1,107 @@
-# namgun-workspace v2.0 Roadmap
+# namgun-workspace Roadmap
 
-> Status: **Experimental** — 아키텍처 설계 및 로드맵 단계
-
----
-
-## Phase 1: 자체 인증
-
-**목표**: 외부 IdP 없이 자체 인증 시스템으로 모든 서비스의 SSO를 처리한다.
-
-### 작업 항목
-
-- [ ] `users` 테이블 스키마 (bcrypt password hash, email_verified, mfa_secret)
-- [ ] 로그인/회원가입 API (JWT 발급 + 리프레시 토큰)
-- [ ] OAuth 2.0 Provider (Gitea SSO 연동용)
-- [ ] Stalwart SQL directory 연동 (메일 인증을 users 테이블에서 직접 처리)
-- [ ] 비밀번호 찾기 (SMTP 발송)
-- [ ] 관리자 사용자 CRUD
-- [ ] 승인제 회원가입
-
-### 완료 기준
-
-- 로그인/회원가입/비밀번호 변경 동작
-- Gitea OAuth SSO 정상 동작
-- Stalwart 메일 인증이 PostgreSQL users 테이블로 직접 동작
+> 11-Phase 로드맵 — v3.0 메일 스택 전환 이후 재정의
 
 ---
 
-## Phase 2: 서비스 컨테이너 구성
+## Phase 1: 자체 인증 — Done
 
-**목표**: 단일 `docker compose up`으로 8개 코어 컨테이너 전체 스택 구동.
+자체 bcrypt + JWT 인증, OAuth 2.0 Provider (Gitea SSO), 승인제 회원가입.
 
-### 2-1. Nginx (리버스 프록시)
+## Phase 2: 서비스 컨테이너 구성 — Done
 
-- [ ] nginx 컨테이너 (80, 443 바인드, TLS 종단)
-- [ ] Let's Encrypt 자동 갱신 (certbot 사이드카)
-- [ ] 외부 프록시 뒤에서 운영 시 `EXTERNAL_PROXY=true`로 비활성화 (`profiles` 활용)
+Nginx, Gitea, Stalwart, LiveKit 통합. `docker compose up` 한 번으로 전체 스택.
 
-### 2-2. Gitea (Git 호스팅)
+## Phase 3: 실시간 채팅 — Done
 
-- [ ] Gitea 컨테이너 추가 (`gitea/gitea`, MIT 라이선스)
-- [ ] PostgreSQL 공유 (별도 database)
-- [ ] 포털 OAuth Provider → Gitea SSO 자동 연동
-- [ ] `setup.sh`에서 Gitea OAuth Application 자동 등록
-- [ ] Git SSH 포트 설정 (22 또는 2222)
+FastAPI WebSocket + Redis Pub/Sub. 채널, DM, 스레드, 멘션, 리액션, 검색.
 
-### 2-3. Stalwart (메일)
+## Phase 4: 모듈 시스템 + 메일 스택 전환 — Done (v3.0)
 
-- [ ] Stalwart 공식 Docker 이미지 사용 (`stalwartlabs/mail-server`)
-- [ ] `config.toml` 템플릿 작성 (환경변수 치환)
-- [ ] SQL directory 설정 (PostgreSQL users 테이블 참조)
-- [ ] DKIM 키 자동 생성 (`setup.sh`에서 `openssl` 호출)
-- [ ] TLS: nginx에서 종단 또는 Stalwart 내장 ACME
-- [ ] 메일 포트 직접 노출 (25, 587, 993 — HTTP 프록시 불가)
+### 4-1. 기능 모듈 on/off 시스템
+- 관리자가 모듈(메일, 채팅, 회의 등)을 개별 활성화/비활성화
+- DB 기반 설정, 서버 재시작 불필요
+- 프론트엔드 네비게이션 자동 동적화
+- API 가드 (비활성 모듈 호출 시 403)
 
-### 2-4. LiveKit (화상회의)
+### 4-2. 메일 모듈 IMAP/SMTP 클라이언트 전환
+- Stalwart JMAP 의존성 완전 제거
+- 사용자가 Gmail, Outlook, 회사 메일 등 기존 계정을 IMAP/SMTP로 연결
+- 멀티 계정 지원 (개인+업무 메일 동시 사용)
+- Fernet 암호화로 비밀번호 안전 저장
+- 접속 테스트 기능
 
-- [ ] LiveKit Server 컨테이너 추가 (`livekit/livekit-server`)
-- [ ] LiveKit SDK 연동 (프론트엔드: `livekit-client`, 백엔드: `livekit-api`)
-- [ ] 회의실 생성/참가 API
-- [ ] 화면공유, 카메라/마이크 제어
-- [ ] LiveKit Egress 컨테이너 (녹화, 선택적 활성화)
-- [ ] TURN 서버 설정 (NAT 환경 대응)
+### 4-3. 캘린더/연락처 PostgreSQL 자체 구현
+- JMAP 의존성 제거, PostgreSQL 직접 CRUD
+- 캘린더 공유 (읽기/쓰기 권한)
+- 연락처 검색, 주소록 관리
 
-### 완료 기준
-
-- `docker compose up` 한 번으로 전체 스택 기동 (nginx, frontend, backend, postgres, redis, stalwart, livekit, gitea)
-- Gitea SSO 자동 연동 (포털 로그인으로 Gitea 접근)
-- 메일 송수신 + DKIM 서명 정상 동작
-- 2인 이상 화상회의 동작 (카메라, 마이크, 화면공유)
+### 4-4. 자체 메일서버 선택적 제공
+- Postfix + Dovecot + Rspamd (docker profile: `mailserver`)
+- `FEATURE_BUILTIN_MAILSERVER=true` 시 회원가입 → 메일 계정 자동 생성
+- 기본값은 외부 IMAP/SMTP 클라이언트 모드
 
 ---
 
-## Phase 3: 실시간 채팅 (자체 구현)
+## Phase 5: 배포 자동화
 
-**목표**: FastAPI WebSocket 기반 팀 메신저를 자체 구현하여 Slack/Teams급 채팅 제공.
+- `setup.sh` — 도메인 + 관리자 정보 입력 → .env 자동 생성 → docker compose up
+- DKIM 키 자동 생성, DNS 레코드 안내
+- TLS 인증서 자동 발급 (Let's Encrypt)
+- 초기 관리자 계정 DB seed
 
-### 배경 — 왜 Mattermost/Rocket.Chat이 아닌 자체 구현인가
+## Phase 6: 화이트라벨링 + i18n
 
-| 솔루션 | 탈락 사유 |
-|--------|-----------|
-| **Mattermost** | v11에서 무료 에디션 SSO(OIDC) 제거. 별도 UI로 포털 통합 어려움 |
-| **Rocket.Chat** | MongoDB 필수 — PostgreSQL 단일 DB 원칙 위배. 추가 컨테이너 2개 필요 |
+- 환경변수 3개로 브랜드 교체 (BRAND_NAME, BRAND_LOGO, BRAND_COLOR)
+- 한/영 다국어 지원 (vue-i18n)
+- 메일 템플릿 브랜드 반영
 
-자체 구현의 이점:
-- 추가 컨테이너 0개 (기존 FastAPI + Redis + PostgreSQL 활용)
-- 포털 UI와 완벽한 디자인 통일
-- 자체 인증과 동일 코드베이스 — 별도 SSO 연동 불필요
-- 외부 솔루션 라이선스 정책 변경 리스크 없음
+## Phase 7: CalDAV/CardDAV 동기화
 
-### 작업 항목
+- Thunderbird, iOS, Android와 캘린더/연락처 양방향 동기화
+- CalDAV/CardDAV 서버 엔드포인트 (FastAPI 기반 또는 Radicale 연동)
+- 외부 CalDAV 캘린더 구독 (읽기 전용)
 
-#### Phase 3-1: 핵심 채팅
+## Phase 8: 플러그인 아키텍처
 
-- [ ] DB 모델: `channels`, `messages`, `channel_members` 테이블
-- [ ] FastAPI WebSocket 엔드포인트 (`/ws/chat`)
-- [ ] Redis Pub/Sub 브로드캐스트 (다중 워커 지원)
-- [ ] 채널 CRUD API (공개/비공개/DM)
-- [ ] 실시간 메시지 송수신 + REST fallback
-- [ ] 파일 첨부 (기존 파일 서비스 연동)
-- [ ] 사용자 프레즌스 (온라인/오프라인, Redis 기반)
-- [ ] 프론트엔드 채팅 UI (Nuxt3, 채널 목록 + 메시지 뷰 + 입력)
+- 모듈 레지스트리를 외부 플러그인까지 확장
+- 플러그인 매니페스트 (manifest.json): 이름, 라우트, API, 의존성
+- 관리자 UI에서 플러그인 설치/제거/활성화
+- 플러그인 마켓플레이스 (향후)
 
-#### Phase 3-2: 확장 기능
+## Phase 9: 운영 도구
 
-- [ ] 스레드 (답글)
-- [ ] 이모지 리액션
-- [ ] @멘션 + 알림
-- [ ] 메시지 검색 (PostgreSQL FTS, `pg_trgm` + GIN 인덱스)
-- [ ] 읽음/안읽음 표시 (read receipts)
-- [ ] 메시지 수정/삭제
-- [ ] Gitea 웹훅 알림 (커밋/PR/이슈 → 채팅 채널)
-- [ ] LiveKit 회의 내 채팅 연동
+- `update.sh` — 무중단 업데이트
+- `backup.sh` / `restore.sh` — PostgreSQL + 파일 백업/복원
+- `health.sh` — 서비스 자가진단
+- 감사 로그 (로그인, 설정 변경 기록)
 
-### 완료 기준
+## Phase 10: PWA + 모바일
 
-- 팀 채널에서 실시간 메시지 송수신
-- DM, 스레드, 멘션, 검색 동작
-- 화상회의 중 채팅 가능
-- Gitea 이벤트 → 채팅 알림
+- manifest.json, Service Worker, 푸시 알림
+- 모바일 반응형 UI 최적화
+- 오프라인 캐시
+
+## Phase 11: 오픈코어 모델
+
+- Community Edition (AGPL-3.0, 전체 기능)
+- Pro Edition (사용자 무제한, SAML, 감사 로그 강화, 우선 지원)
+- RSA 서명 기반 라이선스 키
 
 ---
 
-## Phase 4: 배포 자동화
-
-**목표**: 서버 1대 + 도메인 1개만 있으면 10분 안에 전체 워크스페이스를 배포할 수 있는 원클릭 설치.
-
-### setup.sh
-
-사용자 입력 4개만 받는다:
-
-```
-DOMAIN          — 예: workspace.example.com
-ADMIN_USER      — 예: admin
-ADMIN_PASSWORD  — 관리자 비밀번호
-ADMIN_EMAIL     — 예: admin@example.com
-```
-
-자동 생성되는 값:
-- `SECRET_KEY` (64자 랜덤)
-- `DB_PASSWORD` (32자 랜덤)
-- `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET`
-- `DKIM_PRIVATE_KEY` (RSA 2048)
-- Gitea OAuth Client ID/Secret
-
-### 작업 항목
-
-- [ ] `setup.sh` 스크립트 작성 (bash, POSIX 호환 목표)
-- [ ] `.env` 파일 자동 생성
-- [ ] Stalwart `config.toml` 템플릿 렌더링
-- [ ] DKIM 키 생성 + DNS 레코드 안내 출력
-- [ ] TLS 인증서 자동 발급 (Let's Encrypt / certbot)
-- [ ] 초기 관리자 계정 생성 (DB seed)
-- [ ] DNS 레코드 안내 출력 (A, MX, SPF, DKIM, DMARC)
-- [ ] 시스템 요건 체크 (Docker, Docker Compose, 포트 가용성)
-- [ ] `docker compose up -d` 자동 실행
-
-### 완료 기준
-
-- 클린 Ubuntu 22.04/24.04에서 `setup.sh` 실행 후 전체 서비스 동작
-- DNS 설정 후 메일 송수신 + TLS 정상
-- 관리자 로그인 후 즉시 사용 가능
-
----
-
-## Phase 5: 화이트라벨링 + i18n
-
-**목표**: 누구나 자신의 브랜드로 워크스페이스를 운영할 수 있도록 커스터마이징 지원.
-
-### 화이트라벨
-
-환경변수 3개로 브랜드 교체:
-
-```env
-BRAND_NAME=MyWorkspace
-BRAND_LOGO=/path/to/logo.svg
-BRAND_COLOR=#4F46E5
-```
-
-- [ ] 프론트엔드 하드코딩 텍스트 전부 환경변수화
-- [ ] 로고, 파비콘, OG 이미지 동적 교체
-- [ ] 메일 템플릿 (비밀번호 찾기, 회원가입 승인 등) 브랜드 반영
-- [ ] 브라우저 타이틀, manifest.json 브랜드 반영
-
-### i18n
-
-- [ ] `ko.json` 기본 (한국어 텍스트 추출)
-- [ ] `en.json` 영문 번역
-- [ ] vue-i18n 또는 @nuxtjs/i18n 적용
-- [ ] 백엔드 에러 메시지 다국어화
-- [ ] 브라우저 언어 자동 감지 + 수동 전환
-
-### 완료 기준
-
-- `BRAND_NAME=Acme` 설정 시 UI에 기본 브랜드 흔적 없음
-- 한/영 전환 시 전체 UI 텍스트 교체
-
----
-
-## Phase 6: 문서/메모 + 웹 오피스
-
-**목표**: 팀 위키/메모 기능을 자체 구현하고, 웹 오피스(ONLYOFFICE)를 선택적 컨테이너로 편입.
-
-### 배경 — 왜 AFFiNE/Outline이 아닌가
-
-| 솔루션 | 탈락 사유 |
-|--------|-----------|
-| **AFFiNE** | 셀프 호스팅 미성숙 (v0.26.x), 업그레이드 시 데이터 소실/SSO 깨짐 사례, 4코어+2~4GB 리소스, GraphQL 전용 API |
-| **Outline** | BSL-1.1 라이선스 — AGPL-3.0 프로젝트에 기본 포함 시 호환성 문제 |
-
-### 6-1. 문서/메모 (자체 구현)
-
-기존 FastAPI + PostgreSQL + Nuxt3에 마크다운 에디터를 추가한다. 추가 컨테이너 불필요.
-
-- [ ] DB 모델: `documents` 테이블 (title, content_md, folder_id, created_by, updated_at, is_public)
-- [ ] `folders` 테이블 (트리 구조, parent_id)
-- [ ] 문서 CRUD API + 폴더 관리
-- [ ] 마크다운 에디터 (Tiptap 또는 Milkdown — 둘 다 MIT)
-- [ ] 실시간 공동 편집 (Yjs + y-websocket, 기존 WebSocket 인프라 활용)
-- [ ] 문서 검색 (PostgreSQL FTS, `pg_trgm`)
-- [ ] 문서 공유 (팀 내 공유, 공개 링크)
-- [ ] 문서 내 @멘션 + 댓글
-- [ ] 포털 사이드바 "문서" 메뉴 추가
-
-### 6-2. 웹 오피스 (ONLYOFFICE Docs CE, 선택적)
-
-DOCX/XLSX/PPTX 웹 편집 + 실시간 동시 작업. `ENABLE_OFFICE=true` 환경변수로 활성화.
-
-- [ ] ONLYOFFICE Docs CE 컨테이너 추가 (`onlyoffice/documentserver`, AGPL-3.0)
-- [ ] WOPI 프로토콜 연동 (FastAPI WOPI 엔드포인트)
-- [ ] 파일 서비스 연동 (로컬 파일 → ONLYOFFICE로 열기)
-- [ ] 문서 동시 편집 (ONLYOFFICE 내장 기능)
-- [ ] 포털 UI에서 오피스 에디터 임베드 (iframe, JS SDK)
-- [ ] `docker-compose.yml`에서 `profiles: [office]`로 선택적 활성화
-- [ ] `setup.sh`에서 ONLYOFFICE 활성화 옵션
-
-### 완료 기준
-
-- 마크다운 문서 생성/편집/검색/공유 동작
-- 2인 이상 실시간 공동 편집 동작
-- (선택) ONLYOFFICE 활성화 시 DOCX/XLSX/PPTX 웹 편집 + 동시 작업
-
----
-
-## Phase 7: 운영 도구
-
-**목표**: 프로덕션 운영에 필요한 업데이트, 백업, 모니터링 도구 제공.
-
-### 업데이트
-
-- [ ] `update.sh` — git pull + docker compose 재빌드 + Alembic 마이그레이션 자동 실행
-- [ ] 버전 체크 (현재 vs 최신) + 변경 로그 출력
-- [ ] 롤백 지원 (이전 이미지 태그로 복원)
-
-### 백업/복원
-
-- [ ] `backup.sh` — PostgreSQL pg_dump + Stalwart 데이터 + 업로드 파일 + .env
-- [ ] `restore.sh` — 백업 아카이브에서 복원
-- [ ] 자동 백업 스케줄링 (cron 설정 안내)
-- [ ] S3 호환 스토리지 업로드 (선택)
-
-### 헬스체크/자가진단
-
-- [ ] `health.sh` — 각 컨테이너 상태 + 포트 확인 + DNS 검증
-- [ ] Docker healthcheck 정의 (각 서비스)
-- [ ] `/api/health` 엔드포인트 (전체 서비스 상태 JSON)
-
-### 감사 로그
-
-- [ ] 로그인/로그아웃, 사용자 CRUD, 설정 변경 이벤트 기록
-- [ ] 감사 로그 조회 API + 관리자 UI
-- [ ] 로그 보존 기간 설정
-
-### 완료 기준
-
-- `update.sh` 실행으로 무중단 업데이트
-- `backup.sh` + `restore.sh`로 전체 데이터 백업/복원
-- `health.sh`로 서비스 이상 탐지
-
----
-
-## Phase 8: PWA + 모바일
-
-**목표**: 네이티브 앱 없이 모바일에서도 워크스페이스를 쾌적하게 사용.
-
-### 작업 항목
-
-- [ ] `manifest.json` 작성 (name, icons, theme_color, display: standalone)
-- [ ] Service Worker 등록 (오프라인 캐시, 백그라운드 동기화)
-- [ ] 푸시 알림 (Web Push API)
-  - 새 메일 도착
-  - 채팅 메시지
-  - 회의 초대
-  - 관리자 알림 (회원가입 승인 요청 등)
-- [ ] 모바일 반응형 UI 최적화
-- [ ] 앱 설치 프롬프트 (Add to Home Screen)
-
-### 완료 기준
-
-- 모바일 Chrome/Safari에서 홈 화면 추가 후 앱처럼 동작
-- 백그라운드 푸시 알림 수신
-
----
-
-## Phase 9: 오픈코어 모델
-
-**목표**: 지속 가능한 프로젝트 운영을 위한 수익 모델 구축.
-
-### Community Edition (무료, AGPL-3.0)
-
-- 전체 기능 사용 가능
-- 사용자 수 제한 (예: 50명)
-- 커뮤니티 지원 (GitHub Issues)
-
-### Pro Edition (유료)
-
-- 사용자 수 무제한
-- 감사 로그 강화
-- SAML 2.0 / 외부 IdP 연동
-- 자동 백업 스케줄링
-- 우선 기술 지원
-
-### 라이선스 키
-
-- [ ] RSA 서명 기반 라이선스 키 검증
-- [ ] 오프라인 검증 (외부 서버 통신 없음)
-- [ ] 라이선스 정보: 조직명, 사용자 수 제한, 만료일
-- [ ] 관리자 UI에서 라이선스 입력/확인
-- [ ] Community Edition은 라이선스 키 없이 동작
-
-### 완료 기준
-
-- Community Edition: 라이선스 키 없이 전체 기능 (사용자 수 제한만)
-- Pro Edition: 라이선스 키 입력 시 제한 해제
-
----
-
-## 타임라인 (예상)
-
-| Phase | 내용 | 예상 기간 | 우선순위 |
-|-------|------|-----------|----------|
-| Phase 1 | 자체 인증 | 2-3주 | **Critical** |
-| Phase 2 | 서비스 컨테이너 구성 (Nginx, Gitea, Stalwart, LiveKit) | 3-4주 | **Critical** |
-| Phase 3 | 실시간 채팅 (자체 구현) | 5-7주 | High |
-| Phase 4 | 배포 자동화 (setup.sh) | 1-2주 | **Critical** |
-| Phase 5 | 화이트라벨링 + i18n | 1-2주 | Medium |
-| Phase 6 | 문서/메모 + 웹 오피스 (ONLYOFFICE) | 3-4주 | Medium |
-| Phase 7 | 운영 도구 | 2-3주 | High |
-| Phase 8 | PWA + 모바일 | 1-2주 | Medium |
-| Phase 9 | 오픈코어 모델 | 2-3주 | Low |
-
-> Phase 1~4는 v2.0 릴리즈의 최소 요건입니다.
-> Phase 5~9는 v2.1+ 에서 점진적으로 추가됩니다.
+## 타임라인
+
+| Phase | 내용 | 상태 |
+|-------|------|------|
+| Phase 1 | 자체 인증 | Done |
+| Phase 2 | 서비스 컨테이너 구성 | Done |
+| Phase 3 | 실시간 채팅 | Done |
+| Phase 4 | 모듈 시스템 + 메일 스택 전환 | Done (v3.0) |
+| Phase 5 | 배포 자동화 | Planned |
+| Phase 6 | 화이트라벨링 + i18n | Planned |
+| Phase 7 | CalDAV/CardDAV 동기화 | Planned |
+| Phase 8 | 플러그인 아키텍처 | Planned |
+| Phase 9 | 운영 도구 | Planned |
+| Phase 10 | PWA + 모바일 | Planned |
+| Phase 11 | 오픈코어 모델 | Planned |

@@ -4,6 +4,31 @@ const colorMode = useColorMode()
 const route = useRoute()
 const mobileMenuOpen = ref(false)
 
+const { enabledModules } = usePlatform()
+
+// Static nav items (always visible)
+const staticNavItems = [
+  { route: '/', name: '대시보드', matchExact: true },
+]
+
+// Map module icons to display — modules come from platform API
+const navItems = computed(() => {
+  const items = [...staticNavItems]
+  for (const mod of enabledModules.value) {
+    items.push({
+      route: mod.route,
+      name: mod.name,
+      matchExact: false,
+    })
+  }
+  return items
+})
+
+function isActive(item: { route: string; matchExact?: boolean }) {
+  if (item.matchExact) return route.path === item.route
+  return route.path.startsWith(item.route)
+}
+
 const { notifications, unreadCount, showDropdown, markAsRead, markAllAsRead } = useNotifications()
 
 const bellRef = ref<HTMLElement | null>(null)
@@ -71,63 +96,16 @@ function toggleDark() {
           <span class="hidden sm:inline">namgun.or.kr</span>
         </NuxtLink>
 
-        <!-- Desktop nav -->
+        <!-- Desktop nav (dynamic from module registry) -->
         <nav v-if="user" class="hidden sm:flex items-center gap-1">
           <NuxtLink
-            to="/"
+            v-for="item in navItems"
+            :key="item.route"
+            :to="item.route"
             class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="route.path === '/' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
+            :class="isActive(item) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
           >
-            대시보드
-          </NuxtLink>
-          <NuxtLink
-            to="/files"
-            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="route.path.startsWith('/files') ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
-          >
-            파일
-          </NuxtLink>
-          <NuxtLink
-            to="/mail"
-            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="route.path === '/mail' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
-          >
-            메일
-          </NuxtLink>
-          <NuxtLink
-            to="/chat"
-            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="route.path === '/chat' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
-          >
-            채팅
-          </NuxtLink>
-          <NuxtLink
-            to="/calendar"
-            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="route.path === '/calendar' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
-          >
-            캘린더
-          </NuxtLink>
-          <NuxtLink
-            to="/contacts"
-            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="route.path === '/contacts' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
-          >
-            연락처
-          </NuxtLink>
-          <NuxtLink
-            to="/meetings"
-            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="route.path === '/meetings' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
-          >
-            회의
-          </NuxtLink>
-          <NuxtLink
-            to="/git"
-            class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-            :class="route.path === '/git' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'"
-          >
-            Git
+            {{ item.name }}
           </NuxtLink>
           <NuxtLink
             v-if="user.is_admin"
@@ -275,74 +253,20 @@ function toggleDark() {
       </div>
     </div>
 
-    <!-- Mobile navigation dropdown -->
+    <!-- Mobile navigation dropdown (dynamic from module registry) -->
     <div
       v-if="mobileMenuOpen && user"
       class="sm:hidden border-t bg-background px-3 py-2 space-y-1"
     >
       <NuxtLink
-        to="/"
+        v-for="item in navItems"
+        :key="item.route"
+        :to="item.route"
         @click="mobileMenuOpen = false"
         class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
-        :class="route.path === '/' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
+        :class="isActive(item) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
       >
-        대시보드
-      </NuxtLink>
-      <NuxtLink
-        to="/files"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
-        :class="route.path.startsWith('/files') ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
-      >
-        파일
-      </NuxtLink>
-      <NuxtLink
-        to="/mail"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
-        :class="route.path === '/mail' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
-      >
-        메일
-      </NuxtLink>
-      <NuxtLink
-        to="/chat"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
-        :class="route.path === '/chat' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
-      >
-        채팅
-      </NuxtLink>
-      <NuxtLink
-        to="/calendar"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
-        :class="route.path === '/calendar' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
-      >
-        캘린더
-      </NuxtLink>
-      <NuxtLink
-        to="/contacts"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
-        :class="route.path === '/contacts' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
-      >
-        연락처
-      </NuxtLink>
-      <NuxtLink
-        to="/meetings"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
-        :class="route.path === '/meetings' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
-      >
-        회의
-      </NuxtLink>
-      <NuxtLink
-        to="/git"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 text-sm font-medium rounded-md transition-colors"
-        :class="route.path === '/git' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50'"
-      >
-        Git
+        {{ item.name }}
       </NuxtLink>
       <NuxtLink
         v-if="user.is_admin"

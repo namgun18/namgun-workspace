@@ -1,17 +1,18 @@
-"""Mail API endpoints."""
+"""Mail API endpoints — IMAP/SMTP client based (multi-account)."""
 
+import logging
 from urllib.parse import quote
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user
-from app.db.models import MailSignature, User
+from app.db.models import MailAccount, MailSignature, User
 from app.db.session import get_db
-from app.mail import jmap
+from app.mail import imap_client, smtp_client
+from app.mail.crypto import encrypt_password, decrypt_password
 from app.mail.schemas import (
     Mailbox,
     MailboxListResponse,
@@ -26,86 +27,255 @@ from app.mail.schemas import (
     SignatureResponse,
     EmailAddress,
     Attachment,
+    MailAccountCreate,
+    MailAccountUpdate,
+    MailAccountResponse,
 )
+from app.modules.registry import require_module
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/mail", tags=["mail"])
-
-# Mailbox role sort priority
-ROLE_ORDER = {
-    "inbox": 0,
-    "drafts": 1,
-    "sent": 2,
-    "junk": 3,
-    "trash": 4,
-    "archive": 5,
-}
 
 
 # ─── Helpers ───
 
 
-def _parse_addr(raw: dict | None) -> EmailAddress:
-    if not raw:
-        return EmailAddress(email="")
-    return EmailAddress(name=raw.get("name"), email=raw.get("email", ""))
+async def _get_account(
+    db: AsyncSession, user: User, account_id: str | None = None
+) -> MailAccount:
+    """Get user's mail account (default if account_id not specified)."""
+    if account_id:
+        account = await db.get(MailAccount, account_id)
+        if not account or account.user_id != user.id:
+            raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
+        return account
 
+    # Get default account
+    result = await db.execute(
+        select(MailAccount)
+        .where(MailAccount.user_id == user.id, MailAccount.is_default == True)
+    )
+    account = result.scalar_one_or_none()
+    if account:
+        return account
 
-def _parse_addrs(raw: list | None) -> list[EmailAddress]:
-    if not raw:
-        return []
-    return [_parse_addr(a) for a in raw]
-
-
-def _parse_keywords(keywords: dict | None) -> tuple[bool, bool]:
-    """Returns (is_unread, is_flagged)."""
-    if not keywords:
-        return True, False
-    is_unread = "$seen" not in keywords
-    is_flagged = "$flagged" in keywords
-    return is_unread, is_flagged
-
-
-async def _get_account_id(user: User) -> str:
-    """Resolve user email to JMAP account ID."""
-    if not user.email:
-        raise HTTPException(status_code=400, detail="이메일 주소가 설정되지 않았습니다")
-    try:
-        account_id = await jmap.resolve_account_id(user.email)
-    except (httpx.HTTPError, httpx.TimeoutException, ConnectionError):
-        raise HTTPException(
-            status_code=502,
-            detail="메일 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
-        )
-    if not account_id:
+    # Get first account
+    result = await db.execute(
+        select(MailAccount)
+        .where(MailAccount.user_id == user.id)
+        .order_by(MailAccount.created_at)
+        .limit(1)
+    )
+    account = result.scalar_one_or_none()
+    if not account:
         raise HTTPException(
             status_code=404,
-            detail=f"메일 계정을 찾을 수 없습니다 ({user.email}). 관리자에게 문의하세요.",
+            detail="메일 계정이 설정되지 않았습니다. 설정에서 메일 계정을 추가해주세요.",
         )
-    return account_id
+    return account
+
+
+def _account_response(account: MailAccount) -> dict:
+    return {
+        "id": account.id,
+        "display_name": account.display_name,
+        "email": account.email,
+        "imap_host": account.imap_host,
+        "imap_port": account.imap_port,
+        "imap_security": account.imap_security,
+        "smtp_host": account.smtp_host,
+        "smtp_port": account.smtp_port,
+        "smtp_security": account.smtp_security,
+        "username": account.username,
+        "is_default": account.is_default,
+        "last_sync_at": account.last_sync_at.isoformat() if account.last_sync_at else None,
+        "sync_error": account.sync_error,
+    }
+
+
+# ─── Mail Account CRUD ───
+
+
+@router.get("/accounts", response_model=list[MailAccountResponse])
+@require_module("mail")
+async def list_accounts(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(MailAccount)
+        .where(MailAccount.user_id == user.id)
+        .order_by(MailAccount.created_at)
+    )
+    return [_account_response(a) for a in result.scalars().all()]
+
+
+@router.post("/accounts", response_model=MailAccountResponse, status_code=201)
+@require_module("mail")
+async def create_account(
+    body: MailAccountCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Test connection first
+    test_account = MailAccount(
+        imap_host=body.imap_host,
+        imap_port=body.imap_port,
+        imap_security=body.imap_security,
+        smtp_host=body.smtp_host,
+        smtp_port=body.smtp_port,
+        smtp_security=body.smtp_security,
+        username=body.username,
+        password_encrypted=encrypt_password(body.password),
+    )
+
+    imap_ok, imap_msg = await imap_client.test_connection(test_account)
+    if not imap_ok:
+        raise HTTPException(
+            status_code=400,
+            detail=f"IMAP 연결 실패: {imap_msg}",
+        )
+
+    smtp_ok, smtp_msg = await smtp_client.test_connection(test_account)
+    if not smtp_ok:
+        raise HTTPException(
+            status_code=400,
+            detail=f"SMTP 연결 실패: {smtp_msg}",
+        )
+
+    # If setting as default, unset other defaults
+    if body.is_default:
+        result = await db.execute(
+            select(MailAccount).where(
+                MailAccount.user_id == user.id, MailAccount.is_default == True
+            )
+        )
+        for a in result.scalars():
+            a.is_default = False
+
+    account = MailAccount(
+        user_id=user.id,
+        display_name=body.display_name,
+        email=body.email,
+        imap_host=body.imap_host,
+        imap_port=body.imap_port,
+        imap_security=body.imap_security,
+        smtp_host=body.smtp_host,
+        smtp_port=body.smtp_port,
+        smtp_security=body.smtp_security,
+        username=body.username,
+        password_encrypted=encrypt_password(body.password),
+        is_default=body.is_default,
+    )
+    db.add(account)
+    await db.commit()
+    await db.refresh(account)
+    return _account_response(account)
+
+
+@router.patch("/accounts/{account_id}", response_model=MailAccountResponse)
+@require_module("mail")
+async def update_account(
+    account_id: str,
+    body: MailAccountUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account = await db.get(MailAccount, account_id)
+    if not account or account.user_id != user.id:
+        raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
+
+    if body.display_name is not None:
+        account.display_name = body.display_name
+    if body.email is not None:
+        account.email = body.email
+    if body.imap_host is not None:
+        account.imap_host = body.imap_host
+    if body.imap_port is not None:
+        account.imap_port = body.imap_port
+    if body.imap_security is not None:
+        account.imap_security = body.imap_security
+    if body.smtp_host is not None:
+        account.smtp_host = body.smtp_host
+    if body.smtp_port is not None:
+        account.smtp_port = body.smtp_port
+    if body.smtp_security is not None:
+        account.smtp_security = body.smtp_security
+    if body.username is not None:
+        account.username = body.username
+    if body.password is not None:
+        account.password_encrypted = encrypt_password(body.password)
+    if body.is_default is not None:
+        if body.is_default:
+            result = await db.execute(
+                select(MailAccount).where(
+                    MailAccount.user_id == user.id,
+                    MailAccount.is_default == True,
+                    MailAccount.id != account_id,
+                )
+            )
+            for a in result.scalars():
+                a.is_default = False
+        account.is_default = body.is_default
+
+    await db.commit()
+    await db.refresh(account)
+    return _account_response(account)
+
+
+@router.delete("/accounts/{account_id}")
+@require_module("mail")
+async def delete_account(
+    account_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account = await db.get(MailAccount, account_id)
+    if not account or account.user_id != user.id:
+        raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
+    await db.delete(account)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/accounts/{account_id}/test")
+@require_module("mail")
+async def test_account(
+    account_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account = await db.get(MailAccount, account_id)
+    if not account or account.user_id != user.id:
+        raise HTTPException(status_code=404, detail="메일 계정을 찾을 수 없습니다")
+
+    imap_ok, imap_msg = await imap_client.test_connection(account)
+    smtp_ok, smtp_msg = await smtp_client.test_connection(account)
+
+    return {
+        "imap": {"ok": imap_ok, "message": imap_msg},
+        "smtp": {"ok": smtp_ok, "message": smtp_msg},
+    }
 
 
 # ─── Mailboxes ───
 
 
 @router.get("/mailboxes", response_model=MailboxListResponse)
-async def list_mailboxes(user: User = Depends(get_current_user)):
-    account_id = await _get_account_id(user)
-    raw_mailboxes = await jmap.get_mailboxes(account_id)
+@require_module("mail")
+async def list_mailboxes(
+    account_id: str | None = Query(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    account = await _get_account(db, user, account_id)
+    try:
+        raw_mailboxes = await imap_client.list_mailboxes(account)
+    except Exception as e:
+        logger.error("IMAP list_mailboxes failed: %s", e)
+        raise HTTPException(status_code=502, detail="메일 서버에 연결할 수 없습니다")
 
-    mailboxes = []
-    for mb in raw_mailboxes:
-        role = mb.get("role")
-        sort_order = ROLE_ORDER.get(role, 99) if role else 99
-        mailboxes.append(Mailbox(
-            id=mb["id"],
-            name=mb.get("name", ""),
-            role=role,
-            unread_count=mb.get("unreadEmails", 0),
-            total_count=mb.get("totalEmails", 0),
-            sort_order=sort_order,
-        ))
-
-    mailboxes.sort(key=lambda m: (m.sort_order, m.name))
+    mailboxes = [Mailbox(**mb) for mb in raw_mailboxes]
     return MailboxListResponse(mailboxes=mailboxes)
 
 
@@ -113,365 +283,276 @@ async def list_mailboxes(user: User = Depends(get_current_user)):
 
 
 @router.get("/messages", response_model=MessageListResponse)
+@require_module("mail")
 async def list_messages(
     mailbox_id: str = Query(...),
     page: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     q: str | None = Query(None),
+    account_id: str | None = Query(None),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    account_id = await _get_account_id(user)
-    raw_messages, total = await jmap.get_messages(account_id, mailbox_id, page, limit, query=q)
+    account = await _get_account(db, user, account_id)
+    try:
+        raw_messages, total = await imap_client.fetch_messages(
+            account, mailbox_id, page, limit, query=q
+        )
+    except Exception as e:
+        logger.error("IMAP fetch_messages failed: %s", e)
+        raise HTTPException(status_code=502, detail="메일 서버에 연결할 수 없습니다")
 
-    messages = []
-    for msg in raw_messages:
-        is_unread, is_flagged = _parse_keywords(msg.get("keywords"))
-        messages.append(MessageSummary(
+    messages = [
+        MessageSummary(
             id=msg["id"],
-            thread_id=msg.get("threadId"),
-            mailbox_ids=list(msg.get("mailboxIds", {}).keys()),
-            from_=_parse_addrs(msg.get("from")),
-            to=_parse_addrs(msg.get("to")),
+            thread_id=msg.get("thread_id"),
+            mailbox_ids=msg.get("mailbox_ids", []),
+            from_=[EmailAddress(**a) for a in msg.get("from_", [])],
+            to=[EmailAddress(**a) for a in msg.get("to", [])],
             subject=msg.get("subject"),
             preview=msg.get("preview"),
-            received_at=msg.get("receivedAt"),
-            is_unread=is_unread,
-            is_flagged=is_flagged,
-            has_attachment=msg.get("hasAttachment", False),
-        ))
-
+            received_at=msg.get("received_at"),
+            is_unread=msg.get("is_unread", False),
+            is_flagged=msg.get("is_flagged", False),
+            has_attachment=msg.get("has_attachment", False),
+        )
+        for msg in raw_messages
+    ]
     return MessageListResponse(messages=messages, total=total, page=page, limit=limit)
 
 
 # ─── Message detail ───
 
 
-@router.get("/messages/{message_id}", response_model=MessageDetail)
+@router.get("/messages/{message_uid}", response_model=MessageDetail)
+@require_module("mail")
 async def get_message(
-    message_id: str,
+    message_uid: str,
+    mailbox_id: str = Query("INBOX"),
+    account_id: str | None = Query(None),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    account_id = await _get_account_id(user)
-    msg = await jmap.get_message(account_id, message_id)
+    account = await _get_account(db, user, account_id)
+    try:
+        msg = await imap_client.fetch_message(account, mailbox_id, message_uid)
+    except Exception as e:
+        logger.error("IMAP fetch_message failed: %s", e)
+        raise HTTPException(status_code=502, detail="메일 서버에 연결할 수 없습니다")
+
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
 
-    # Auto mark as read
-    keywords = msg.get("keywords", {})
-    if "$seen" not in keywords:
-        keywords["$seen"] = True
-        await jmap.update_message(account_id, message_id, {"keywords": keywords})
-
-    is_unread, is_flagged = _parse_keywords(msg.get("keywords"))
-
-    # Extract body text
-    body_values = msg.get("bodyValues", {})
-    text_body = None
-    html_body = None
-
-    for part in msg.get("textBody", []):
-        part_id = part.get("partId")
-        if part_id and part_id in body_values:
-            text_body = body_values[part_id].get("value", "")
-            break
-
-    for part in msg.get("htmlBody", []):
-        part_id = part.get("partId")
-        if part_id and part_id in body_values:
-            html_body = body_values[part_id].get("value", "")
-            break
-
-    # Parse attachments
-    attachments = []
-    for att in msg.get("attachments", []):
-        attachments.append(Attachment(
-            blob_id=att.get("blobId", ""),
-            name=att.get("name"),
-            type=att.get("type"),
-            size=att.get("size", 0),
-        ))
-
     return MessageDetail(
         id=msg["id"],
-        thread_id=msg.get("threadId"),
-        mailbox_ids=list(msg.get("mailboxIds", {}).keys()),
-        from_=_parse_addrs(msg.get("from")),
-        to=_parse_addrs(msg.get("to")),
-        cc=_parse_addrs(msg.get("cc")),
-        bcc=_parse_addrs(msg.get("bcc")),
-        reply_to=_parse_addrs(msg.get("replyTo")),
+        thread_id=msg.get("thread_id"),
+        mailbox_ids=msg.get("mailbox_ids", []),
+        from_=[EmailAddress(**a) for a in msg.get("from_", [])],
+        to=[EmailAddress(**a) for a in msg.get("to", [])],
+        cc=[EmailAddress(**a) for a in msg.get("cc", [])],
+        bcc=[EmailAddress(**a) for a in msg.get("bcc", [])],
+        reply_to=[EmailAddress(**a) for a in msg.get("reply_to", [])],
         subject=msg.get("subject"),
-        text_body=text_body,
-        html_body=html_body,
+        text_body=msg.get("text_body"),
+        html_body=msg.get("html_body"),
         preview=msg.get("preview"),
-        received_at=msg.get("receivedAt"),
-        is_unread=is_unread,
-        is_flagged=is_flagged,
-        attachments=attachments,
+        received_at=msg.get("received_at"),
+        is_unread=msg.get("is_unread", False),
+        is_flagged=msg.get("is_flagged", False),
+        attachments=[Attachment(**a) for a in msg.get("attachments", [])],
     )
 
 
 # ─── Update message (read/star/move) ───
 
 
-@router.patch("/messages/{message_id}")
+@router.patch("/messages/{message_uid}")
+@require_module("mail")
 async def update_message(
-    message_id: str,
+    message_uid: str,
     body: MessageUpdateRequest,
+    mailbox_id: str = Query("INBOX"),
+    account_id: str | None = Query(None),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    account_id = await _get_account_id(user)
+    account = await _get_account(db, user, account_id)
 
-    # Fetch current message to get keywords
-    msg = await jmap.get_message(account_id, message_id)
-    if not msg:
-        raise HTTPException(status_code=404, detail="Message not found")
-
-    updates: dict = {}
-    keywords = dict(msg.get("keywords", {}))
+    # Handle flag changes
+    add_flags = []
+    remove_flags = []
 
     if body.is_unread is not None:
         if body.is_unread:
-            keywords.pop("$seen", None)
+            remove_flags.append("\\Seen")
         else:
-            keywords["$seen"] = True
-        updates["keywords"] = keywords
+            add_flags.append("\\Seen")
 
     if body.is_flagged is not None:
         if body.is_flagged:
-            keywords["$flagged"] = True
+            add_flags.append("\\Flagged")
         else:
-            keywords.pop("$flagged", None)
-        updates["keywords"] = keywords
+            remove_flags.append("\\Flagged")
 
-    if body.mailbox_ids is not None:
-        updates["mailboxIds"] = {mid: True for mid in body.mailbox_ids}
+    if add_flags or remove_flags:
+        ok = await imap_client.update_flags(
+            account, mailbox_id, message_uid,
+            add_flags=add_flags or None,
+            remove_flags=remove_flags or None,
+        )
+        if not ok:
+            raise HTTPException(status_code=500, detail="Failed to update message flags")
 
-    if not updates:
-        return {"ok": True}
+    # Handle move
+    if body.mailbox_ids and body.mailbox_ids[0] != mailbox_id:
+        ok = await imap_client.move_message(
+            account, mailbox_id, message_uid, body.mailbox_ids[0]
+        )
+        if not ok:
+            raise HTTPException(status_code=500, detail="Failed to move message")
 
-    ok = await jmap.update_message(account_id, message_id, updates)
-    if not ok:
-        raise HTTPException(status_code=500, detail="Failed to update message")
     return {"ok": True}
 
 
 # ─── Delete message ───
 
 
-@router.delete("/messages/{message_id}")
+@router.delete("/messages/{message_uid}")
+@require_module("mail")
 async def delete_message(
-    message_id: str,
+    message_uid: str,
+    mailbox_id: str = Query("INBOX"),
+    account_id: str | None = Query(None),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    account_id = await _get_account_id(user)
-
-    # Check if already in trash → permanent delete
-    msg = await jmap.get_message(account_id, message_id)
-    if not msg:
-        raise HTTPException(status_code=404, detail="Message not found")
-
-    mailbox_ids = list(msg.get("mailboxIds", {}).keys())
+    account = await _get_account(db, user, account_id)
 
     # Find trash mailbox
-    mailboxes = await jmap.get_mailboxes(account_id)
-    trash_id = None
+    try:
+        mailboxes = await imap_client.list_mailboxes(account)
+    except Exception:
+        mailboxes = []
+
+    trash_mailbox = None
     for mb in mailboxes:
         if mb.get("role") == "trash":
-            trash_id = mb["id"]
+            trash_mailbox = mb["id"]
             break
 
-    is_in_trash = trash_id and trash_id in mailbox_ids
-
-    if is_in_trash:
-        # Permanent delete
-        ok = await jmap.destroy_message(account_id, message_id)
-        if not ok:
-            raise HTTPException(status_code=500, detail="Failed to delete message")
-        return {"ok": True, "permanent": True}
-    elif trash_id:
-        # Move to trash
-        ok = await jmap.update_message(
-            account_id, message_id,
-            {"mailboxIds": {trash_id: True}},
-        )
-        if not ok:
-            raise HTTPException(status_code=500, detail="Failed to move to trash")
-        return {"ok": True, "permanent": False}
-    else:
-        # No trash folder, permanent delete
-        ok = await jmap.destroy_message(account_id, message_id)
-        if not ok:
-            raise HTTPException(status_code=500, detail="Failed to delete message")
-        return {"ok": True, "permanent": True}
+    result = await imap_client.delete_message(
+        account, mailbox_id, message_uid, trash_mailbox
+    )
+    return result
 
 
 # ─── Send message ───
 
 
 @router.post("/send")
+@require_module("mail")
 async def send_message(
     body: SendMessageRequest,
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    account_id = await _get_account_id(user)
+    account = await _get_account(db, user, body.account_id)
 
-    # Find sent mailbox (fall back to drafts or first mailbox)
-    mailboxes = await jmap.get_mailboxes(account_id)
-    sent_id = None
-    fallback_id = None
-    for mb in mailboxes:
-        if mb.get("role") == "sent":
-            sent_id = mb["id"]
-            break
-        if mb.get("role") == "drafts" and not fallback_id:
-            fallback_id = mb["id"]
-        if not fallback_id:
-            fallback_id = mb["id"]
+    from_name = user.display_name or user.username
 
-    target_id = sent_id or fallback_id
-    mailbox_ids = {target_id: True} if target_id else {}
+    try:
+        await smtp_client.send_message(
+            account=account,
+            from_name=from_name,
+            to=[a.model_dump() for a in body.to],
+            cc=[a.model_dump() for a in body.cc] if body.cc else None,
+            bcc=[a.model_dump() for a in body.bcc] if body.bcc else None,
+            subject=body.subject,
+            text_body=body.text_body,
+            html_body=body.html_body,
+            in_reply_to=body.in_reply_to,
+            references=body.references or None,
+        )
+    except Exception as e:
+        logger.error("SMTP send failed: %s", e)
+        raise HTTPException(status_code=502, detail=f"메일 전송 실패: {str(e)}")
 
-    from_addr = {"name": user.display_name or user.username, "email": user.email}
-
-    # Convert attachments if provided
-    att_list = None
-    if body.attachments:
-        att_list = [a.model_dump() for a in body.attachments]
-
-    result = await jmap.send_message(
-        account_id=account_id,
-        from_addr=from_addr,
-        to=[a.model_dump() for a in body.to],
-        cc=[a.model_dump() for a in body.cc],
-        bcc=[a.model_dump() for a in body.bcc],
-        subject=body.subject,
-        text_body=body.text_body,
-        html_body=body.html_body,
-        in_reply_to=body.in_reply_to,
-        references=body.references or None,
-        mailbox_ids=mailbox_ids or None,
-        attachments=att_list,
-    )
-
-    if not result:
-        raise HTTPException(status_code=500, detail="Failed to send message")
-
-    return {"ok": True, "id": result.get("id")}
+    return {"ok": True}
 
 
 # ─── Bulk operations ───
 
 
 @router.post("/bulk")
+@require_module("mail")
 async def bulk_action(
     body: BulkActionRequest,
+    mailbox_id: str = Query("INBOX"),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    account_id = await _get_account_id(user)
+    account = await _get_account(db, user, body.account_id)
 
     if not body.message_ids:
         raise HTTPException(status_code=400, detail="메시지를 선택해주세요")
 
-    if body.action == "read":
-        ok = await jmap.bulk_update_messages(
-            account_id, body.message_ids, {"keywords/$seen": True}
-        )
-    elif body.action == "unread":
-        ok = await jmap.bulk_update_messages(
-            account_id, body.message_ids, {"keywords/$seen": None}
-        )
-    elif body.action == "star":
-        ok = await jmap.bulk_update_messages(
-            account_id, body.message_ids, {"keywords/$flagged": True}
-        )
-    elif body.action == "unstar":
-        ok = await jmap.bulk_update_messages(
-            account_id, body.message_ids, {"keywords/$flagged": None}
-        )
-    elif body.action == "delete":
-        # Move to trash (or permanent delete if already in trash)
-        mailboxes = await jmap.get_mailboxes(account_id)
-        trash_id = None
-        for mb in mailboxes:
-            if mb.get("role") == "trash":
-                trash_id = mb["id"]
-                break
-        if trash_id:
-            ok = await jmap.bulk_update_messages(
-                account_id, body.message_ids, {"mailboxIds": {trash_id: True}}
-            )
+    for uid in body.message_ids:
+        if body.action == "read":
+            await imap_client.update_flags(account, mailbox_id, uid, add_flags=["\\Seen"])
+        elif body.action == "unread":
+            await imap_client.update_flags(account, mailbox_id, uid, remove_flags=["\\Seen"])
+        elif body.action == "star":
+            await imap_client.update_flags(account, mailbox_id, uid, add_flags=["\\Flagged"])
+        elif body.action == "unstar":
+            await imap_client.update_flags(account, mailbox_id, uid, remove_flags=["\\Flagged"])
+        elif body.action == "delete":
+            mailboxes = await imap_client.list_mailboxes(account)
+            trash = next((mb["id"] for mb in mailboxes if mb.get("role") == "trash"), None)
+            await imap_client.delete_message(account, mailbox_id, uid, trash)
+        elif body.action == "move":
+            if not body.mailbox_id:
+                raise HTTPException(status_code=400, detail="이동할 메일함을 지정해주세요")
+            await imap_client.move_message(account, mailbox_id, uid, body.mailbox_id)
         else:
-            ok = await jmap.bulk_destroy_messages(account_id, body.message_ids)
-    elif body.action == "move":
-        if not body.mailbox_id:
-            raise HTTPException(status_code=400, detail="이동할 메일함을 지정해주세요")
-        ok = await jmap.bulk_update_messages(
-            account_id, body.message_ids, {"mailboxIds": {body.mailbox_id: True}}
-        )
-    else:
-        raise HTTPException(status_code=400, detail=f"지원하지 않는 작업: {body.action}")
-
-    if not ok:
-        raise HTTPException(status_code=500, detail="일괄 작업 처리에 실패했습니다")
+            raise HTTPException(status_code=400, detail=f"지원하지 않는 작업: {body.action}")
 
     return {"ok": True, "count": len(body.message_ids)}
 
 
-# ─── Upload attachment blob ───
+# ─── Attachment download (via IMAP FETCH) ───
 
 
-@router.post("/upload")
-async def upload_attachment(
-    file: UploadFile = File(...),
-    user: User = Depends(get_current_user),
-):
-    account_id = await _get_account_id(user)
-
-    # 25MB limit — read with cap to prevent memory exhaustion
-    max_size = 25 * 1024 * 1024
-    content = await file.read(max_size + 1)
-    if len(content) > max_size:
-        raise HTTPException(status_code=413, detail="파일 크기는 25MB를 초과할 수 없습니다")
-
-    content_type = file.content_type or "application/octet-stream"
-    blob_id = await jmap.upload_blob(account_id, content, content_type)
-
-    return {
-        "blobId": blob_id,
-        "type": content_type,
-        "name": file.filename or "attachment",
-        "size": len(content),
-    }
-
-
-# ─── Blob download (attachment proxy) ───
-
-
-@router.get("/blob/{blob_id}")
-async def download_blob(
+@router.get("/attachments/{blob_id}")
+@require_module("mail")
+async def download_attachment(
     blob_id: str,
-    name: str = Query("attachment"),
+    mailbox_id: str = Query("INBOX"),
+    account_id: str | None = Query(None),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    account_id = await _get_account_id(user)
-    try:
-        resp = await jmap.download_blob(account_id, blob_id)
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Mail server timeout")
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            raise HTTPException(status_code=404, detail="Blob not found")
-        raise HTTPException(status_code=502, detail="Mail server error")
-    except Exception:
-        raise HTTPException(status_code=502, detail="Failed to download blob")
+    """Download attachment. blob_id format: {uid}:{part_index}"""
+    account = await _get_account(db, user, account_id)
 
-    content_type = resp.headers.get("content-type", "application/octet-stream")
-    # RFC 5987 encoded filename to prevent header injection
-    safe_name = name.replace('"', '').replace('\n', '').replace('\r', '')
+    parts = blob_id.split(":")
+    if len(parts) != 2:
+        raise HTTPException(status_code=400, detail="Invalid blob_id format")
+
+    uid = parts[0]
+    try:
+        part_index = int(parts[1])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid part index")
+
+    result = await imap_client.download_attachment(account, mailbox_id, uid, part_index)
+    if not result:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    data, content_type, filename = result
+    safe_name = filename.replace('"', '').replace('\n', '').replace('\r', '')
     encoded_name = quote(safe_name, safe='')
     return Response(
-        content=resp.content,
+        content=data,
         media_type=content_type,
         headers={
             "Content-Disposition": f"attachment; filename=\"{safe_name}\"; filename*=UTF-8''{encoded_name}",
@@ -479,10 +560,11 @@ async def download_blob(
     )
 
 
-# ─── Signatures CRUD ───
+# ─── Signatures CRUD (unchanged, DB-based) ───
 
 
 @router.get("/signatures", response_model=list[SignatureResponse])
+@require_module("mail")
 async def list_signatures(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -506,6 +588,7 @@ async def list_signatures(
 
 
 @router.get("/signatures/default", response_model=SignatureResponse | None)
+@require_module("mail")
 async def get_default_signature(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -528,12 +611,12 @@ async def get_default_signature(
 
 
 @router.post("/signatures", response_model=SignatureResponse, status_code=201)
+@require_module("mail")
 async def create_signature(
     body: SignatureCreate,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # If setting as default, unset other defaults
     if body.is_default:
         result = await db.execute(
             select(MailSignature).where(
@@ -562,6 +645,7 @@ async def create_signature(
 
 
 @router.patch("/signatures/{sig_id}", response_model=SignatureResponse)
+@require_module("mail")
 async def update_signature(
     sig_id: str,
     body: SignatureUpdate,
@@ -578,7 +662,6 @@ async def update_signature(
         sig.html_content = body.html_content
     if body.is_default is not None:
         if body.is_default:
-            # Unset other defaults
             result = await db.execute(
                 select(MailSignature).where(
                     MailSignature.user_id == user.id,
@@ -602,6 +685,7 @@ async def update_signature(
 
 
 @router.delete("/signatures/{sig_id}")
+@require_module("mail")
 async def delete_signature(
     sig_id: str,
     user: User = Depends(get_current_user),

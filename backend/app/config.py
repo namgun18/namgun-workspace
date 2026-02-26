@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     storage_root: str = "/storage"
     upload_max_size_mb: int = 5120
 
-    # Stalwart Mail (JMAP)
+    # Built-in mail server (Stalwart/Postfix+Dovecot) — disabled by default
+    feature_builtin_mailserver: bool = False
     stalwart_url: str = "http://stalwart:8080"
     stalwart_admin_user: str = "admin"
     stalwart_admin_password: str = ""

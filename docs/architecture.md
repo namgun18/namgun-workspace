@@ -1,145 +1,153 @@
-# namgun-workspace v2.0 아키텍처
+# Architecture Guide
 
-## 목표 아키텍처
+## 시스템 구성
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                  docker-compose.yml                       │
-│                                                           │
-│  ┌──────────────────────────────────────────────────┐    │
-│  │                    nginx                          │    │
-│  │      리버스 프록시, TLS 종단, Let's Encrypt        │    │
-│  │      (EXTERNAL_PROXY=true 시 비활성화)             │    │
-│  └──────┬──────────┬──────────┬──────────────────────┘    │
-│         │          │          │                            │
-│  ┌──────┴───┐ ┌────┴─────┐ ┌─┴──────────┐               │
-│  │ frontend │ │ backend  │ │  stalwart   │               │
-│  │ (Nuxt 3) │ │(FastAPI) │ │   (mail)    │               │
-│  │          │ │채팅/문서  │ │ SQL directory│               │
-│  └──────────┘ └────┬─────┘ └─────────────┘               │
-│                    │                                      │
-│              ┌─────┴─────┐                                │
-│              │ postgres  │                                │
-│              │ (단일 DB)  │                                │
-│              └───────────┘                                │
-│                                                           │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
-│  │  livekit  │  │  redis   │  │  gitea   │               │
-│  │  (video)  │  │ (cache/  │  │  (git)   │               │
-│  │  WebRTC   │  │  session/ │  │          │               │
-│  │  SFU      │  │  pubsub)  │  │          │               │
-│  └──────────┘  └──────────┘  └──────────┘               │
-│                                                           │
-│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐                │
-│    onlyoffice (선택적, ENABLE_OFFICE=true)                 │
-│  │ DOCX/XLSX/PPTX 웹 편집 + 동시 작업  │                │
-│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘                │
-│                                                           │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                  Docker Compose                    │
+├──────────────────────────────────────────────────┤
+│                                                    │
+│  [코어 — 항상 실행]                                 │
+│  ┌──────────┐  ┌──────────┐                       │
+│  │ postgres │  │  redis   │                       │
+│  │  :5432   │  │  :6379   │                       │
+│  └────┬─────┘  └────┬─────┘                       │
+│       │              │                              │
+│  ┌────┴──────────────┴────┐                       │
+│  │       backend          │  FastAPI :8000          │
+│  │  인증, 메일(IMAP/SMTP), │  WebSocket (채팅)      │
+│  │  캘린더, 연락처, 파일,  │                       │
+│  │  채팅, 회의, Git API    │                       │
+│  └────────────────────────┘                       │
+│  ┌──────────┐                                     │
+│  │ frontend │  Nuxt 3 SSR :3000                    │
+│  └──────────┘                                     │
+│                                                    │
+│  [선택 — docker profile]                            │
+│  nginx, gitea, livekit, mailserver, onlyoffice     │
+│                                                    │
+└──────────────────────────────────────────────────┘
 ```
 
-### 설계 원칙
+## 설계 원칙
 
 - 단일 서버, 단일 `docker compose up`
-- 8개 코어 컨테이너 (nginx, frontend, backend, postgres, redis, stalwart, livekit, gitea)
 - 자체 인증 — 외부 IdP 의존성 없음
-- 채팅/문서 → backend(FastAPI)에 내장, 추가 컨테이너 불필요
-- ONLYOFFICE → 선택적 컨테이너 (DOCX/XLSX/PPTX 웹 편집)
-- `EXTERNAL_PROXY=true` — 기존 리버스 프록시가 있는 환경에서 내장 nginx 비활성화
-- setup.sh 자동화 → 사용자 입력 4개로 전체 구성
+- 채팅/캘린더/연락처 → backend(FastAPI)에 내장, 추가 컨테이너 불필요
+- 메일: IMAP/SMTP 클라이언트 기반 (외부 메일 서버 연결)
+- 모듈 시스템: 관리자가 기능별 on/off
+- `EXTERNAL_PROXY=true` — 외부 리버스 프록시 환경에서 내장 nginx 비활성화
 
----
+## 모듈 시스템
 
-## 컨테이너 구성
+모든 기능은 **모듈**로 등록됩니다. 관리자가 개별 모듈을 on/off할 수 있습니다.
 
-### 코어 (8개)
+```
+GET /api/platform/modules  → 활성화된 모듈 목록 (인증 불필요)
+PATCH /api/admin/modules/{id}  → 모듈 활성화/비활성화 (admin)
+```
 
-| 컨테이너 | 이미지 | 포트 | 역할 |
-|-----------|--------|------|------|
-| **nginx** | `nginx:alpine` | 80, 443 | 리버스 프록시, TLS 종단 (`EXTERNAL_PROXY=true` 시 비활성화) |
-| **frontend** | 자체 빌드 | 3000 (내부) | Nuxt 3 SSR, Vue 3 SPA |
-| **backend** | 자체 빌드 | 8000 (내부) | FastAPI, API Gateway, WebSocket (채팅 + 문서 공동편집) |
-| **postgres** | `postgres:16-alpine` | 5432 (내부) | 포털 DB + Stalwart SQL directory + Gitea (단일 인스턴스) |
-| **redis** | `redis:7-alpine` | 6379 (내부) | 세션 캐시, WebSocket pub/sub, 레이트 리미팅 |
-| **stalwart** | `stalwartlabs/mail-server` | 25, 587, 993 | 메일 서버 (SMTP, IMAP, JMAP, Sieve) |
-| **livekit** | `livekit/livekit-server` | 7880, 7881, 7882/udp | WebRTC SFU (화상회의, 화면공유) |
-| **gitea** | `gitea/gitea` (MIT) | 3000 (내부), 22/2222 (SSH) | Git 호스팅, 저장소, 이슈, PR |
+내장 모듈: mail, chat, meetings, files, calendar, contacts, git
 
-### 선택적
+비활성화된 모듈:
+- 네비게이션에서 자동 숨김
+- API 호출 시 `403 이 기능은 비활성화되어 있습니다`
+- 페이지 접근 시 대시보드로 리다이렉트
 
-| 컨테이너 | 이미지 | 활성화 | 역할 |
-|-----------|--------|--------|------|
-| **onlyoffice** | `onlyoffice/documentserver` (AGPL-3.0) | `ENABLE_OFFICE=true` | DOCX/XLSX/PPTX 웹 편집 + 동시 작업 (WOPI) |
-| **livekit-egress** | `livekit/egress` | `ENABLE_RECORDING=true` | 회의 녹화 |
+### 플로우
 
----
+```
+1. 앱 시작 → init_db() → load_module_states(db)
+2. 프론트엔드 부팅 → GET /api/platform/modules
+3. AppHeader.vue → enabledModules 기반 동적 네비게이션
+4. module-guard 미들웨어 → 비활성 모듈 페이지 차단
+5. @require_module 데코레이터 → API 레벨 차단
+```
+
+## 메일 아키텍처
+
+### IMAP/SMTP 클라이언트 모드 (기본)
+
+```
+사용자 → 포털 메일 UI → FastAPI 백엔드 → IMAP/SMTP → Gmail/Outlook/회사메일
+```
+
+- `mail_accounts` 테이블: 사용자별 IMAP/SMTP 서버 정보
+- 비밀번호: Fernet 대칭 암호화 (SECRET_KEY에서 키 파생)
+- 멀티 계정 지원
+- `aioimaplib`: 비동기 IMAP 클라이언트
+- `aiosmtplib`: 비동기 SMTP 클라이언트
+
+### 자체 메일서버 모드 (선택)
+
+```
+COMPOSE_PROFILES=mailserver
+FEATURE_BUILTIN_MAILSERVER=true
+
+사용자 → 포털 UI → FastAPI → IMAP/SMTP → Dovecot/Postfix → 인터넷
+```
+
+- Postfix (MTA) + Dovecot (IMAP) + Rspamd (스팸 필터)
+- 회원가입 시 메일 계정 자동 생성 (PostgreSQL users 테이블 연동)
+
+## 캘린더/연락처
+
+PostgreSQL 직접 CRUD. 외부 서비스 의존 없음.
+
+| 테이블 | 용도 |
+|--------|------|
+| `calendars` | 사용자별 캘린더 (이름, 색상, 정렬) |
+| `calendar_events` | 이벤트 (시작/종료, 종일, 위치, 상태) |
+| `calendar_shares` | 캘린더 공유 (읽기/쓰기 권한) |
+| `address_books` | 주소록 |
+| `contacts` | 연락처 (이메일/전화/주소 JSON 저장) |
 
 ## 인증 플로우
 
 ```
-사용자 → 포털 로그인 폼
-         → FastAPI → PostgreSQL users 테이블
-                     → bcrypt 비밀번호 검증
-                     → JWT 발급
-         → 포털 세션 발급
-
-Stalwart 메일 인증:
-         → Stalwart → PostgreSQL SQL directory
-                      → users 테이블 직접 조회
-                      → 인증 결과 반환
-
-Gitea SSO:
-         → Gitea → 포털 OAuth 2.0 Provider
-                   → 자동 로그인/계정 생성
+사용자 → 포털 로그인 폼 (ID/PW)
+       → FastAPI → bcrypt 해시 검증
+       → 성공 → 세션 쿠키 발급 (httponly, secure, SameSite=lax)
+       → 이후 모든 API 호출에 쿠키 자동 포함
 ```
 
-### 설계 효과
+Gitea SSO: OAuth 2.0 Provider → Gitea에서 포털 로그인으로 자동 인증
 
-- 인증 경로: DB 직접 1홉 (외부 IdP 경유 없음)
-- 단일 장애점 없음 (외부 IdP 서버 다운 → 인증 불가 문제 해소)
-- 모든 서비스가 동일한 users 테이블 참조
+## 데이터베이스
 
----
+단일 PostgreSQL 인스턴스:
+- `workspace` DB — 포털 전체 데이터
+- `gitea` DB — Gitea (별도 database, 같은 PostgreSQL)
 
-## 호스트 노출 포트
+## 포트 맵
 
-외부에서 접근 필요한 포트만 호스트에 노출:
-
-| 포트 | 서비스 | 프로토콜 |
-|------|--------|----------|
-| 80, 443 | nginx | HTTP/HTTPS |
-| 25 | stalwart | SMTP (메일 수신) |
-| 587 | stalwart | Submission (메일 발송) |
-| 993 | stalwart | IMAPS (메일 읽기) |
-| 22/2222 | gitea | Git SSH |
-| 7882 | livekit | WebRTC 미디어 (UDP) |
-
-나머지는 Docker 내부 네트워크 전용.
-
----
+| 포트 | 서비스 | 조건 |
+|------|--------|------|
+| 80, 443 | nginx | `COMPOSE_PROFILES=nginx` |
+| 3000 | frontend (Nuxt SSR) | 항상 |
+| 8000 | backend (FastAPI) | 항상 |
+| 5432 | PostgreSQL | 내부 |
+| 6379 | Redis | 내부 |
+| 25, 587 | Postfix (SMTP) | `COMPOSE_PROFILES=mailserver` |
+| 993, 143 | Dovecot (IMAP) | `COMPOSE_PROFILES=mailserver` |
+| 7880, 7882/udp | LiveKit | `COMPOSE_PROFILES=livekit` |
+| 2222 | Gitea SSH | `COMPOSE_PROFILES=gitea` |
 
 ## 의존성 라이선스
 
-| 구성요소 | 라이선스 | 비고 |
-|----------|----------|------|
-| Nuxt 3 | MIT | |
-| Vue 3 | MIT | |
-| FastAPI | MIT | |
-| SQLAlchemy | MIT | |
-| PostgreSQL | PostgreSQL License | BSD 계열 |
-| Redis | BSD-3-Clause (v7) | v7.4+는 RSALv2/SSPLv1 |
-| Stalwart | AGPL-3.0 | 동일 라이선스 |
-| Gitea | MIT | |
-| ONLYOFFICE Docs CE | AGPL-3.0 | 동일 라이선스, 선택적 |
-| Tiptap | MIT | 마크다운 에디터 |
-| Yjs | MIT | CRDT 실시간 공동 편집 |
-| LiveKit Server | Apache-2.0 | |
-| LiveKit Client SDK | Apache-2.0 | |
-| Nginx | BSD-2-Clause | |
-| TailwindCSS | MIT | |
-| shadcn-vue | MIT | |
-| **namgun-workspace** | **AGPL-3.0** | |
-
-> Redis v7.4 이후 라이선스가 RSALv2/SSPLv1 듀얼로 변경됨.
-> Docker 이미지로 사용하는 것은 허용되나, Redis 포크/재배포 시 주의 필요.
-> 대안: Valkey (BSD-3-Clause, Redis 7.2 포크)
+| 구성요소 | 라이선스 |
+|----------|----------|
+| Nuxt 3, Vue 3, TailwindCSS, shadcn-vue | MIT |
+| FastAPI, SQLAlchemy | MIT |
+| PostgreSQL | PostgreSQL License (BSD 계열) |
+| Redis | BSD-3-Clause (v7) |
+| Gitea | MIT |
+| LiveKit | Apache-2.0 |
+| aioimaplib | Apache-2.0 |
+| aiosmtplib | MIT |
+| cryptography | Apache-2.0 / BSD-3 |
+| ONLYOFFICE Docs CE | AGPL-3.0 (선택적) |
+| Postfix | IBM Public License (선택적) |
+| Dovecot | MIT/LGPL-2.1 (선택적) |
+| Rspamd | Apache-2.0 (선택적) |
+| **namgun-workspace** | **AGPL-3.0** |

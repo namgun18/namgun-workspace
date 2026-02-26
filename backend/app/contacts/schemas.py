@@ -63,8 +63,3 @@ class AddressBookListResponse(BaseModel):
 class ContactListResponse(BaseModel):
     contacts: list[Contact]
     total: int = 0
-
-
-class SyncInfo(BaseModel):
-    carddav_url: str
-    description: str

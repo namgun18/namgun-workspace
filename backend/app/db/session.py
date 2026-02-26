@@ -4,7 +4,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import get_settings
-from app.db.models import Base, AccessLog, Channel, ChannelMember, Message, Notification, Reaction  # noqa: F401 — ensure all models registered
+from app.db.models import (  # noqa: F401 — ensure all models registered
+    Base, AccessLog, Channel, ChannelMember, Message, Notification, Reaction,
+    SystemSetting, MailAccount, CalendarDB, CalendarEventDB, CalendarShareDB,
+    AddressBookDB, ContactDB,
+)
 
 settings = get_settings()
 engine = create_async_engine(
