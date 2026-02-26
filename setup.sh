@@ -288,13 +288,22 @@ if [[ "${COMPOSE_PROFILES:-}" == *"livekit"* ]]; then
 
     info "Generating livekit/livekit.yaml..."
     mkdir -p "$SCRIPT_DIR/livekit"
+
+    if [[ -n "$PUBLIC_IP" ]]; then
+        USE_EXT_IP="true"
+        NODE_IP_LINE="  node_ip: $PUBLIC_IP"
+    else
+        USE_EXT_IP="false"
+        NODE_IP_LINE=""
+    fi
+
     cat > "$LIVEKIT_YAML" <<LKEOF
 port: 7880
 rtc:
   port_range_start: 7882
   port_range_end: 7882
-  use_external_ip: ${PUBLIC_IP:+true}${PUBLIC_IP:-false}
-${PUBLIC_IP:+  node_ip: $PUBLIC_IP}
+  use_external_ip: ${USE_EXT_IP}
+${NODE_IP_LINE}
   tcp_port: 7881
 keys:
   ${LK_KEY}: ${LK_SECRET}
