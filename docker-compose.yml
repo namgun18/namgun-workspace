@@ -113,7 +113,8 @@ services:
       - "587:587"
       - "993:993"
       - "143:143"
-      - "${MAIL_HTTP_PORT:-8080}:80"
+    expose:
+      - "80"
     volumes:
       - mail-data:/var/mail
       - mail-state:/var/mail-state
