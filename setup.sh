@@ -277,6 +277,43 @@ if [[ "${COMPOSE_PROFILES:-}" == *"mailserver"* ]]; then
     fi
 fi
 
+# ─── 7½. LiveKit config (if livekit profile) ───
+if [[ "${COMPOSE_PROFILES:-}" == *"livekit"* ]]; then
+    LIVEKIT_YAML="$SCRIPT_DIR/livekit/livekit.yaml"
+    LK_KEY="${LIVEKIT_API_KEY:-devkey}"
+    LK_SECRET="${LIVEKIT_API_SECRET:-secret}"
+
+    # Detect public IP for WebRTC
+    PUBLIC_IP=$(curl -sf --max-time 5 https://api.ipify.org 2>/dev/null || echo "")
+
+    info "Generating livekit/livekit.yaml..."
+    mkdir -p "$SCRIPT_DIR/livekit"
+    cat > "$LIVEKIT_YAML" <<LKEOF
+port: 7880
+rtc:
+  port_range_start: 7882
+  port_range_end: 7882
+  use_external_ip: ${PUBLIC_IP:+true}${PUBLIC_IP:-false}
+${PUBLIC_IP:+  node_ip: $PUBLIC_IP}
+  tcp_port: 7881
+keys:
+  ${LK_KEY}: ${LK_SECRET}
+room:
+  enabled_codecs:
+    - mime: video/vp9
+    - mime: video/h264
+    - mime: video/vp8
+    - mime: audio/opus
+    - mime: audio/red
+LKEOF
+    ok "LiveKit config created (API key: $LK_KEY)"
+fi
+
+# ─── 7¾. Gitea initial setup ───
+if [[ "${COMPOSE_PROFILES:-}" == *"gitea"* ]]; then
+    info "Gitea will be available at ${APP_URL:-http://localhost}/git/"
+fi
+
 # ─── 8. Create storage volume (external) and build ───
 STORAGE_VOL="${STORAGE_VOLUME:-ws-storage-data}"
 if docker volume inspect "$STORAGE_VOL" >/dev/null 2>&1; then
@@ -321,6 +358,15 @@ if [[ -n "$ADMIN_USER_VAR" && -n "$ADMIN_PASS_VAR" ]]; then
     docker exec ws-backend python -m app.cli seed-admin \
         --username "$ADMIN_USER_VAR" \
         --password "$ADMIN_PASS_VAR" || warn "Admin seed failed — check backend logs"
+fi
+
+# ─── 10½. Mailserver noreply account ───
+if [[ "${COMPOSE_PROFILES:-}" == *"mailserver"* ]]; then
+    info "Creating noreply mail account..."
+    SMTP_PW="${SMTP_PASSWORD:-$(openssl rand -hex 12)}"
+    docker exec ws-mailserver setup email add "noreply@${DOMAIN:-localhost}" "$SMTP_PW" 2>/dev/null \
+        && ok "noreply@${DOMAIN:-localhost} created" \
+        || warn "noreply account creation failed (mailserver may still be starting)"
 fi
 
 # ─── 11. Done ───
