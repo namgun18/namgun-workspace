@@ -20,7 +20,7 @@ Microsoft 365, Google Workspace 같은 SaaS에 종속되지 않고, 자체 서�
 ### 원클릭 설치 (권장)
 
 ```bash
-git clone https://github.com/namgun/namgun-workspace.git
+git clone https://git.namgun.or.kr/namgun/namgun-workspace.git
 cd namgun-workspace
 sudo bash setup.sh
 ```
@@ -31,7 +31,7 @@ sudo bash setup.sh
 ### 수동 설치
 
 ```bash
-git clone https://github.com/namgun/namgun-workspace.git
+git clone https://git.namgun.or.kr/namgun/namgun-workspace.git
 cd namgun-workspace
 cp .env.example .env
 # .env 편집 (DB_PASSWORD, SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD 등)
