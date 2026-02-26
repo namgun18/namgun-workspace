@@ -212,8 +212,7 @@ async def list_mailboxes(account: MailAccount) -> list[dict]:
         }
         role_order = {"inbox": 0, "drafts": 1, "sent": 2, "junk": 3, "trash": 4, "archive": 5}
 
-        # Deduplicate: prefer mailboxes with IMAP special-use flags
-        seen_roles: dict[str, str] = {}  # role → mailbox name
+        seen_roles: set[str] = set()
 
         for line in response.lines:
             if not line or line == b")" or line == b"":
@@ -229,9 +228,15 @@ async def list_mailboxes(account: MailAccount) -> list[dict]:
             flags = match.group(1)
             name = match.group(3).strip('"')
 
+            # Skip legacy/duplicate folders (Dovecot default aliases)
+            if name.startswith("_"):
+                continue
+            name_lower = name.lower()
+            if name_lower in ("sent items", "junk mail", "deleted items"):
+                continue
+
             # Detect role from IMAP special-use flags or folder name
             role = None
-            name_lower = name.lower()
             if "\\Inbox" in flags or name_lower == "inbox":
                 role = "inbox"
             elif "\\Sent" in flags:
@@ -247,13 +252,11 @@ async def list_mailboxes(account: MailAccount) -> list[dict]:
             else:
                 role = role_map.get(name_lower)
 
-            # Skip duplicate roles: prefer the one with IMAP flags (e.g. Sent over _Sent)
-            has_special_flag = any(f"\\{r.title()}" in flags for r in ["sent", "drafts", "junk", "trash", "archive"])
+            # Skip if we already have a folder for this role
             if role and role in seen_roles:
-                if not has_special_flag:
-                    continue  # skip this duplicate, keep the flagged one
+                continue
             if role:
-                seen_roles[role] = name
+                seen_roles.add(role)
 
             # Get message counts
             total = 0
@@ -282,16 +285,8 @@ async def list_mailboxes(account: MailAccount) -> list[dict]:
                 "sort_order": sort_order,
             })
 
-        # Remove duplicates: if a role appears multiple times, keep only the flagged one
-        final = []
-        for mb in mailboxes:
-            role = mb["role"]
-            if role and role in seen_roles and mb["id"] != seen_roles[role]:
-                continue
-            final.append(mb)
-
-        final.sort(key=lambda m: (m["sort_order"], m["name"]))
-        return final
+        mailboxes.sort(key=lambda m: (m["sort_order"], m["name"]))
+        return mailboxes
     finally:
         try:
             await imap.logout()
