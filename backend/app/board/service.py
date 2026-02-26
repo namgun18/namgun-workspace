@@ -304,6 +304,99 @@ async def search_posts(
     }
 
 
+# ─── Dashboard ───
+
+async def get_recent_posts(db: AsyncSession, limit: int = 10) -> list[dict]:
+    """Get recent posts across all boards for dashboard."""
+    rows = (
+        await db.execute(
+            select(Post, Board.name.label("board_name"))
+            .join(Board, Post.board_id == Board.id)
+            .where(Post.is_deleted == False)  # noqa: E712
+            .order_by(Post.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+
+    author_ids = list({p.author_id for p, _ in rows})
+    authors = {}
+    if author_ids:
+        user_rows = (
+            await db.execute(select(User).where(User.id.in_(author_ids)))
+        ).scalars().all()
+        authors = {u.id: u for u in user_rows}
+
+    return [
+        {**_post_to_summary(p, authors.get(p.author_id)), "board_name": bn}
+        for p, bn in rows
+    ]
+
+
+async def get_notice_posts(db: AsyncSession, limit: int = 5) -> list[dict]:
+    """Get pinned/notice posts across all boards for dashboard."""
+    rows = (
+        await db.execute(
+            select(Post, Board.name.label("board_name"))
+            .join(Board, Post.board_id == Board.id)
+            .where(
+                Post.is_deleted == False,  # noqa: E712
+                Post.is_pinned == True,  # noqa: E712
+            )
+            .order_by(Post.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+
+    author_ids = list({p.author_id for p, _ in rows})
+    authors = {}
+    if author_ids:
+        user_rows = (
+            await db.execute(select(User).where(User.id.in_(author_ids)))
+        ).scalars().all()
+        authors = {u.id: u for u in user_rows}
+
+    return [
+        {**_post_to_summary(p, authors.get(p.author_id)), "board_name": bn}
+        for p, bn in rows
+    ]
+
+
+async def get_recent_posts_by_board(db: AsyncSession, limit_per_board: int = 5) -> list[dict]:
+    """Get recent posts grouped by board for the board index page."""
+    boards_list = (
+        await db.execute(select(Board).order_by(Board.sort_order, Board.created_at))
+    ).scalars().all()
+
+    result = []
+    for board in boards_list:
+        rows = (
+            await db.execute(
+                select(Post)
+                .where(
+                    Post.board_id == board.id,
+                    Post.is_deleted == False,  # noqa: E712
+                )
+                .order_by(Post.created_at.desc())
+                .limit(limit_per_board)
+            )
+        ).scalars().all()
+
+        author_ids = list({p.author_id for p in rows})
+        authors = {}
+        if author_ids:
+            user_rows = (
+                await db.execute(select(User).where(User.id.in_(author_ids)))
+            ).scalars().all()
+            authors = {u.id: u for u in user_rows}
+
+        result.append({
+            **_board_to_dict(board),
+            "recent_posts": [_post_to_summary(p, authors.get(p.author_id)) for p in rows],
+        })
+
+    return result
+
+
 # ─── Comments ───
 
 async def get_comments(db: AsyncSession, post_id: str) -> list[dict]:

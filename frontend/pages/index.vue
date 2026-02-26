@@ -15,9 +15,17 @@ definePageMeta({ layout: 'default' })
       <!-- Left 2 cols: recent mail -->
       <DashboardRecentMail />
 
-      <!-- Right col: shortcuts + storage -->
+      <!-- Right col: notices + shortcuts -->
       <div class="space-y-4">
+        <DashboardNotices />
         <DashboardShortcuts />
+      </div>
+
+      <!-- Left 2 cols: recent board posts -->
+      <DashboardRecentBoard />
+
+      <!-- Right col: storage -->
+      <div class="space-y-4">
         <DashboardStorage />
       </div>
 

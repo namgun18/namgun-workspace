@@ -125,19 +125,37 @@ function formatSize(bytes: number): string {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-6">
-    <div class="flex items-center gap-3 mb-6">
-      <button @click="router.back()" class="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-      </button>
-      <h1 class="text-lg font-semibold">
-        {{ isEditMode ? '게시글 수정' : '게시글 작성' }}
-      </h1>
+  <div class="flex h-full overflow-hidden relative">
+    <!-- Sidebar (hidden on mobile for write page, always present on desktop) -->
+    <div
+      class="shrink-0 h-full hidden md:block w-56 bg-transparent"
+    >
+      <BoardSidebar />
     </div>
 
-    <div class="space-y-4">
+    <!-- Main content -->
+    <div class="flex-1 flex flex-col min-w-0 min-h-0">
+      <!-- Command bar -->
+      <div class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 border-b bg-background">
+        <button @click="router.back()" class="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          <span class="hidden sm:inline">뒤로</span>
+        </button>
+        <h2 class="text-sm font-semibold">
+          {{ isEditMode ? '게시글 수정' : '게시글 작성' }}
+        </h2>
+        <div class="flex-1" />
+        <UiButton variant="outline" size="sm" @click="router.back()">취소</UiButton>
+        <UiButton size="sm" @click="handleSubmit" :disabled="submitting">
+          {{ submitting ? '저장 중...' : (isEditMode ? '수정' : '등록') }}
+        </UiButton>
+      </div>
+
+      <!-- Editor area -->
+      <div class="flex-1 overflow-auto p-4 sm:p-6 max-w-4xl">
+        <div class="space-y-4">
       <!-- Category + options row -->
       <div class="flex items-center gap-3 flex-wrap">
         <select
@@ -206,12 +224,7 @@ function formatSize(bytes: number): string {
         </div>
       </div>
 
-      <!-- Submit -->
-      <div class="flex justify-end gap-2 pt-2">
-        <UiButton variant="outline" @click="router.back()">취소</UiButton>
-        <UiButton @click="handleSubmit" :disabled="submitting">
-          {{ submitting ? '저장 중...' : (isEditMode ? '수정' : '등록') }}
-        </UiButton>
+        </div>
       </div>
     </div>
   </div>

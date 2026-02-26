@@ -330,6 +330,38 @@ async def list_must_read(
     return await service.get_must_read_posts(db, user.id)
 
 
+# ─── Dashboard ───
+
+@router.get("/recent-posts")
+@require_module("board")
+async def recent_posts(
+    limit: int = Query(10, ge=1, le=30),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await service.get_recent_posts(db, limit=limit)
+
+
+@router.get("/notices")
+@require_module("board")
+async def notice_posts(
+    limit: int = Query(5, ge=1, le=20),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await service.get_notice_posts(db, limit=limit)
+
+
+@router.get("/boards-with-posts")
+@require_module("board")
+async def boards_with_recent_posts(
+    limit_per_board: int = Query(5, ge=1, le=10),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await service.get_recent_posts_by_board(db, limit_per_board=limit_per_board)
+
+
 # ─── Search ───
 
 @router.get("/search")
