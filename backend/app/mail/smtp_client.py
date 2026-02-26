@@ -87,6 +87,11 @@ async def send_message(
     use_tls = account.smtp_security == "ssl"
     start_tls = account.smtp_security == "starttls"
 
+    import ssl as _ssl
+    tls_context = _ssl.create_default_context()
+    tls_context.check_hostname = False
+    tls_context.verify_mode = _ssl.CERT_NONE
+
     try:
         await aiosmtplib.send(
             msg,
@@ -96,6 +101,7 @@ async def send_message(
             password=password,
             use_tls=use_tls,
             start_tls=start_tls,
+            tls_context=tls_context,
             recipients=recipients,
             timeout=30,
         )
@@ -107,9 +113,13 @@ async def send_message(
 
 async def test_connection(account: MailAccount) -> tuple[bool, str]:
     """Test SMTP connection. Returns (success, message)."""
+    import ssl as _ssl
     password = decrypt_password(account.password_encrypted)
     use_tls = account.smtp_security == "ssl"
     start_tls = account.smtp_security == "starttls"
+    tls_context = _ssl.create_default_context()
+    tls_context.check_hostname = False
+    tls_context.verify_mode = _ssl.CERT_NONE
 
     try:
         smtp = aiosmtplib.SMTP(
@@ -117,6 +127,7 @@ async def test_connection(account: MailAccount) -> tuple[bool, str]:
             port=account.smtp_port,
             use_tls=use_tls,
             start_tls=start_tls,
+            tls_context=tls_context,
             timeout=15,
         )
         await smtp.connect()

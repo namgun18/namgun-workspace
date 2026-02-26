@@ -135,13 +135,20 @@ def _extract_attachments(msg: EmailMessage) -> list[dict]:
 
 async def _connect(account: MailAccount) -> aioimaplib.IMAP4_SSL | aioimaplib.IMAP4:
     """Connect and authenticate to IMAP server."""
+    import ssl as _ssl
     password = decrypt_password(account.password_encrypted)
+
+    # Create SSL context that doesn't verify certificates for internal servers
+    ssl_context = _ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = _ssl.CERT_NONE
 
     if account.imap_security == "ssl":
         imap = aioimaplib.IMAP4_SSL(
             host=account.imap_host,
             port=account.imap_port,
             timeout=30,
+            ssl_context=ssl_context,
         )
     else:
         imap = aioimaplib.IMAP4(
@@ -153,7 +160,7 @@ async def _connect(account: MailAccount) -> aioimaplib.IMAP4_SSL | aioimaplib.IM
     await imap.wait_hello_from_server()
 
     if account.imap_security == "starttls":
-        await imap.starttls()
+        await imap.starttls(ssl_context=ssl_context)
 
     response = await imap.login(account.username, password)
     if response.result != "OK":
