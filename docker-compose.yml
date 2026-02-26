@@ -113,7 +113,7 @@ services:
       - ./scripts/certbot-entrypoint.sh:/entrypoint.sh:ro
     environment:
       ACME_MODE: ${ACME_MODE:-standalone}
-      ACME_DOMAINS: ${DOMAIN:-localhost},mail.${DOMAIN:-localhost}
+      ACME_DOMAINS: mail.${DOMAIN:-localhost},${DOMAIN:-localhost}
       ACME_EMAIL: ${LETSENCRYPT_EMAIL:-admin@localhost}
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     restart: unless-stopped
