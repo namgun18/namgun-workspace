@@ -113,6 +113,7 @@ services:
       - "587:587"
       - "993:993"
       - "143:143"
+      - "${MAIL_HTTP_PORT:-8080}:80"
     volumes:
       - mail-data:/var/mail
       - mail-state:/var/mail-state
@@ -128,9 +129,11 @@ services:
       ENABLE_CLAMAV: 0
       ENABLE_FAIL2BAN: 0
       RSPAMD_GREYLISTING: 0
-      SSL_TYPE: manual
+      SSL_TYPE: ${MAIL_SSL_TYPE:-letsencrypt}
       SSL_CERT_PATH: /tmp/docker-mailserver/ssl/fullchain.pem
       SSL_KEY_PATH: /tmp/docker-mailserver/ssl/privkey.pem
+      LETSENCRYPT_DOMAIN: mail.${DOMAIN:-localhost}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@localhost}
       POSTMASTER_ADDRESS: postmaster@${DOMAIN:-localhost}
       PERMIT_DOCKER: connected-networks
       ONE_DIR: 1
