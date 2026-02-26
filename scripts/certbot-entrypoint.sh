@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 # ── 도메인 인자 구성 ──
 DOMAIN_ARGS=""
@@ -23,14 +22,25 @@ done
 
 if [ "$NEED_ISSUE" = true ]; then
   echo "[certbot] No existing certificate found — requesting initial issuance"
-  if [ "$ACME_MODE" = "webroot" ]; then
-    certbot certonly --webroot -w /var/www/certbot \
-      --email "$ACME_EMAIL" --agree-tos --no-eff-email \
-      $DOMAIN_ARGS
-  else
-    certbot certonly --standalone \
-      --email "$ACME_EMAIL" --agree-tos --no-eff-email \
-      $DOMAIN_ARGS
+  RETRY=0
+  MAX_RETRY=5
+  while [ "$RETRY" -lt "$MAX_RETRY" ]; do
+    if [ "$ACME_MODE" = "webroot" ]; then
+      certbot certonly --webroot -w /var/www/certbot \
+        --email "$ACME_EMAIL" --agree-tos --no-eff-email \
+        $DOMAIN_ARGS && break
+    else
+      certbot certonly --standalone \
+        --email "$ACME_EMAIL" --agree-tos --no-eff-email \
+        $DOMAIN_ARGS && break
+    fi
+    RETRY=$((RETRY + 1))
+    DELAY=$((RETRY * 300))
+    echo "[certbot] Issuance failed (attempt $RETRY/$MAX_RETRY), retrying in ${DELAY}s..."
+    sleep "$DELAY"
+  done
+  if [ "$RETRY" -ge "$MAX_RETRY" ]; then
+    echo "[certbot] Initial issuance failed after $MAX_RETRY attempts. Entering renewal-only mode."
   fi
 fi
 
