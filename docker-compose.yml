@@ -99,49 +99,43 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  # ─── 6. Postfix (MTA) — profiles: mailserver ───
-  postfix:
-    image: boky/postfix:latest
-    container_name: ws-postfix
+  # ─── 6. Mail Server (Postfix+Dovecot+Rspamd) — profiles: mailserver ───
+  # docker-mailserver (MIT) — https://github.com/docker-mailserver/docker-mailserver
+  mailserver:
+    image: mailserver/docker-mailserver:latest
+    container_name: ws-mailserver
+    hostname: mail.${DOMAIN:-localhost}
     profiles: ["mailserver"]
     ports:
       - "25:25"
+      - "465:465"
       - "587:587"
-    environment:
-      ALLOWED_SENDER_DOMAINS: ${DOMAIN:-localhost}
-      HOSTNAME: mail.${DOMAIN:-localhost}
-    volumes:
-      - ./mailserver/postfix:/etc/postfix/custom:ro
-      - mail-data:/var/mail
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ─── 6b. Dovecot (IMAP) — profiles: mailserver ───
-  dovecot:
-    image: dovecot/dovecot:latest
-    container_name: ws-dovecot
-    profiles: ["mailserver"]
-    ports:
       - "993:993"
       - "143:143"
     volumes:
-      - ./mailserver/dovecot:/etc/dovecot/conf.d/custom:ro
       - mail-data:/var/mail
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ─── 6c. Rspamd (spam filter) — profiles: mailserver ───
-  rspamd:
-    image: rspamd/rspamd:latest
-    container_name: ws-rspamd
-    profiles: ["mailserver"]
-    volumes:
-      - ./mailserver/rspamd:/etc/rspamd/local.d:ro
-      - rspamd-data:/var/lib/rspamd
+      - mail-state:/var/mail-state
+      - mail-logs:/var/log/mail
+      - ./mailserver/config:/tmp/docker-mailserver
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      ENABLE_RSPAMD: 1
+      ENABLE_OPENDKIM: 0
+      ENABLE_OPENDMARC: 0
+      ENABLE_AMAVIS: 0
+      ENABLE_SPAMASSASSIN: 0
+      ENABLE_CLAMAV: 0
+      ENABLE_FAIL2BAN: 0
+      RSPAMD_GREYLISTING: 0
+      SSL_TYPE: manual
+      SSL_CERT_PATH: /tmp/docker-mailserver/ssl/fullchain.pem
+      SSL_KEY_PATH: /tmp/docker-mailserver/ssl/privkey.pem
+      POSTMASTER_ADDRESS: postmaster@${DOMAIN:-localhost}
+      PERMIT_DOCKER: connected-networks
+      ONE_DIR: 1
+      OVERRIDE_HOSTNAME: mail.${DOMAIN:-localhost}
+    cap_add:
+      - NET_ADMIN
     restart: unless-stopped
 
   # ─── 7. Gitea — profiles: gitea ───
@@ -192,8 +186,10 @@ volumes:
     external: true
   mail-data:
     name: ws-mail-data
-  rspamd-data:
-    name: ws-rspamd-data
+  mail-state:
+    name: ws-mail-state
+  mail-logs:
+    name: ws-mail-logs
   gitea-data:
     name: ws-gitea-data
   certbot-data:
