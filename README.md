@@ -122,6 +122,7 @@ docker compose up -d
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
+| v3.2.2 | 2026-02-27 | setup.sh 전면 재작성 — 배포 모드 도입 (external_proxy/standalone/dev), nginx.conf 모드별 자동 생성, standalone SSL 자동화 (override.yml + certbot), Stalwart 변수 제거, `local` 버그 수정, 5단계 배포 후 검증 체인 |
 | v3.2.1 | 2026-02-26 | Docker 내부 네트워크 재설계 (172.28.0.0/24 고정 IP, nginx 단일 진입점), LiveKit 재시작 루프 해결, 메일 From 헤더 RFC 2047 인코딩, Sent 폴더 자동 저장 |
 | v3.2.0 | 2026-02-26 | Phase 5: 배포 자동화 — setup.sh 인터랙티브 스크립트, 관리자 시드 CLI, DKIM 생성, docker-compose 볼륨 자동 생성 |
 | v3.1.0 | 2026-02-26 | 메일 상용 기능 (스팸 지정, 헤더 보기, 편지함 CRUD, 수신확인/MDN), 헬스체크 대시보드 최신화, 보안/버그/레거시 코드 전면 점검 및 수정 |
