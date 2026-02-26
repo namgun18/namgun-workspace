@@ -7,7 +7,7 @@
 ## 배포 예시:
 ##   풀스택:      COMPOSE_PROFILES=nginx,certbot,mailserver,gitea,livekit
 ##   클라우드 메일: COMPOSE_PROFILES=nginx,certbot,gitea,livekit
-##   외부 프록시:  COMPOSE_PROFILES=certbot,mailserver,livekit (현재 namgun.or.kr)
+##   외부 프록시:  COMPOSE_PROFILES=certbot,mailserver,livekit
 ##   최소:        COMPOSE_PROFILES= (코어만)
 ## ===========================================
 

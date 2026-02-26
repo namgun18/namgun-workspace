@@ -205,7 +205,7 @@ export function useGit() {
       currentBranch.value = selectedRepo.value.default_branch
       currentPath.value = ''
       repoTab.value = 'code'
-      cloneUrl.value = `https://git.namgun.or.kr/${owner}/${repo}.git`
+      cloneUrl.value = `${window.location.origin}/git/${owner}/${repo}.git`
       pushView('repo-detail')
       // Fetch contents, branches, and latest commit in parallel
       const [, , commitData] = await Promise.all([

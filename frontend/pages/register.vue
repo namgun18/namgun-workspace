@@ -14,8 +14,9 @@ const error = ref('')
 const submitting = ref(false)
 const success = ref(false)
 
+const domain = import.meta.client ? window.location.hostname : 'localhost'
 const emailPreview = computed(() =>
-  form.username ? `${form.username.toLowerCase()}@namgun.or.kr` : ''
+  form.username ? `${form.username.toLowerCase()}@${domain}` : ''
 )
 
 async function handleSubmit() {
@@ -36,7 +37,7 @@ async function handleSubmit() {
     return
   }
 
-  if (form.recovery_email.endsWith('@namgun.or.kr')) {
+  if (form.recovery_email.endsWith(`@${domain}`)) {
     error.value = '복구 이메일은 외부 이메일 주소를 사용해주세요.'
     return
   }
@@ -74,7 +75,7 @@ async function handleSubmit() {
       </svg>
       <h1 class="text-2xl font-bold">회원가입</h1>
       <p class="text-sm text-muted-foreground">
-        namgun.or.kr 포털 계정을 만드세요
+        Workspace 계정을 만드세요
       </p>
     </div>
 
@@ -161,7 +162,7 @@ async function handleSubmit() {
           class="w-full px-3 py-2.5 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
         />
         <p class="mt-1 text-xs text-muted-foreground">
-          @namgun.or.kr 이외의 외부 이메일을 입력해주세요
+          @{{ domain }} 이외의 외부 이메일을 입력해주세요
         </p>
       </div>
 

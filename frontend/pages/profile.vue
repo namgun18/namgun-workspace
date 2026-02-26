@@ -4,6 +4,7 @@ import type { Signature } from '~/composables/useMailSignature'
 definePageMeta({ layout: 'default' })
 
 const { user, updateProfile, changePassword, uploadAvatar } = useAuth()
+const domain = import.meta.client ? window.location.hostname : 'localhost'
 const { signatures, loading: sigLoading, fetchSignatures, createSignature, updateSignature, deleteSignature } = useMailSignature()
 
 function stripHtml(html: string): string {
@@ -270,7 +271,7 @@ async function handlePasswordSubmit() {
               placeholder="비밀번호 찾기에 사용할 외부 이메일"
               class="w-full px-3 py-2.5 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
             />
-            <p class="mt-1 text-xs text-muted-foreground">@namgun.or.kr 이외의 외부 이메일</p>
+            <p class="mt-1 text-xs text-muted-foreground">자체 도메인 이외의 외부 이메일</p>
           </div>
 
           <p v-if="profileError" class="text-sm text-destructive">{{ profileError }}</p>
@@ -348,7 +349,7 @@ async function handlePasswordSubmit() {
             <textarea
               v-model="sigForm.html_content"
               rows="4"
-              placeholder="<p>홍길동<br>namgun.or.kr</p>"
+              placeholder="<p>홍길동<br>회사명</p>"
               class="w-full px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono resize-none"
             />
           </div>
@@ -388,12 +389,12 @@ async function handlePasswordSubmit() {
             <label class="block text-sm font-medium mb-1">CalDAV (캘린더)</label>
             <div class="flex items-center gap-2">
               <input
-                :value="`https://mail.namgun.or.kr/dav/calendars/${user?.email || ''}/`"
+                :value="`https://mail.${domain}/dav/calendars/${user?.email || ''}/`"
                 readonly
                 class="flex-1 px-3 py-2 text-sm border rounded-lg bg-muted font-mono cursor-text"
               />
               <button
-                @click="navigator.clipboard.writeText(`https://mail.namgun.or.kr/dav/calendars/${user?.email || ''}/`)"
+                @click="navigator.clipboard.writeText(`https://mail.${domain}/dav/calendars/${user?.email || ''}/`)"
                 class="px-3 py-2 text-sm border rounded-lg hover:bg-accent transition-colors shrink-0"
                 title="복사"
               >
@@ -406,12 +407,12 @@ async function handlePasswordSubmit() {
             <label class="block text-sm font-medium mb-1">CardDAV (연락처)</label>
             <div class="flex items-center gap-2">
               <input
-                :value="`https://mail.namgun.or.kr/dav/addressbooks/${user?.email || ''}/`"
+                :value="`https://mail.${domain}/dav/addressbooks/${user?.email || ''}/`"
                 readonly
                 class="flex-1 px-3 py-2 text-sm border rounded-lg bg-muted font-mono cursor-text"
               />
               <button
-                @click="navigator.clipboard.writeText(`https://mail.namgun.or.kr/dav/addressbooks/${user?.email || ''}/`)"
+                @click="navigator.clipboard.writeText(`https://mail.${domain}/dav/addressbooks/${user?.email || ''}/`)"
                 class="px-3 py-2 text-sm border rounded-lg hover:bg-accent transition-colors shrink-0"
                 title="복사"
               >
@@ -422,7 +423,7 @@ async function handlePasswordSubmit() {
 
           <div class="text-xs text-muted-foreground space-y-1">
             <p>사용자명: 이메일 주소 ({{ user?.email }})</p>
-            <p>비밀번호: namgun.or.kr 계정 비밀번호와 동일</p>
+            <p>비밀번호: Workspace 계정 비밀번호와 동일</p>
           </div>
         </div>
       </div>

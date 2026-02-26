@@ -53,7 +53,7 @@ const showTabs = computed(() =>
 
     <!-- Gitea link -->
     <a
-      :href="selectedRepo ? selectedRepo.html_url : 'https://git.namgun.or.kr'"
+      :href="selectedRepo ? selectedRepo.html_url : '/git/'"
       target="_blank"
       rel="noopener"
       class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground rounded-md border hover:bg-accent hover:text-foreground transition-colors"

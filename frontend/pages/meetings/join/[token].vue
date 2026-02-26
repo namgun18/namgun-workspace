@@ -139,7 +139,7 @@ const otherParticipants = computed(() => participants.value.filter(p => p !== sc
     <!-- 간소화 헤더 -->
     <header v-if="step !== 'device-setup' && step !== 'room'" class="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
       <div class="flex h-14 items-center justify-between px-4">
-        <span class="font-bold text-lg">namgun.or.kr</span>
+        <span class="font-bold text-lg">Workspace</span>
         <span class="text-sm text-muted-foreground">화상회의</span>
       </div>
       <div class="h-0.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-80" />
