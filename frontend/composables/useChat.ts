@@ -30,6 +30,13 @@ export interface ReadByUser {
   avatar_url: string | null
 }
 
+export interface ReactionGroup {
+  emoji: string
+  count: number
+  user_ids: string[]
+  reacted: boolean
+}
+
 export interface ChatMessage {
   id: string
   channel_id: string
@@ -37,11 +44,14 @@ export interface ChatMessage {
   content: string
   message_type: 'text' | 'file' | 'system'
   file_meta: string | null
+  parent_id: string | null
+  reply_count: number
   is_edited: boolean
   is_deleted: boolean
   created_at: string
   updated_at: string
   read_by?: ReadByUser[]
+  reactions?: ReactionGroup[]
 }
 
 export interface ChannelMember {
@@ -80,6 +90,18 @@ const onlineUsers = ref<Set<string>>(new Set())
 const typingUsers = ref<Map<string, TypingUser>>(new Map())
 const showMemberPanel = ref(false)
 const allUsers = ref<WorkspaceUser[]>([])
+
+// Thread state
+const activeThreadId = ref<string | null>(null)
+const threadMessages = ref<ChatMessage[]>([])
+const threadParent = ref<ChatMessage | null>(null)
+const loadingThread = ref(false)
+
+// Search state
+const searchQuery = ref('')
+const searchResults = ref<any[]>([])
+const searchLoading = ref(false)
+const showSearchPanel = ref(false)
 
 let _ws: WebSocket | null = null
 let _reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -127,6 +149,11 @@ export function useChat() {
     selectedChannelId.value = id
     messages.value = []
     typingUsers.value = new Map()
+    // Close thread/search panels on channel switch
+    activeThreadId.value = null
+    threadMessages.value = []
+    threadParent.value = null
+    showSearchPanel.value = false
     await Promise.all([fetchMessages(), fetchMembers()])
   }
 
@@ -277,6 +304,102 @@ export function useChat() {
     }
   }
 
+  // ─── Threads ───
+
+  async function openThread(messageId: string) {
+    activeThreadId.value = messageId
+    threadParent.value = messages.value.find(m => m.id === messageId) || null
+    await fetchThreadReplies(messageId)
+  }
+
+  function closeThread() {
+    activeThreadId.value = null
+    threadMessages.value = []
+    threadParent.value = null
+  }
+
+  async function fetchThreadReplies(parentId: string) {
+    loadingThread.value = true
+    try {
+      const data = await $fetch<{ replies: ChatMessage[] }>(
+        `/api/chat/messages/${parentId}/thread`
+      )
+      threadMessages.value = data.replies
+    } catch (e: any) {
+      console.error('fetchThreadReplies error:', e)
+    } finally {
+      loadingThread.value = false
+    }
+  }
+
+  function sendThreadReply(content: string, parentId: string) {
+    if (!selectedChannelId.value) return
+    if (_ws?.readyState === WebSocket.OPEN) {
+      _ws.send(JSON.stringify({
+        type: 'send_message',
+        channel_id: selectedChannelId.value,
+        content,
+        message_type: 'text',
+        parent_id: parentId,
+      }))
+    }
+  }
+
+  // ─── Reactions ───
+
+  function toggleReaction(messageId: string, emoji: string) {
+    if (_ws?.readyState === WebSocket.OPEN) {
+      _ws.send(JSON.stringify({
+        type: 'toggle_reaction',
+        message_id: messageId,
+        emoji,
+      }))
+    } else {
+      // REST fallback
+      $fetch(`/api/chat/messages/${messageId}/reactions`, {
+        method: 'POST',
+        body: { emoji },
+      }).then((result: any) => {
+        applyReactionUpdate(messageId, result.reactions)
+      }).catch(e => console.error('toggleReaction error:', e))
+    }
+  }
+
+  function applyReactionUpdate(messageId: string, reactions: any[]) {
+    const uid = user.value?.id
+    const mapped: ReactionGroup[] = (reactions || []).map((r: any) => ({
+      emoji: r.emoji,
+      count: r.count,
+      user_ids: r.user_ids || [],
+      reacted: uid ? (r.user_ids || []).includes(uid) : false,
+    }))
+
+    // Update in main messages
+    messages.value = messages.value.map(m =>
+      m.id === messageId ? { ...m, reactions: mapped } : m
+    )
+    // Update in thread messages
+    threadMessages.value = threadMessages.value.map(m =>
+      m.id === messageId ? { ...m, reactions: mapped } : m
+    )
+  }
+
+  // ─── Search ───
+
+  async function searchMessages(query: string, channelId?: string) {
+    searchLoading.value = true
+    try {
+      const params: Record<string, any> = { q: query, limit: 20 }
+      if (channelId) params.channel_id = channelId
+      searchResults.value = await $fetch<any[]>('/api/chat/messages/search', { params })
+    } catch (e: any) {
+      console.error('searchMessages error:', e)
+      searchResults.value = []
+    } finally {
+      searchLoading.value = false
+    }
+  }
+
   // ─── WebSocket ───
 
   function connectWS() {
@@ -348,7 +471,21 @@ export function useChat() {
     switch (data.type) {
       case 'new_message': {
         const msg = data.message as ChatMessage
-        // If in current channel, append
+        // Thread reply handling
+        if (msg.parent_id) {
+          // If this thread is currently open, append to thread messages
+          if (msg.parent_id === activeThreadId.value) {
+            if (!threadMessages.value.find(m => m.id === msg.id)) {
+              threadMessages.value = [...threadMessages.value, msg]
+            }
+          }
+          // Increment reply_count on parent in main messages
+          messages.value = messages.value.map(m =>
+            m.id === msg.parent_id ? { ...m, reply_count: (m.reply_count || 0) + 1 } : m
+          )
+          break
+        }
+        // Main message (not a thread reply)
         if (msg.channel_id === selectedChannelId.value) {
           // Avoid duplicates
           if (!messages.value.find(m => m.id === msg.id)) {
@@ -443,6 +580,12 @@ export function useChat() {
       case 'notification': {
         const { handleNotificationEvent } = useNotifications()
         handleNotificationEvent(data.notification)
+        break
+      }
+
+      case 'reaction_update': {
+        const msgId = data.message_id as string
+        applyReactionUpdate(msgId, data.reactions)
         break
       }
 
@@ -553,6 +696,16 @@ export function useChat() {
     typingUsers: readonly(typingUsers),
     showMemberPanel,
     allUsers: readonly(allUsers),
+    // Thread state
+    activeThreadId: readonly(activeThreadId),
+    threadMessages: readonly(threadMessages),
+    threadParent: readonly(threadParent),
+    loadingThread: readonly(loadingThread),
+    // Search state
+    searchQuery,
+    searchResults: readonly(searchResults),
+    searchLoading: readonly(searchLoading),
+    showSearchPanel,
     // Computed
     selectedChannel,
     sortedChannels,
@@ -578,5 +731,14 @@ export function useChat() {
     getDMDisplayName,
     connectWS,
     disconnectWS,
+    // Thread actions
+    openThread,
+    closeThread,
+    fetchThreadReplies,
+    sendThreadReply,
+    // Reaction actions
+    toggleReaction,
+    // Search actions
+    searchMessages,
   }
 }

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Channel, ChannelMember, Message, Notification, User
+from app.db.models import Channel, ChannelMember, Message, Notification, Reaction, User
 
 
 # ─── Channel ───
@@ -246,10 +246,11 @@ async def get_member_role(
 async def create_message(
     db: AsyncSession,
     channel_id: str,
-    sender_id: str,
+    sender_id: str | None,
     content: str,
     message_type: str = "text",
     file_meta: str | None = None,
+    parent_id: str | None = None,
 ) -> dict:
     msg = Message(
         id=str(uuid.uuid4()),
@@ -258,13 +259,14 @@ async def create_message(
         content=content,
         message_type=message_type,
         file_meta=file_meta,
+        parent_id=parent_id,
     )
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
 
     # Fetch sender info
-    sender = await db.get(User, sender_id)
+    sender = await db.get(User, sender_id) if sender_id else None
     return _message_to_dict(msg, sender)
 
 
@@ -281,6 +283,7 @@ async def get_messages(
         .where(
             Message.channel_id == channel_id,
             Message.is_deleted == False,  # noqa: E712
+            Message.parent_id == None,  # noqa: E711 — exclude thread replies from main view
         )
     )
 
@@ -311,9 +314,18 @@ async def get_messages(
     # Build read_by map: member → last_read created_at
     read_by_map = await _build_read_by_map(db, channel_id)
 
+    # Get reply counts for these messages
+    msg_ids = [msg.id for msg, _ in rows]
+    reply_counts = await get_thread_reply_count(db, msg_ids)
+
+    # Get reactions for these messages
+    reactions_map = await get_reactions_for_messages(db, msg_ids)
+
     result = []
     for msg, user in rows:
         d = _message_to_dict(msg, user)
+        d["reply_count"] = reply_counts.get(msg.id, 0)
+        d["reactions"] = reactions_map.get(msg.id, [])
         # Compute who has read this message (exclude sender)
         readers = []
         for member_info, read_up_to in read_by_map:
@@ -477,7 +489,47 @@ async def search_users(
     ]
 
 
-# ─── Helpers ───
+# ─── Message Search ───
+
+async def search_messages(
+    db: AsyncSession,
+    user_id: str,
+    query: str,
+    channel_id: str | None = None,
+    limit: int = 20,
+) -> list[dict]:
+    """Search messages the user has access to."""
+    # Get user's channel IDs
+    user_channels_q = select(ChannelMember.channel_id).where(
+        ChannelMember.user_id == user_id
+    )
+
+    q = (
+        select(Message, User, Channel)
+        .outerjoin(User, Message.sender_id == User.id)
+        .join(Channel, Message.channel_id == Channel.id)
+        .where(
+            Message.channel_id.in_(user_channels_q),
+            Message.is_deleted == False,  # noqa: E712
+            Message.content.ilike(f"%{query}%"),
+        )
+    )
+
+    if channel_id:
+        q = q.where(Message.channel_id == channel_id)
+
+    q = q.order_by(Message.created_at.desc()).limit(limit)
+    rows = (await db.execute(q)).all()
+
+    return [
+        {
+            **_message_to_dict(msg, user),
+            "channel_name": ch.name,
+            "channel_type": ch.type,
+        }
+        for msg, user, ch in rows
+    ]
+
 
 # ─── Mentions & Notifications ───
 
@@ -609,6 +661,124 @@ async def mark_notifications_read(
     return result.rowcount
 
 
+# ─── Threads ───
+
+async def get_thread_reply_count(
+    db: AsyncSession, message_ids: list[str]
+) -> dict[str, int]:
+    """Return {parent_id: reply_count} for the given message IDs."""
+    if not message_ids:
+        return {}
+    rows = (
+        await db.execute(
+            select(Message.parent_id, func.count(Message.id))
+            .where(
+                Message.parent_id.in_(message_ids),
+                Message.is_deleted == False,  # noqa: E712
+            )
+            .group_by(Message.parent_id)
+        )
+    ).all()
+    return {pid: cnt for pid, cnt in rows}
+
+
+async def get_thread_messages(
+    db: AsyncSession, parent_id: str, limit: int = 100
+) -> list[dict]:
+    """Get replies to a parent message, oldest first."""
+    rows = (
+        await db.execute(
+            select(Message, User)
+            .outerjoin(User, Message.sender_id == User.id)
+            .where(
+                Message.parent_id == parent_id,
+                Message.is_deleted == False,  # noqa: E712
+            )
+            .order_by(Message.created_at.asc())
+            .limit(limit)
+        )
+    ).all()
+
+    msg_ids = [msg.id for msg, _ in rows]
+    reactions_map = await get_reactions_for_messages(db, msg_ids)
+
+    result = []
+    for msg, user in rows:
+        d = _message_to_dict(msg, user)
+        d["reply_count"] = 0
+        d["reactions"] = reactions_map.get(msg.id, [])
+        result.append(d)
+    return result
+
+
+# ─── Reactions ───
+
+async def toggle_reaction(
+    db: AsyncSession, message_id: str, user_id: str, emoji: str
+) -> dict:
+    """Toggle a reaction: add if not exists, remove if exists. Returns action and reaction state."""
+    existing = (
+        await db.execute(
+            select(Reaction).where(
+                Reaction.message_id == message_id,
+                Reaction.user_id == user_id,
+                Reaction.emoji == emoji,
+            )
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        await db.delete(existing)
+        await db.commit()
+        action = "removed"
+    else:
+        db.add(Reaction(
+            id=str(uuid.uuid4()),
+            message_id=message_id,
+            user_id=user_id,
+            emoji=emoji,
+        ))
+        await db.commit()
+        action = "added"
+
+    # Return current reaction state for this message
+    reactions = await get_reactions_for_messages(db, [message_id])
+    return {
+        "action": action,
+        "message_id": message_id,
+        "reactions": reactions.get(message_id, []),
+    }
+
+
+async def get_reactions_for_messages(
+    db: AsyncSession, message_ids: list[str]
+) -> dict[str, list[dict]]:
+    """Return {message_id: [{emoji, count, user_ids}]} for the given message IDs."""
+    if not message_ids:
+        return {}
+    rows = (
+        await db.execute(
+            select(Reaction.message_id, Reaction.emoji, Reaction.user_id)
+            .where(Reaction.message_id.in_(message_ids))
+            .order_by(Reaction.emoji)
+        )
+    ).all()
+
+    # Group by message_id → emoji → user_ids
+    from collections import defaultdict
+    msg_emoji_map: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
+    for mid, emoji, uid in rows:
+        msg_emoji_map[mid][emoji].append(uid)
+
+    result: dict[str, list[dict]] = {}
+    for mid, emojis in msg_emoji_map.items():
+        result[mid] = [
+            {"emoji": emoji, "count": len(uids), "user_ids": uids}
+            for emoji, uids in emojis.items()
+        ]
+    return result
+
+
 # ─── Helpers ───
 
 def _message_to_dict(msg: Message, sender: User | None) -> dict:
@@ -624,6 +794,7 @@ def _message_to_dict(msg: Message, sender: User | None) -> dict:
         "content": msg.content,
         "message_type": msg.message_type,
         "file_meta": msg.file_meta,
+        "parent_id": msg.parent_id,
         "is_edited": msg.is_edited,
         "is_deleted": msg.is_deleted,
         "created_at": msg.created_at.isoformat(),

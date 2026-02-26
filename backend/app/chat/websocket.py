@@ -219,6 +219,7 @@ async def chat_ws(ws: WebSocket):
                 content = data.get("content", "").strip()
                 message_type = data.get("message_type", "text")
                 file_meta = data.get("file_meta")
+                parent_id = data.get("parent_id")
 
                 if not channel_id or not content:
                     await ws.send_json({"type": "error", "detail": "Missing channel_id or content"})
@@ -231,6 +232,7 @@ async def chat_ws(ws: WebSocket):
                     msg = await service.create_message(
                         db, channel_id, user_id, content,
                         message_type=message_type, file_meta=file_meta,
+                        parent_id=parent_id,
                     )
 
                     # Process @mentions
@@ -248,6 +250,30 @@ async def chat_ws(ws: WebSocket):
                 await manager.publish_to_channel(channel_id, {
                     "type": "new_message",
                     "message": msg,
+                })
+
+            elif msg_type == "toggle_reaction":
+                message_id = data.get("message_id")
+                emoji = data.get("emoji", "").strip()
+                if not message_id or not emoji:
+                    await ws.send_json({"type": "error", "detail": "Missing message_id or emoji"})
+                    continue
+
+                async with async_session() as db:
+                    from app.db.models import Message as MsgModel
+                    msg_obj = await db.get(MsgModel, message_id)
+                    if not msg_obj:
+                        await ws.send_json({"type": "error", "detail": "Message not found"})
+                        continue
+                    if not await service.is_channel_member(db, msg_obj.channel_id, user_id):
+                        await ws.send_json({"type": "error", "detail": "Not a member"})
+                        continue
+                    result = await service.toggle_reaction(db, message_id, user_id, emoji)
+
+                await manager.publish_to_channel(msg_obj.channel_id, {
+                    "type": "reaction_update",
+                    "message_id": message_id,
+                    "reactions": result["reactions"],
                 })
 
             elif msg_type == "typing":

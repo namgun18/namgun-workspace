@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
-const { init, cleanup, showMemberPanel, selectChannel } = useChat()
+const { init, cleanup, showMemberPanel, activeThreadId, showSearchPanel, selectChannel } = useChat()
 const route = useRoute()
 
 const showMobileSidebar = ref(false)
@@ -63,8 +63,10 @@ onUnmounted(() => {
         <ChatConversation />
       </div>
 
-      <!-- Member panel -->
-      <ChatMemberPanel v-if="showMemberPanel" class="hidden md:flex" />
+      <!-- Side panels (mutually exclusive) -->
+      <ChatSearchPanel v-if="showSearchPanel" class="hidden md:flex" />
+      <ChatThreadPanel v-else-if="activeThreadId" class="hidden md:flex" />
+      <ChatMemberPanel v-else-if="showMemberPanel" class="hidden md:flex" />
     </div>
 
     <!-- Create channel modal -->

@@ -10,6 +10,7 @@ const {
   sendMessage,
   sendTyping,
   loadMore,
+  openThread,
 } = useChat()
 </script>
 
@@ -22,6 +23,7 @@ const {
       :has-more="hasMoreMessages"
       :loading-more="loadingMore"
       @load-more="loadMore"
+      @open-thread="openThread"
     />
     <ChatTypingIndicator :typing-users="typingUsers" />
     <ChatInput @send="sendMessage" @typing="sendTyping" />

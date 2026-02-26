@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import get_settings
-from app.db.models import Base, AccessLog, Channel, ChannelMember, Message, Notification  # noqa: F401 — ensure all models registered
+from app.db.models import Base, AccessLog, Channel, ChannelMember, Message, Notification, Reaction  # noqa: F401 — ensure all models registered
 
 settings = get_settings()
 engine = create_async_engine(
@@ -22,6 +22,7 @@ async def _migrate_columns(conn):
         ("users", "email_verified", "BOOLEAN DEFAULT TRUE"),
         ("users", "email_verify_token", "VARCHAR(64)"),
         ("users", "email_verify_sent_at", "TIMESTAMPTZ"),
+        ("messages", "parent_id", "VARCHAR(36) REFERENCES messages(id) ON DELETE SET NULL"),
     ]
     for table, column, col_type in migrations:
         try:
@@ -30,6 +31,16 @@ async def _migrate_columns(conn):
             )
         except Exception:
             pass  # Column already exists
+
+    # Indexes
+    indexes = [
+        "CREATE INDEX IF NOT EXISTS ix_messages_parent_id ON messages(parent_id)",
+    ]
+    for idx_sql in indexes:
+        try:
+            await conn.execute(text(idx_sql))
+        except Exception:
+            pass
 
 
 async def init_db():

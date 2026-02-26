@@ -18,6 +18,7 @@ from app.chat.schemas import (
     MessageResponse,
     MessageUpdate,
     NotificationReadRequest,
+    ReactionToggle,
 )
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -185,8 +186,57 @@ async def send_message(
     msg = await service.create_message(
         db, channel_id, user.id, body.content,
         message_type=body.message_type, file_meta=body.file_meta,
+        parent_id=body.parent_id,
     )
     return msg
+
+
+@router.get("/messages/search")
+async def search_messages(
+    q: str = Query(..., min_length=1),
+    channel_id: str | None = Query(None),
+    limit: int = Query(20, ge=1, le=50),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    results = await service.search_messages(
+        db, user.id, q, channel_id=channel_id, limit=limit
+    )
+    return results
+
+
+@router.get("/messages/{message_id}/thread")
+async def get_thread(
+    message_id: str,
+    limit: int = Query(100, ge=1, le=200),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.db.models import Message as MsgModel
+    parent = await db.get(MsgModel, message_id)
+    if not parent:
+        raise HTTPException(404, "메시지를 찾을 수 없습니다")
+    if not await service.is_channel_member(db, parent.channel_id, user.id):
+        raise HTTPException(403, "채널 멤버가 아닙니다")
+    replies = await service.get_thread_messages(db, message_id, limit=limit)
+    return {"replies": replies}
+
+
+@router.post("/messages/{message_id}/reactions")
+async def toggle_reaction(
+    message_id: str,
+    body: ReactionToggle,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.db.models import Message as MsgModel
+    msg = await db.get(MsgModel, message_id)
+    if not msg:
+        raise HTTPException(404, "메시지를 찾을 수 없습니다")
+    if not await service.is_channel_member(db, msg.channel_id, user.id):
+        raise HTTPException(403, "채널 멤버가 아닙니다")
+    result = await service.toggle_reaction(db, message_id, user.id, body.emoji)
+    return result
 
 
 @router.patch("/messages/{message_id}")

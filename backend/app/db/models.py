@@ -140,6 +140,7 @@ class Message(Base):
     __tablename__ = "messages"
     __table_args__ = (
         Index("ix_messages_channel_created", "channel_id", "created_at"),
+        Index("ix_messages_parent_id", "parent_id"),
     )
 
     id: Mapped[str] = mapped_column(
@@ -154,6 +155,9 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text)
     message_type: Mapped[str] = mapped_column(String(10), default="text")  # text, file, system
     file_meta: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    parent_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("messages.id", ondelete="SET NULL"), nullable=True
+    )
     is_edited: Mapped[bool] = mapped_column(Boolean, default=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -163,6 +167,28 @@ class Message(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class Reaction(Base):
+    __tablename__ = "reactions"
+    __table_args__ = (
+        Index("ix_reactions_message_id", "message_id"),
+        Index("ix_reactions_unique", "message_id", "user_id", "emoji", unique=True),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    message_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("messages.id", ondelete="CASCADE")
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    emoji: Mapped[str] = mapped_column(String(10))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
 

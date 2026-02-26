@@ -48,6 +48,7 @@ class MessageCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=10000)
     message_type: str = Field("text", pattern=r"^(text|file|system)$")
     file_meta: str | None = None
+    parent_id: str | None = None
 
 
 class MessageUpdate(BaseModel):
@@ -68,6 +69,8 @@ class MessageResponse(BaseModel):
     content: str
     message_type: str
     file_meta: str | None
+    parent_id: str | None = None
+    reply_count: int = 0
     is_edited: bool
     is_deleted: bool
     created_at: datetime
@@ -109,6 +112,12 @@ class UserSearchResult(BaseModel):
 
 
 # ─── Notifications ───
+
+# ─── Reactions ───
+
+class ReactionToggle(BaseModel):
+    emoji: str = Field(..., max_length=10)
+
 
 class NotificationReadRequest(BaseModel):
     notification_ids: list[str] | None = None

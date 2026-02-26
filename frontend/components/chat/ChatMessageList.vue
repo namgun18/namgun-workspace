@@ -10,6 +10,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'load-more': []
+  'open-thread': [messageId: string]
 }>()
 
 const { user } = useAuth()
@@ -99,6 +100,7 @@ onMounted(scrollToBottom)
           :grouped="shouldGroup(msg, idx > 0 ? messages[idx - 1] : null)"
           :is-own="msg.sender?.id === user?.id"
           :is-last-in-group="isLastInGroup(idx)"
+          @open-thread="emit('open-thread', $event)"
         />
       </div>
 

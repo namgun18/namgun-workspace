@@ -8,7 +8,11 @@ const props = defineProps<{
   isLastInGroup?: boolean
 }>()
 
-const { deleteMessage, editMessage } = useChat()
+const emit = defineEmits<{
+  'open-thread': [messageId: string]
+}>()
+
+const { deleteMessage, editMessage, toggleReaction } = useChat()
 
 const showActions = ref(false)
 const editing = ref(false)
@@ -175,6 +179,21 @@ async function onDelete() {
       </div>
     </div>
 
+    <!-- Reactions -->
+    <div v-if="message.reactions && message.reactions.length > 0" class="ml-10 mt-0.5">
+      <ChatReactions :reactions="message.reactions" :message-id="message.id" />
+    </div>
+
+    <!-- Thread reply count -->
+    <div v-if="message.reply_count > 0" class="ml-10 mt-0.5">
+      <button
+        @click="emit('open-thread', message.id)"
+        class="text-xs text-primary hover:underline"
+      >
+        {{ message.reply_count }}개의 답글
+      </button>
+    </div>
+
     <!-- Read receipts -->
     <div v-if="visibleReaders.length > 0" class="flex justify-end mt-0.5 mr-1 gap-[-2px]">
       <div class="flex -space-x-1" :title="readReceipts.map(r => r.display_name || r.username).join(', ')">
@@ -192,17 +211,29 @@ async function onDelete() {
       </div>
     </div>
 
-    <!-- Actions (own messages only) -->
+    <!-- Actions -->
     <div
-      v-if="showActions && isOwn && !editing"
+      v-if="showActions && !editing"
       class="absolute -top-3 right-2 flex items-center gap-0.5 px-1 py-0.5 bg-background border rounded-md shadow-sm"
     >
-      <button @click="startEdit" class="p-1 rounded hover:bg-accent" title="수정">
+      <!-- Reaction quick add -->
+      <button @click="toggleReaction(message.id, '👍')" class="p-1 rounded hover:bg-accent" title="리액션">
+        <span class="text-xs">😊</span>
+      </button>
+      <!-- Thread reply -->
+      <button @click="emit('open-thread', message.id)" class="p-1 rounded hover:bg-accent" title="답글">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </button>
+      <!-- Edit (own only) -->
+      <button v-if="isOwn" @click="startEdit" class="p-1 rounded hover:bg-accent" title="수정">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
       </button>
-      <button @click="onDelete" class="p-1 rounded hover:bg-accent text-destructive" title="삭제">
+      <!-- Delete (own only) -->
+      <button v-if="isOwn" @click="onDelete" class="p-1 rounded hover:bg-accent text-destructive" title="삭제">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
           <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
         </svg>

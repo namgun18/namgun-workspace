@@ -115,6 +115,11 @@ function downloadFile() {
       </div>
     </div>
 
+    <!-- Reactions -->
+    <div v-if="message.reactions && message.reactions.length > 0" class="ml-10 mt-0.5">
+      <ChatReactions :reactions="message.reactions" :message-id="message.id" />
+    </div>
+
     <!-- Read receipts -->
     <div v-if="visibleReaders.length > 0" class="flex justify-end mt-0.5 mr-1">
       <div class="flex -space-x-1" :title="readReceipts.map(r => r.display_name || r.username).join(', ')">
