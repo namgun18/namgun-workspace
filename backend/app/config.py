@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     # Gitea
     gitea_url: str = "http://gitea:3000"
     gitea_token: str = ""
+    gitea_webhook_secret: str = ""
+    gitea_webhook_channel: str = ""  # empty → "git-notifications"
 
     # Redis
     redis_url: str = "redis://redis:6379/0"

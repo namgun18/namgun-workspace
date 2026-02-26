@@ -23,6 +23,7 @@ from app.contacts.router import router as contacts_router
 from app.meetings.router import router as meetings_router
 from app.chat.router import router as chat_router
 from app.chat.websocket import router as chat_ws_router
+from app.chat.webhook import router as webhook_router
 
 settings = get_settings()
 _health_task = None
@@ -88,6 +89,7 @@ app.include_router(contacts_router)
 app.include_router(meetings_router)
 app.include_router(chat_router)
 app.include_router(chat_ws_router)
+app.include_router(webhook_router)
 
 
 @app.get("/api/health")
