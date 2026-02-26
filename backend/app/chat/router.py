@@ -9,13 +9,10 @@ from app.db.session import get_db
 from app.chat import service
 from app.chat.schemas import (
     ChannelCreate,
-    ChannelResponse,
     ChannelUpdate,
     DMRequest,
     MemberAdd,
     MessageCreate,
-    MessageListResponse,
-    MessageResponse,
     MessageUpdate,
     NotificationReadRequest,
     ReactionToggle,

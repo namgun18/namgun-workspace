@@ -473,8 +473,8 @@ async def search_users(
     q = select(User).where(User.is_active == True)  # noqa: E712
     if query:
         q = q.where(
-            (User.username.ilike(f"%{query}%"))
-            | (User.display_name.ilike(f"%{query}%"))
+            (User.username.ilike(f"%{query.replace('%', '\\%').replace('_', '\\_')}%", escape='\\'))
+            | (User.display_name.ilike(f"%{query.replace('%', '\\%').replace('_', '\\_')}%", escape='\\'))
         )
     q = q.order_by(User.display_name, User.username).limit(limit)
     rows = (await db.execute(q)).scalars().all()
@@ -511,7 +511,7 @@ async def search_messages(
         .where(
             Message.channel_id.in_(user_channels_q),
             Message.is_deleted == False,  # noqa: E712
-            Message.content.ilike(f"%{query}%"),
+            Message.content.ilike(f"%{query.replace('%', '\\%').replace('_', '\\_')}%", escape='\\'),
         )
     )
 

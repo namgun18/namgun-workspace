@@ -248,7 +248,7 @@ export function useFiles() {
     return crumbs
   })
 
-  function navigateTo(path: string) {
+  function navigateToPath(path: string) {
     fetchFiles(path)
   }
 
@@ -297,7 +297,7 @@ export function useFiles() {
     fetchShareLinks,
     deleteShareLink,
     toggleSort,
-    navigateTo,
+    navigateTo: navigateToPath,
     toggleSelect,
     selectAll,
   }

@@ -83,12 +83,13 @@ async def get_contacts(
     if book_id:
         conditions.append(ContactDB.address_book_id == book_id)
     if q:
-        pattern = f"%{q}%"
+        safe_q = q.replace('%', '\\%').replace('_', '\\_')
+        pattern = f"%{safe_q}%"
         conditions.append(
             or_(
-                ContactDB.full_name.ilike(pattern),
-                ContactDB.organization.ilike(pattern),
-                ContactDB.emails.ilike(pattern),
+                ContactDB.full_name.ilike(pattern, escape='\\'),
+                ContactDB.organization.ilike(pattern, escape='\\'),
+                ContactDB.emails.ilike(pattern, escape='\\'),
             )
         )
 

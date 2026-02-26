@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.db.models import User
 from app.db.session import get_db
-from app.config import get_settings as _get_settings
 from app.rate_limit import limiter
 from app.auth.deps import (
     SESSION_COOKIE,
@@ -161,7 +160,8 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
 
 
 @router.get("/verify-email")
-async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def verify_email(request: Request, token: str = Query(...), db: AsyncSession = Depends(get_db)):
     """Verify recovery email via token link."""
     result = await db.execute(
         select(User).where(User.email_verify_token == token)
@@ -269,11 +269,13 @@ async def serve_avatar(filename: str):
 
 
 @router.post("/change-password")
+@limiter.limit("5/minute")
 async def change_password(
+    request: Request,
     body: ChangePasswordRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+):  # noqa: E501
     """Change password (requires current password verification)."""
     if not user.password_hash or not verify_password(body.current_password, user.password_hash):
         raise HTTPException(
@@ -333,7 +335,8 @@ async def forgot_password(
 
 
 @router.post("/reset-password")
-async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def reset_password(request: Request, body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
     """Reset password using a token from forgot-password email."""
     result = await db.execute(
         select(User).where(User.password_reset_token == body.token)
@@ -375,15 +378,16 @@ async def search_users(
     db: AsyncSession = Depends(get_db),
 ):
     """Search active users by username or display_name (for meeting invitations etc.)."""
-    pattern = f"%{q}%"
+    safe_q = q.replace('%', '\\%').replace('_', '\\_')
+    pattern = f"%{safe_q}%"
     result = await db.execute(
         select(User)
         .where(
             User.is_active == True,  # noqa: E712
             User.id != user.id,
             or_(
-                User.username.ilike(pattern),
-                User.display_name.ilike(pattern),
+                User.username.ilike(pattern, escape='\\'),
+                User.display_name.ilike(pattern, escape='\\'),
             ),
         )
         .limit(10)

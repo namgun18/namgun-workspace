@@ -699,6 +699,21 @@ async def bulk_action(
     if not body.message_ids:
         raise HTTPException(status_code=400, detail="메시지를 선택해주세요")
 
+    # Pre-fetch mailbox list once for actions that need it
+    target_mailbox = None
+    if body.action == "delete":
+        mailboxes = await imap_client.list_mailboxes(account)
+        target_mailbox = next((mb["id"] for mb in mailboxes if mb.get("role") == "trash"), None)
+    elif body.action == "spam":
+        mailboxes = await imap_client.list_mailboxes(account)
+        target_mailbox = next((mb["id"] for mb in mailboxes if mb.get("role") == "junk"), None)
+        if not target_mailbox:
+            raise HTTPException(status_code=400, detail="스팸 폴더를 찾을 수 없습니다")
+    elif body.action == "move":
+        if not body.mailbox_id:
+            raise HTTPException(status_code=400, detail="이동할 메일함을 지정해주세요")
+        target_mailbox = body.mailbox_id
+
     for uid in body.message_ids:
         if body.action == "read":
             await imap_client.update_flags(account, mailbox_id, uid, add_flags=["\\Seen"])
@@ -709,19 +724,11 @@ async def bulk_action(
         elif body.action == "unstar":
             await imap_client.update_flags(account, mailbox_id, uid, remove_flags=["\\Flagged"])
         elif body.action == "delete":
-            mailboxes = await imap_client.list_mailboxes(account)
-            trash = next((mb["id"] for mb in mailboxes if mb.get("role") == "trash"), None)
-            await imap_client.delete_message(account, mailbox_id, uid, trash)
+            await imap_client.delete_message(account, mailbox_id, uid, target_mailbox)
         elif body.action == "spam":
-            mailboxes = await imap_client.list_mailboxes(account)
-            junk = next((mb["id"] for mb in mailboxes if mb.get("role") == "junk"), None)
-            if not junk:
-                raise HTTPException(status_code=400, detail="스팸 폴더를 찾을 수 없습니다")
-            await imap_client.move_message(account, mailbox_id, uid, junk)
+            await imap_client.move_message(account, mailbox_id, uid, target_mailbox)
         elif body.action == "move":
-            if not body.mailbox_id:
-                raise HTTPException(status_code=400, detail="이동할 메일함을 지정해주세요")
-            await imap_client.move_message(account, mailbox_id, uid, body.mailbox_id)
+            await imap_client.move_message(account, mailbox_id, uid, target_mailbox)
         else:
             raise HTTPException(status_code=400, detail=f"지원하지 않는 작업: {body.action}")
 

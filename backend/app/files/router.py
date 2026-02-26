@@ -2,7 +2,6 @@
 
 import asyncio
 import os
-import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path

@@ -20,15 +20,6 @@ class ChannelUpdate(BaseModel):
     is_archived: bool | None = None
 
 
-class ChannelMemberInfo(BaseModel):
-    user_id: str
-    username: str
-    display_name: str | None
-    avatar_url: str | None
-    role: str
-    is_online: bool = False
-
-
 class ChannelResponse(BaseModel):
     id: str
     name: str
@@ -92,23 +83,6 @@ class MemberAdd(BaseModel):
 
 class DMRequest(BaseModel):
     user_id: str
-
-
-# ─── Presence ───
-
-class PresenceUser(BaseModel):
-    user_id: str
-    username: str
-    display_name: str | None
-
-
-# ─── User Search ───
-
-class UserSearchResult(BaseModel):
-    id: str
-    username: str
-    display_name: str | None
-    avatar_url: str | None
 
 
 # ─── Notifications ───

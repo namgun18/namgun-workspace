@@ -171,8 +171,11 @@ async def create_room(body: RoomCreate, user: User = Depends(get_current_user)):
 
 @router.delete("/rooms/{name}", status_code=204)
 async def delete_room(name: str, user: User = Depends(get_current_user)):
-    """회의실 삭제."""
+    """회의실 삭제 (호스트만 가능)."""
     _check_configured()
+    meta = store.get_room_meta(name)
+    if meta and meta.host_user_id != str(user.id):
+        raise HTTPException(status_code=403, detail="호스트만 삭제할 수 있습니다")
     await livekit.delete_room(name)
     store.delete_room_meta(name)
 

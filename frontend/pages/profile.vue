@@ -6,6 +6,10 @@ definePageMeta({ layout: 'default' })
 const { user, updateProfile, changePassword, uploadAvatar } = useAuth()
 const { signatures, loading: sigLoading, fetchSignatures, createSignature, updateSignature, deleteSignature } = useMailSignature()
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').slice(0, 100)
+}
+
 // Avatar
 const avatarInput = ref<HTMLInputElement | null>(null)
 const avatarUploading = ref(false)
@@ -306,7 +310,7 @@ async function handlePasswordSubmit() {
                 <span class="font-medium text-sm">{{ sig.name }}</span>
                 <span v-if="sig.is_default" class="px-1.5 py-0.5 text-xs rounded bg-primary/10 text-primary">기본</span>
               </div>
-              <div class="text-xs text-muted-foreground mt-1 truncate" v-html="sig.html_content" />
+              <div class="text-xs text-muted-foreground mt-1 truncate">{{ stripHtml(sig.html_content) }}</div>
             </div>
             <div class="flex items-center gap-1 shrink-0">
               <button

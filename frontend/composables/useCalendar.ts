@@ -33,7 +33,6 @@ const calendars = ref<CalendarInfo[]>([])
 const events = ref<CalendarEvent[]>([])
 const viewMode = ref<ViewMode>('month')
 const selectedDate = ref(new Date())
-const selectedEvent = ref<CalendarEvent | null>(null)
 const loadingCalendars = ref(false)
 const loadingEvents = ref(false)
 const showEventModal = ref(false)
@@ -292,7 +291,6 @@ export function useCalendar() {
     events: readonly(events),
     viewMode,
     selectedDate,
-    selectedEvent,
     loadingCalendars: readonly(loadingCalendars),
     loadingEvents: readonly(loadingEvents),
     showEventModal,

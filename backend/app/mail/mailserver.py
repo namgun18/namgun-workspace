@@ -16,9 +16,9 @@ settings = get_settings()
 CONTAINER_NAME = "ws-mailserver"
 
 
-def _docker_exec(cmd: str) -> tuple[int, str]:
+def _docker_exec(args: list[str]) -> tuple[int, str]:
     """Run a command inside the mailserver container (blocking)."""
-    full_cmd = ["docker", "exec", CONTAINER_NAME, "bash", "-c", cmd]
+    full_cmd = ["docker", "exec", CONTAINER_NAME] + args
     try:
         result = subprocess.run(
             full_cmd, capture_output=True, text=True, timeout=15,
@@ -34,7 +34,7 @@ async def create_account(email: str, password: str) -> bool:
     """Create a mail account in docker-mailserver. Returns True on success."""
     rc, out = await asyncio.to_thread(
         _docker_exec,
-        f"setup email add '{email}' '{password}'",
+        ["setup", "email", "add", email, password],
     )
     if rc == 0:
         logger.info("Mail account created: %s", email)
@@ -51,7 +51,7 @@ async def delete_account(email: str) -> bool:
     """Delete a mail account from docker-mailserver."""
     rc, out = await asyncio.to_thread(
         _docker_exec,
-        f"setup email del -y '{email}'",
+        ["setup", "email", "del", "-y", email],
     )
     if rc == 0:
         logger.info("Mail account deleted: %s", email)
@@ -67,7 +67,7 @@ async def update_password(email: str, new_password: str) -> bool:
     """Update a mail account password in docker-mailserver."""
     rc, out = await asyncio.to_thread(
         _docker_exec,
-        f"setup email update '{email}' '{new_password}'",
+        ["setup", "email", "update", email, new_password],
     )
     if rc == 0:
         logger.info("Mail password updated: %s", email)
@@ -80,7 +80,7 @@ async def account_exists(email: str) -> bool:
     """Check if a mail account exists."""
     rc, out = await asyncio.to_thread(
         _docker_exec,
-        "setup email list",
+        ["setup", "email", "list"],
     )
     if rc != 0:
         return False

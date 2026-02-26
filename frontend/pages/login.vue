@@ -16,8 +16,13 @@ const redirectTo = computed(() => {
   if (!r) return '/'
   // Allow relative paths (e.g. /oauth/authorize?...)
   if (r.startsWith('/')) return r
-  // Allow HTTPS URLs from our domain
-  if (r.startsWith('https://') && r.includes('.namgun.or.kr')) return r
+  // Allow HTTPS URLs from our domain (strict hostname check)
+  if (r.startsWith('https://')) {
+    try {
+      const parsed = new URL(r)
+      if (parsed.hostname === 'namgun.or.kr' || parsed.hostname.endsWith('.namgun.or.kr')) return r
+    } catch { /* invalid URL */ }
+  }
   return '/'
 })
 

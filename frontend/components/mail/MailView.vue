@@ -130,7 +130,9 @@ const iframeSrcdoc = computed(() => {
 })
 
 // postMessage로 iframe 높이 수신 (origin 검증 포함)
-if (import.meta.client) {
+let _iframeListenerRegistered = false
+if (import.meta.client && !_iframeListenerRegistered) {
+  _iframeListenerRegistered = true
   window.addEventListener('message', (e: MessageEvent) => {
     // srcdoc iframe은 origin이 'null'
     if (e.origin !== 'null' && e.origin !== window.location.origin) return

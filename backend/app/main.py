@@ -38,6 +38,13 @@ async def lifespan(app: FastAPI):
 
     from app.chat.redis_client import get_redis, close_redis
 
+    # Validate secret_key is not the default
+    if settings.secret_key == "CHANGE_ME" and not settings.debug:
+        raise RuntimeError(
+            "FATAL: secret_key is set to the default 'CHANGE_ME'. "
+            "Set a secure SECRET_KEY in .env before running in production."
+        )
+
     await init_db()
 
     # Load module states from DB
@@ -53,6 +60,10 @@ async def lifespan(app: FastAPI):
     print(f"[STARTUP] {settings.app_name} started")
 
     yield
+
+    # Flush remaining access logs before shutdown
+    from app.middleware.access_log import _flush_buffer
+    await _flush_buffer()
 
     for task in (_health_task, _log_flusher_task, _log_cleanup_task):
         if task:

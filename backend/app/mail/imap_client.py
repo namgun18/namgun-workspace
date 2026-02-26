@@ -313,7 +313,8 @@ async def fetch_messages(
 
         # Search (returns sequence numbers)
         if query:
-            search_resp = await imap.search(f'(OR SUBJECT "{query}" FROM "{query}")')
+            safe_q = query.replace('"', '').replace('(', '').replace(')', '').replace('\\', '')
+            search_resp = await imap.search(f'(OR SUBJECT "{safe_q}" FROM "{safe_q}")')
         else:
             search_resp = await imap.search("ALL")
 

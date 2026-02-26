@@ -24,8 +24,6 @@ CHANNEL_NAME = settings.gitea_webhook_channel or "git-notifications"
 
 def _verify_signature(body: bytes, signature: str) -> bool:
     """Verify HMAC-SHA256 signature from Gitea."""
-    if not settings.gitea_webhook_secret:
-        return True  # No secret configured → skip verification
     expected = hmac.new(
         settings.gitea_webhook_secret.encode(),
         body,
@@ -141,7 +139,9 @@ async def gitea_webhook(request: Request):
 
     # Verify signature
     sig = request.headers.get("X-Gitea-Signature", "")
-    if settings.gitea_webhook_secret and not _verify_signature(body, sig):
+    if not settings.gitea_webhook_secret:
+        raise HTTPException(403, "Webhook secret not configured")
+    if not _verify_signature(body, sig):
         raise HTTPException(403, "Invalid signature")
 
     event_type = request.headers.get("X-Gitea-Event", "")

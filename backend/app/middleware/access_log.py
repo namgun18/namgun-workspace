@@ -6,7 +6,7 @@ import logging
 import time
 import uuid
 from collections import deque
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -163,7 +163,7 @@ async def run_log_cleanup() -> None:
         target_hour = 18  # 03:00 KST = 18:00 UTC
         next_run = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)
         if now.hour >= target_hour:
-            next_run = next_run.replace(day=now.day + 1)
+            next_run = next_run + timedelta(days=1)
         delta = (next_run - now).total_seconds()
         if delta < 60:
             delta = 86400  # avoid tight loop

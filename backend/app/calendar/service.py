@@ -1,6 +1,5 @@
 """Calendar service — PostgreSQL CRUD (replaces JMAP)."""
 
-import json
 from datetime import datetime
 
 from sqlalchemy import select, and_, or_

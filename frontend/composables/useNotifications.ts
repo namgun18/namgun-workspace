@@ -20,9 +20,6 @@ const unreadCount = ref(0)
 const showDropdown = ref(false)
 
 export function useNotifications() {
-  const config = useRuntimeConfig()
-  const isDemo = config.public.demoMode
-
   async function fetchNotifications() {
     try {
       const data = await $fetch<{ notifications: AppNotification[]; unread_count: number }>(

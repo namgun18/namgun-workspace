@@ -45,22 +45,6 @@ async def require_admin(user: User = Depends(get_current_user)) -> User:
     return user
 
 
-# ── Response schemas ─────────────────────────────────────────
-
-
-class AdminUserResponse(BaseModel):
-    id: str
-    username: str
-    display_name: str | None
-    email: str | None
-    recovery_email: str | None
-    is_admin: bool
-    is_active: bool
-    created_at: str
-
-    model_config = {"from_attributes": True}
-
-
 # ── GET /api/admin/users — 전체 사용자 목록 ──────────────────
 
 
@@ -294,7 +278,7 @@ _PRIVATE_PREFIXES = (
     "10.", "172.16.", "172.17.", "172.18.", "172.19.",
     "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
     "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
-    "172.30.", "172.31.", "192.168.", "127.",
+    "172.30.", "172.31.", "192.168.", "127.", "::1", "fe80:", "fc00:", "fd",
 )
 
 

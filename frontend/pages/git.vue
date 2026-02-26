@@ -1,15 +1,4 @@
 <script setup lang="ts">
-import GitCommandBar from '~/components/git/GitCommandBar.vue'
-import GitRepoList from '~/components/git/GitRepoList.vue'
-import GitRepoDetail from '~/components/git/GitRepoDetail.vue'
-import GitFileViewer from '~/components/git/GitFileViewer.vue'
-import GitCommitList from '~/components/git/GitCommitList.vue'
-import GitIssueList from '~/components/git/GitIssueList.vue'
-import GitIssueDetail from '~/components/git/GitIssueDetail.vue'
-import GitCreateIssueModal from '~/components/git/GitCreateIssueModal.vue'
-import GitPullList from '~/components/git/GitPullList.vue'
-import GitPullDetail from '~/components/git/GitPullDetail.vue'
-
 definePageMeta({ layout: 'default' })
 
 const {

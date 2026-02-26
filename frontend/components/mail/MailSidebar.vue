@@ -93,7 +93,9 @@ async function handleDeleteMailbox(mb: any) {
 }
 
 // Close context menu on click outside
-if (import.meta.client) {
+let _sidebarClickRegistered = false
+if (import.meta.client && !_sidebarClickRegistered) {
+  _sidebarClickRegistered = true
   window.addEventListener('click', () => { contextMenu.value = null })
 }
 </script>

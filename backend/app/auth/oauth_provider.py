@@ -202,7 +202,9 @@ async def token(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid redirect_uri")
 
     # PKCE verification
-    if auth_code.code_challenge and code_verifier:
+    if auth_code.code_challenge:
+        if not code_verifier:
+            raise HTTPException(status_code=400, detail="code_verifier required for PKCE")
         digest = hashlib.sha256(code_verifier.encode()).digest()
         computed = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
         if computed != auth_code.code_challenge:

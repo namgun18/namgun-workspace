@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import MailSidebar from '~/components/mail/MailSidebar.vue'
-import MailList from '~/components/mail/MailList.vue'
-import MailView from '~/components/mail/MailView.vue'
-import MailCompose from '~/components/mail/MailCompose.vue'
-
 definePageMeta({ layout: 'default' })
 
 const {
@@ -99,7 +94,5 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Compose modal -->
-    <MailCompose />
   </div>
 </template>
