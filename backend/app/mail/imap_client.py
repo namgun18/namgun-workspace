@@ -1,4 +1,9 @@
-"""IMAP client for reading mail from external IMAP servers."""
+"""IMAP client for reading mail via aioimaplib.
+
+aioimaplib strips the '* ' untagged response prefix from lines,
+so parsing must NOT expect '* LIST', '* N FETCH', etc.
+Body data is returned as bytearray, metadata lines as bytes.
+"""
 
 import asyncio
 import email
@@ -16,9 +21,6 @@ from app.db.models import MailAccount
 from app.mail.crypto import decrypt_password
 
 logger = logging.getLogger(__name__)
-
-FETCH_HEADERS = "(FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE MESSAGE-ID REFERENCES IN-REPLY-TO)] BODYSTRUCTURE)"
-FETCH_FULL = "(FLAGS BODY[])"
 
 
 def _decode_header(raw: str | None) -> str:
@@ -133,6 +135,13 @@ def _extract_attachments(msg: EmailMessage) -> list[dict]:
     return attachments
 
 
+def _line_to_str(line) -> str:
+    """Convert a response line (bytes, bytearray, or str) to str."""
+    if isinstance(line, (bytes, bytearray)):
+        return line.decode("utf-8", errors="replace")
+    return str(line)
+
+
 async def _connect(account: MailAccount) -> aioimaplib.IMAP4_SSL | aioimaplib.IMAP4:
     """Connect and authenticate to IMAP server."""
     import ssl as _ssl
@@ -203,20 +212,24 @@ async def list_mailboxes(account: MailAccount) -> list[dict]:
         }
         role_order = {"inbox": 0, "drafts": 1, "sent": 2, "junk": 3, "trash": 4, "archive": 5}
 
+        # Deduplicate: prefer mailboxes with IMAP special-use flags
+        seen_roles: dict[str, str] = {}  # role → mailbox name
+
         for line in response.lines:
             if not line or line == b")" or line == b"":
                 continue
-            line_str = line.decode("utf-8", errors="replace") if isinstance(line, bytes) else str(line)
+            line_str = _line_to_str(line)
 
-            # Parse LIST response: (* (\flags) "delimiter" "name")
-            match = re.match(r'\* LIST \(([^)]*)\) "([^"]*)" (.+)', line_str)
+            # aioimaplib strips "* LIST " prefix.
+            # Lines: (\flags) "delimiter" name  OR  * LIST (\flags) "delimiter" name
+            match = re.match(r'(?:\* LIST )?\(([^)]*)\) "([^"]*)" (.+)', line_str)
             if not match:
                 continue
 
             flags = match.group(1)
             name = match.group(3).strip('"')
 
-            # Detect role from IMAP flags or name
+            # Detect role from IMAP special-use flags or folder name
             role = None
             name_lower = name.lower()
             if "\\Inbox" in flags or name_lower == "inbox":
@@ -234,15 +247,21 @@ async def list_mailboxes(account: MailAccount) -> list[dict]:
             else:
                 role = role_map.get(name_lower)
 
+            # Skip duplicate roles: prefer the one with IMAP flags (e.g. Sent over _Sent)
+            has_special_flag = any(f"\\{r.title()}" in flags for r in ["sent", "drafts", "junk", "trash", "archive"])
+            if role and role in seen_roles:
+                if not has_special_flag:
+                    continue  # skip this duplicate, keep the flagged one
+            if role:
+                seen_roles[role] = name
+
             # Get message counts
             total = 0
             unread = 0
             try:
                 status_resp = await imap.status(f'"{name}"', "(MESSAGES UNSEEN)")
                 if status_resp.result == "OK":
-                    status_line = status_resp.lines[0]
-                    if isinstance(status_line, bytes):
-                        status_line = status_line.decode("utf-8", errors="replace")
+                    status_line = _line_to_str(status_resp.lines[0])
                     m_total = re.search(r"MESSAGES (\d+)", status_line)
                     m_unseen = re.search(r"UNSEEN (\d+)", status_line)
                     if m_total:
@@ -263,8 +282,16 @@ async def list_mailboxes(account: MailAccount) -> list[dict]:
                 "sort_order": sort_order,
             })
 
-        mailboxes.sort(key=lambda m: (m["sort_order"], m["name"]))
-        return mailboxes
+        # Remove duplicates: if a role appears multiple times, keep only the flagged one
+        final = []
+        for mb in mailboxes:
+            role = mb["role"]
+            if role and role in seen_roles and mb["id"] != seen_roles[role]:
+                continue
+            final.append(mb)
+
+        final.sort(key=lambda m: (m["sort_order"], m["name"]))
+        return final
     finally:
         try:
             await imap.logout()
@@ -286,7 +313,7 @@ async def fetch_messages(
         if response.result != "OK":
             return [], 0
 
-        # Search
+        # Search (returns sequence numbers)
         if query:
             search_resp = await imap.search(f'(OR SUBJECT "{query}" FROM "{query}")')
         else:
@@ -295,27 +322,26 @@ async def fetch_messages(
         if search_resp.result != "OK":
             return [], 0
 
-        # Parse UIDs
-        uid_line = search_resp.lines[0]
-        if isinstance(uid_line, bytes):
-            uid_line = uid_line.decode("utf-8", errors="replace")
-        uids = uid_line.strip().split() if uid_line.strip() else []
+        # Parse sequence numbers
+        seq_line = _line_to_str(search_resp.lines[0])
+        seqs = seq_line.strip().split() if seq_line.strip() else []
 
-        total = len(uids)
+        total = len(seqs)
         if total == 0:
             return [], 0
 
         # Reverse for newest first, paginate
-        uids.reverse()
+        seqs.reverse()
         start = page * limit
         end = start + limit
-        page_uids = uids[start:end]
+        page_seqs = seqs[start:end]
 
-        if not page_uids:
+        if not page_seqs:
             return [], total
 
-        uid_range = ",".join(page_uids)
-        fetch_resp = await imap.fetch(uid_range, "(FLAGS BODY.PEEK[HEADER])")
+        seq_range = ",".join(page_seqs)
+        # Request UID so we can use it as stable message ID
+        fetch_resp = await imap.fetch(seq_range, "(UID FLAGS BODY.PEEK[HEADER])")
         if fetch_resp.result != "OK":
             return [], total
 
@@ -325,13 +351,14 @@ async def fetch_messages(
         current_header_data = b""
 
         for line in fetch_resp.lines:
-            if isinstance(line, bytes):
-                line_str = line.decode("utf-8", errors="replace")
-            else:
-                line_str = str(line)
+            line_str = _line_to_str(line)
 
-            # Match fetch response line: * N FETCH (UID xxx FLAGS (...) BODY[HEADER] {size})
-            fetch_match = re.match(r"\* \d+ FETCH \(.*?UID (\d+).*?FLAGS \(([^)]*)\)", line_str)
+            # aioimaplib strips "* " prefix.
+            # Lines: N FETCH (UID xxx FLAGS (...) BODY[HEADER] {size})
+            fetch_match = re.match(
+                r"\d+ FETCH \(.*?UID (\d+).*?FLAGS \(([^)]*)\)",
+                line_str,
+            )
             if fetch_match:
                 # Save previous message
                 if current_uid and current_header_data:
@@ -355,8 +382,8 @@ async def fetch_messages(
                 current_uid = fetch_match.group(1)
                 current_flags = fetch_match.group(2)
                 current_header_data = b""
-            elif isinstance(line, bytes) and current_uid:
-                current_header_data += line + b"\r\n"
+            elif isinstance(line, (bytes, bytearray)) and current_uid:
+                current_header_data += bytes(line) + b"\r\n"
 
         # Process last message
         if current_uid and current_header_data:
@@ -390,20 +417,28 @@ async def fetch_message(account: MailAccount, mailbox: str, uid: str) -> dict | 
     imap = await _connect(account)
     try:
         await imap.select(mailbox)
-        fetch_resp = await imap.fetch(uid, "(FLAGS BODY[])")
+        fetch_resp = await imap.fetch(uid, "(UID FLAGS BODY[])")
         if fetch_resp.result != "OK":
             return None
 
-        # Parse the raw message data
+        # Parse: first bytes line has metadata, bytearray has body, ')' closes
         raw_data = b""
         flags = ""
+        found_uid = None
         for line in fetch_resp.lines:
-            if isinstance(line, bytes):
-                line_str = line.decode("utf-8", errors="replace")
-                flag_match = re.search(r"FLAGS \(([^)]*)\)", line_str)
-                if flag_match:
-                    flags = flag_match.group(1)
-                raw_data += line + b"\r\n"
+            line_str = _line_to_str(line)
+            # Metadata line: N FETCH (UID xxx FLAGS (...) BODY[] {size})
+            uid_match = re.search(r"UID (\d+)", line_str)
+            flag_match = re.search(r"FLAGS \(([^)]*)\)", line_str)
+            if uid_match:
+                found_uid = uid_match.group(1)
+            if flag_match:
+                flags = flag_match.group(1)
+            if isinstance(line, bytearray):
+                raw_data += bytes(line)
+
+        if not raw_data:
+            return None
 
         msg = email.message_from_bytes(raw_data)
         text_body, html_body = _extract_body(msg)
@@ -412,12 +447,14 @@ async def fetch_message(account: MailAccount, mailbox: str, uid: str) -> dict | 
         is_unread = "\\Seen" not in flags
         is_flagged = "\\Flagged" in flags
 
+        msg_uid = found_uid or uid
+
         # Mark as read
         if is_unread:
             await imap.store(uid, "+FLAGS", "(\\Seen)")
 
         return {
-            "id": uid,
+            "id": msg_uid,
             "thread_id": None,
             "mailbox_ids": [mailbox],
             "from_": _parse_address(msg.get("From")),
@@ -434,7 +471,7 @@ async def fetch_message(account: MailAccount, mailbox: str, uid: str) -> dict | 
             "is_flagged": is_flagged,
             "attachments": [
                 {
-                    "blob_id": f"{uid}:{att['part_index']}",
+                    "blob_id": f"{msg_uid}:{att['part_index']}",
                     "name": att["name"],
                     "type": att["type"],
                     "size": att["size"],
@@ -538,8 +575,11 @@ async def download_attachment(
 
         raw_data = b""
         for line in fetch_resp.lines:
-            if isinstance(line, bytes):
-                raw_data += line + b"\r\n"
+            if isinstance(line, bytearray):
+                raw_data += bytes(line)
+
+        if not raw_data:
+            return None
 
         msg = email.message_from_bytes(raw_data)
         for i, part in enumerate(msg.walk()):
