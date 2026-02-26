@@ -30,6 +30,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
     networks:
       workspace:
         ipv4_address: 172.28.0.10
@@ -46,6 +53,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
     networks:
       workspace:
         ipv4_address: 172.28.0.11
@@ -76,6 +90,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
     networks:
       workspace:
         ipv4_address: 172.28.0.20
@@ -89,6 +110,13 @@ services:
     container_name: ws-frontend
     expose:
       - "3000"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
     networks:
       workspace:
         ipv4_address: 172.28.0.21
@@ -109,6 +137,13 @@ services:
         condition: service_healthy
       frontend:
         condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 32M
     networks:
       workspace:
         ipv4_address: 172.28.0.2
@@ -128,6 +163,13 @@ services:
       ACME_DOMAINS: mail.${DOMAIN:-localhost},${DOMAIN:-localhost}
       ACME_EMAIL: ${LETSENCRYPT_EMAIL:-admin@localhost}
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 32M
     networks:
       workspace:
         ipv4_address: 172.28.0.3
@@ -168,6 +210,13 @@ services:
       OVERRIDE_HOSTNAME: mail.${DOMAIN:-localhost}
     cap_add:
       - NET_ADMIN
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
     networks:
       workspace:
         ipv4_address: 172.28.0.30
@@ -188,6 +237,13 @@ services:
       GITEA__server__ROOT_URL: ${GITEA_EXTERNAL_URL:-${APP_URL:-http://localhost}/git/}
       GITEA__server__SSH_PORT: ${GIT_SSH_PORT:-2222}
       GITEA__server__SSH_DOMAIN: ${DOMAIN:-localhost}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
     networks:
       workspace:
         ipv4_address: 172.28.0.31
@@ -205,6 +261,13 @@ services:
     command: --config /etc/livekit.yaml
     volumes:
       - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
     networks:
       workspace:
         ipv4_address: 172.28.0.32

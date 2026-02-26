@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+import json
 import logging
 import uuid
 
@@ -150,7 +151,7 @@ async def gitea_webhook(request: Request):
 
     try:
         payload = await request.json()
-    except Exception:
+    except (json.JSONDecodeError, ValueError):
         raise HTTPException(400, "Invalid JSON")
 
     content = _parse_event(event_type, payload)

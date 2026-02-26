@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
 
+const { t } = useI18n()
 const { nativeLogin, user } = useAuth()
 const { appName } = useAppConfig()
 const route = useRoute()
@@ -45,7 +46,7 @@ watch(user, (u) => {
 
 async function handleSubmit() {
   if (!username.value.trim() || !password.value) {
-    error.value = '사용자명과 비밀번호를 입력하세요.'
+    error.value = t('auth.enterCredentials')
     return
   }
   submitting.value = true
@@ -64,11 +65,11 @@ async function handleSubmit() {
     if (detail) {
       error.value = detail
     } else if (statusCode === 401) {
-      error.value = '사용자명 또는 비밀번호가 올바르지 않습니다.'
+      error.value = t('auth.invalidCredentials')
     } else if (statusCode === 502) {
-      error.value = '인증 서버에 연결할 수 없습니다.'
+      error.value = t('auth.authServerUnavailable')
     } else {
-      error.value = '로그인 중 오류가 발생했습니다. 다시 시도해주세요.'
+      error.value = t('auth.loginError')
     }
   } finally {
     submitting.value = false
@@ -85,19 +86,19 @@ async function handleSubmit() {
       </svg>
       <h1 class="text-2xl font-bold">{{ appName }}</h1>
       <p class="text-sm text-muted-foreground">
-        서비스에 접근하려면 로그인하세요
+        {{ $t('auth.loginRequired') }}
       </p>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-4">
       <div>
-        <label for="username" class="block text-sm font-medium mb-1.5">사용자명 또는 이메일</label>
+        <label for="username" class="block text-sm font-medium mb-1.5">{{ $t('auth.usernameOrEmail') }}</label>
         <input
           id="username"
           v-model="username"
           type="text"
           autocomplete="username"
-          placeholder="사용자명 또는 이메일"
+          :placeholder="$t('auth.usernameOrEmailPlaceholder')"
           class="w-full px-3 py-2.5 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
           autofocus
         />
@@ -105,15 +106,15 @@ async function handleSubmit() {
 
       <div>
         <div class="flex items-center justify-between mb-1.5">
-          <label for="password" class="block text-sm font-medium">비밀번호</label>
-          <NuxtLink to="/forgot-password" class="text-xs text-primary hover:underline">비밀번호 찾기</NuxtLink>
+          <label for="password" class="block text-sm font-medium">{{ $t('auth.password') }}</label>
+          <NuxtLink to="/forgot-password" class="text-xs text-primary hover:underline">{{ $t('auth.forgotPassword') }}</NuxtLink>
         </div>
         <input
           id="password"
           v-model="password"
           type="password"
           autocomplete="current-password"
-          placeholder="비밀번호"
+          :placeholder="$t('auth.passwordPlaceholder')"
           class="w-full px-3 py-2.5 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
         />
       </div>
@@ -125,7 +126,7 @@ async function handleSubmit() {
           type="checkbox"
           class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/50"
         />
-        <label for="rememberMe" class="text-sm text-muted-foreground select-none cursor-pointer">로그인 상태 유지</label>
+        <label for="rememberMe" class="text-sm text-muted-foreground select-none cursor-pointer">{{ $t('auth.rememberMe') }}</label>
       </div>
 
       <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
@@ -140,12 +141,12 @@ async function handleSubmit() {
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        {{ submitting ? '로그인 중...' : '로그인' }}
+        {{ submitting ? $t('auth.loggingIn') : $t('auth.login') }}
       </UiButton>
 
       <p class="text-center text-sm text-muted-foreground">
-        계정이 없으신가요?
-        <NuxtLink to="/register" class="text-primary hover:underline font-medium">회원가입</NuxtLink>
+        {{ $t('auth.noAccount') }}
+        <NuxtLink to="/register" class="text-primary hover:underline font-medium">{{ $t('auth.register') }}</NuxtLink>
       </p>
     </form>
 

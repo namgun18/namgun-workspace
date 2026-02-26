@@ -362,36 +362,51 @@ async def get_notice_posts(db: AsyncSession, limit: int = 5) -> list[dict]:
 
 
 async def get_recent_posts_by_board(db: AsyncSession, limit_per_board: int = 5) -> list[dict]:
-    """Get recent posts grouped by board for the board index page."""
+    """Get recent posts grouped by board for the board index page.
+
+    Uses a window function (ROW_NUMBER) to fetch the top N posts per board
+    in a single query instead of looping per board (avoids N+1).
+    Total: 2 queries (boards + ranked posts with authors) instead of 1+2N.
+    """
+    # Query 1: all boards
     boards_list = (
         await db.execute(select(Board).order_by(Board.sort_order, Board.created_at))
     ).scalars().all()
 
+    # Query 2: ranked post IDs via window function subquery,
+    # then join back to Post (ORM entity) and User for clean access.
+    row_num = (
+        func.row_number()
+        .over(partition_by=Post.board_id, order_by=Post.created_at.desc())
+        .label("rn")
+    )
+    ranked_sq = (
+        select(Post.id.label("post_id"), Post.board_id.label("ranked_board_id"), row_num)
+        .where(Post.is_deleted == False)  # noqa: E712
+        .subquery()
+    )
+    rows = (
+        await db.execute(
+            select(Post, User)
+            .join(ranked_sq, Post.id == ranked_sq.c.post_id)
+            .outerjoin(User, Post.author_id == User.id)
+            .where(ranked_sq.c.rn <= limit_per_board)
+            .order_by(ranked_sq.c.ranked_board_id, ranked_sq.c.rn)
+        )
+    ).all()
+
+    # Group by board_id in Python
+    posts_by_board: dict[str, list[tuple]] = defaultdict(list)
+    for post, user in rows:
+        posts_by_board[post.board_id].append((post, user))
+
+    # Build result keeping original board order
     result = []
     for board in boards_list:
-        rows = (
-            await db.execute(
-                select(Post)
-                .where(
-                    Post.board_id == board.id,
-                    Post.is_deleted == False,  # noqa: E712
-                )
-                .order_by(Post.created_at.desc())
-                .limit(limit_per_board)
-            )
-        ).scalars().all()
-
-        author_ids = list({p.author_id for p in rows})
-        authors = {}
-        if author_ids:
-            user_rows = (
-                await db.execute(select(User).where(User.id.in_(author_ids)))
-            ).scalars().all()
-            authors = {u.id: u for u in user_rows}
-
+        board_posts = posts_by_board.get(board.id, [])
         result.append({
             **_board_to_dict(board),
-            "recent_posts": [_post_to_summary(p, authors.get(p.author_id)) for p in rows],
+            "recent_posts": [_post_to_summary(p, u) for p, u in board_posts],
         })
 
     return result

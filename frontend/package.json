@@ -7,7 +7,9 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@tiptap/extension-link": "^2.11.0",
@@ -28,7 +30,8 @@
     "vue-router": "^4.5.0",
     "chart.js": "^4.4.7",
     "vue-chartjs": "^5.3.2",
-    "livekit-client": "^2.6.0"
+    "livekit-client": "^2.6.0",
+    "@nuxtjs/i18n": "^9.5.6"
   },
   "devDependencies": {
     "@nuxtjs/color-mode": "^3.5.2",
@@ -37,6 +40,9 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.0",
+    "@vue/test-utils": "^2.4.0",
+    "happy-dom": "^16.0.0"
   }
 }

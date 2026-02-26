@@ -56,7 +56,8 @@ def _parse_date(raw: str | None) -> str | None:
     try:
         parsed = email.utils.parsedate_to_datetime(raw)
         return parsed.isoformat()
-    except Exception:
+    except (ValueError, TypeError) as e:
+        logger.debug("Failed to parse email date '%s': %s", raw[:50] if raw else "", e)
         return raw
 
 
@@ -94,7 +95,8 @@ def _extract_body(msg: EmailMessage) -> tuple[str | None, str | None]:
                     text_body = decoded
                 elif ct == "text/html" and html_body is None:
                     html_body = decoded
-            except Exception:
+            except (LookupError, UnicodeDecodeError, TypeError) as e:
+                logger.debug("Failed to decode multipart body part (type=%s): %s", ct, e)
                 continue
     else:
         ct = msg.get_content_type()
@@ -107,8 +109,8 @@ def _extract_body(msg: EmailMessage) -> tuple[str | None, str | None]:
                     html_body = decoded
                 else:
                     text_body = decoded
-        except Exception:
-            pass
+        except (LookupError, UnicodeDecodeError, TypeError) as e:
+            logger.debug("Failed to decode single-part body (type=%s): %s", ct, e)
 
     return text_body, html_body
 

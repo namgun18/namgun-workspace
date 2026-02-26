@@ -1,9 +1,12 @@
 """File preview generation (thumbnails, text excerpts)."""
 
 import io
+import logging
 from pathlib import Path
 
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 # Maximum dimensions for thumbnails
 THUMB_MAX = (400, 400)
@@ -46,7 +49,8 @@ def generate_thumbnail(path: Path) -> bytes | None:
             buf = io.BytesIO()
             img.save(buf, format="JPEG", quality=85)
             return buf.getvalue()
-    except Exception:
+    except Exception as e:
+        logger.debug("Failed to generate thumbnail for %s: %s", path, e)
         return None
 
 
@@ -55,5 +59,6 @@ def get_text_preview(path: Path) -> str | None:
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as f:
             return f.read(TEXT_PREVIEW_BYTES)
-    except Exception:
+    except Exception as e:
+        logger.debug("Failed to read text preview for %s: %s", path, e)
         return None

@@ -236,6 +236,14 @@ map \$http_upgrade \$connection_upgrade {
     ''      close;
 }
 
+# ─── Gzip 압축 ───
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_min_length 1024;
+gzip_comp_level 5;
+gzip_types text/plain text/css text/javascript application/json application/javascript application/xml application/xml+rss image/svg+xml;
+
 # ─── HTTP: ACME challenge + redirect to HTTPS ───
 server {
     listen 80 default_server;
@@ -259,6 +267,14 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
 
+    # ─── 보안 헤더 ───
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
 NGINX_STANDALONE_HEADER
             generate_nginx_locations >> "$nginx_conf"
             echo "}" >> "$nginx_conf"
@@ -273,10 +289,25 @@ map \$http_upgrade \$connection_upgrade {
     ''      close;
 }
 
+# ─── Gzip 압축 ───
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_min_length 1024;
+gzip_comp_level 5;
+gzip_types text/plain text/css text/javascript application/json application/javascript application/xml application/xml+rss image/svg+xml;
+
 # ─── Workspace (HTTP-only) ───
 server {
     listen 80 default_server;
     server_name _;
+
+    # ─── 보안 헤더 ───
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
 
 NGINX_HTTP_HEADER
             generate_nginx_locations >> "$nginx_conf"

@@ -1,6 +1,7 @@
 """Git (Gitea) API router."""
 
 import asyncio
+import logging
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -28,6 +29,7 @@ from app.git.schemas import (
     RepoSummary,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/git", tags=["git"])
 
 
@@ -79,7 +81,8 @@ async def _refresh_recent_commits() -> list[RecentCommit]:
     """Fetch recent commits from top 5 repos in parallel."""
     try:
         repos, _ = await gitea.search_repos("", 1, 5, "updated")
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to fetch repos for recent commits: %s", e)
         return []
 
     async def _fetch(r: dict) -> list[RecentCommit]:
@@ -100,7 +103,8 @@ async def _refresh_recent_commits() -> list[RecentCommit]:
                     author_name=ad.get("name", ""), author_date=ad.get("date", ""),
                 ))
             return out
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to fetch commits for %s: %s", full_name, e)
             return []
 
     results = await asyncio.gather(*[_fetch(r) for r in repos])
@@ -148,7 +152,8 @@ async def get_repo(
 ):
     try:
         data = await gitea.get_repo(owner, repo)
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to fetch repo %s/%s: %s", owner, repo, e)
         raise HTTPException(status_code=404, detail="Repository not found")
     readme = await gitea.get_readme(owner, repo)
     o = data.get("owner", {})
@@ -336,7 +341,8 @@ async def get_issue(
 ):
     try:
         data = await gitea.get_issue(owner, repo, index)
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to fetch issue %s/%s#%d: %s", owner, repo, index, e)
         raise HTTPException(status_code=404, detail="Issue not found")
     return Issue(
         number=data.get("number", 0),
@@ -436,7 +442,8 @@ async def get_pull(
 ):
     try:
         data = await gitea.get_pull(owner, repo, index)
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to fetch pull request %s/%s#%d: %s", owner, repo, index, e)
         raise HTTPException(status_code=404, detail="Pull request not found")
     return PullRequest(
         number=data.get("number", 0),

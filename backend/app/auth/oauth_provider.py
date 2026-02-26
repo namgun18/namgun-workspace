@@ -1,14 +1,16 @@
 """Portal OIDC provider — exposes authorize/token/userinfo for Gitea etc."""
 
 import base64
+import binascii
 import hashlib
 import json
+import logging
 import secrets
 import time
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from jose import jwt
+from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from urllib.parse import urlencode, quote
 
@@ -23,6 +25,7 @@ from app.auth.oauth_store import (
     store_code,
 )
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 router = APIRouter(prefix="/oauth", tags=["oauth-provider"])
 
@@ -59,7 +62,7 @@ def _parse_basic_auth(header: str) -> tuple[str, str] | None:
         decoded = base64.b64decode(header[6:]).decode()
         client_id, client_secret = decoded.split(":", 1)
         return client_id, client_secret
-    except Exception:
+    except (binascii.Error, UnicodeDecodeError, ValueError):
         return None
 
 
@@ -251,7 +254,7 @@ async def userinfo(request: Request, db: AsyncSession = Depends(get_db)):
 
     try:
         payload = _verify_access_token(auth_header[7:])
-    except Exception:
+    except (JWTError, KeyError, ValueError):
         raise HTTPException(status_code=401, detail="Invalid token")
 
     user = await db.get(User, payload["sub"])

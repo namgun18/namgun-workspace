@@ -1,0 +1,60 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "수정",
+    "confirm": "확인",
+    "close": "닫기",
+    "back": "뒤로",
+    "search": "검색",
+    "loading": "로딩 중...",
+    "error": "오류",
+    "success": "성공",
+    "retry": "다시 시도",
+    "submit": "제출",
+    "reset": "초기화"
+  },
+  "auth": {
+    "login": "로그인",
+    "logout": "로그아웃",
+    "register": "회원가입",
+    "username": "사용자명",
+    "password": "비밀번호",
+    "forgotPassword": "비밀번호 찾기",
+    "loginFailed": "로그인에 실패했습니다.",
+    "registerSuccess": "회원가입이 완료되었습니다.",
+    "usernameOrEmail": "사용자명 또는 이메일",
+    "usernameOrEmailPlaceholder": "사용자명 또는 이메일",
+    "passwordPlaceholder": "비밀번호",
+    "rememberMe": "로그인 상태 유지",
+    "loginRequired": "서비스에 접근하려면 로그인하세요",
+    "loggingIn": "로그인 중...",
+    "noAccount": "계정이 없으신가요?",
+    "enterCredentials": "사용자명과 비밀번호를 입력하세요.",
+    "invalidCredentials": "사용자명 또는 비밀번호가 올바르지 않습니다.",
+    "authServerUnavailable": "인증 서버에 연결할 수 없습니다.",
+    "loginError": "로그인 중 오류가 발생했습니다. 다시 시도해주세요."
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "mail": "메일",
+    "chat": "채팅",
+    "files": "파일",
+    "meetings": "회의",
+    "calendar": "캘린더",
+    "contacts": "연락처",
+    "git": "Git",
+    "board": "게시판",
+    "settings": "설정",
+    "admin": "관리"
+  },
+  "error": {
+    "notFound": "페이지를 찾을 수 없습니다.",
+    "serverError": "서버 오류가 발생했습니다.",
+    "forbidden": "접근 권한이 없습니다.",
+    "networkError": "네트워크 오류가 발생했습니다.",
+    "sessionExpired": "세션이 만료되었습니다. 다시 로그인해주세요.",
+    "goHome": "홈으로 돌아가기"
+  }
+}

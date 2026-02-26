@@ -121,7 +121,8 @@ async def approve_user(
             exists = await account_exists(user.email)
             if not exists:
                 mail_created = await create_account(user.email, "")
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to ensure mail account for %s: %s", user.email, e)
             mail_created = False
 
     # Activate in DB
@@ -173,8 +174,8 @@ async def reject_user(
         try:
             from app.mail.mailserver import delete_account
             await delete_account(user.email)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to delete mail account for rejected user %s: %s", user.email, e)
 
     # Delete from DB
     await db.delete(user)

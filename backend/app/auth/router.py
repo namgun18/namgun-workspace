@@ -1,5 +1,6 @@
 """Auth API routes: login, me, logout, register, profile, password management."""
 
+import logging
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,6 +32,7 @@ from app.auth.schemas import (
     UserResponse,
 )
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -138,21 +140,21 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
         try:
             from app.mail.mailserver import create_account
             await create_account(email, body.password)
-        except Exception:
-            pass  # Don't fail registration if mail server is unreachable
+        except Exception as e:
+            logger.warning("Failed to create mail account for %s: %s", email, e)
 
     # Send verification email to recovery_email
     try:
         verify_url = f"{settings.app_url}/verify-email?token={verify_token}"
         await _send_verify_email(body.recovery_email, body.username, verify_url)
-    except Exception:
-        pass  # Don't fail registration if email fails
+    except Exception as e:
+        logger.warning("Failed to send verification email to %s: %s", body.recovery_email, e)
 
     # Notify admins of new registration
     try:
         await _send_admin_registration_notify(body.username, body.display_name, email, body.recovery_email)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to send admin registration notification for %s: %s", body.username, e)
 
     return {"message": "가입 신청이 완료되었습니다. 복구 이메일로 전송된 인증 링크를 확인해주세요."}
 
@@ -291,8 +293,8 @@ async def change_password(
         try:
             from app.mail.mailserver import update_password as mail_update_password
             await mail_update_password(user.email, body.new_password)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to sync password change to mail server for %s: %s", user.email, e)
 
     return {"message": "비밀번호가 변경되었습니다"}
 
@@ -326,8 +328,8 @@ async def forgot_password(
     reset_url = f"{settings.app_url}/reset-password?token={token}"
     try:
         await _send_recovery_email(user.recovery_email, user.username, reset_url)
-    except Exception:
-        pass  # Silently fail to prevent info leakage
+    except Exception as e:
+        logger.warning("Failed to send recovery email to %s: %s", user.recovery_email, e)
 
     return {"message": success_msg}
 
@@ -363,8 +365,8 @@ async def reset_password(request: Request, body: ResetPasswordRequest, db: Async
         try:
             from app.mail.mailserver import update_password as mail_update_password
             await mail_update_password(user.email, body.new_password)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to sync password reset to mail server for %s: %s", user.email, e)
 
     return {"message": "비밀번호가 재설정되었습니다. 로그인해주세요."}
 
