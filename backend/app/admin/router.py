@@ -129,19 +129,14 @@ async def approve_user(
     if user.is_active:
         raise HTTPException(status_code=400, detail="이미 활성화된 사용자입니다")
 
-    # Ensure mail principal exists (only if built-in mailserver is enabled)
+    # Ensure mail account exists (only if built-in mailserver is enabled)
     mail_created = True
     if getattr(settings, 'feature_builtin_mailserver', False):
         try:
-            from app.mail import stalwart
-            mail_created = await stalwart.principal_exists(user.username)
-            if not mail_created:
-                mail_created = await stalwart.create_principal(
-                    username=user.username,
-                    password="",
-                    email=user.email,
-                    display_name=user.display_name,
-                )
+            from app.mail.mailserver import account_exists, create_account
+            exists = await account_exists(user.email)
+            if not exists:
+                mail_created = await create_account(user.email, "")
         except Exception:
             mail_created = False
 
@@ -192,8 +187,8 @@ async def reject_user(
     # Clean up mail principal if built-in mailserver is enabled
     if getattr(settings, 'feature_builtin_mailserver', False):
         try:
-            from app.mail import stalwart
-            await stalwart.delete_principal(user.username)
+            from app.mail.mailserver import delete_account
+            await delete_account(user.email)
         except Exception:
             pass
 

@@ -133,16 +133,11 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     db.add(user)
     await db.commit()
 
-    # Create mail principal only if built-in mail server is enabled
+    # Create mail account if built-in mail server is enabled
     if getattr(settings, 'feature_builtin_mailserver', False):
         try:
-            from app.mail.stalwart import create_principal
-            await create_principal(
-                username=body.username,
-                password=body.password,
-                email=email,
-                display_name=body.display_name,
-            )
+            from app.mail.mailserver import create_account
+            await create_account(email, body.password)
         except Exception:
             pass  # Don't fail registration if mail server is unreachable
 
@@ -291,8 +286,8 @@ async def change_password(
     # Sync password to built-in mail server if enabled
     if getattr(settings, 'feature_builtin_mailserver', False):
         try:
-            from app.mail.stalwart import update_password as stalwart_update_password
-            await stalwart_update_password(user.username, body.new_password)
+            from app.mail.mailserver import update_password as mail_update_password
+            await mail_update_password(user.email, body.new_password)
         except Exception:
             pass
 
@@ -362,8 +357,8 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
     # Sync password to built-in mail server if enabled
     if getattr(settings, 'feature_builtin_mailserver', False):
         try:
-            from app.mail.stalwart import update_password as stalwart_update_password
-            await stalwart_update_password(user.username, body.new_password)
+            from app.mail.mailserver import update_password as mail_update_password
+            await mail_update_password(user.email, body.new_password)
         except Exception:
             pass
 
