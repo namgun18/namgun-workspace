@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user
+from app.config import get_settings
 from app.db.models import MailAccount, MailSignature, User
 from app.db.session import get_db
 from app.mail import imap_client, smtp_client
@@ -39,6 +40,45 @@ router = APIRouter(prefix="/api/mail", tags=["mail"])
 
 # ─── Helpers ───
 
+_settings = get_settings()
+
+
+async def _ensure_builtin_account(db: AsyncSession, user: User) -> MailAccount | None:
+    """Auto-provision a builtin MailAccount for the user if FEATURE_BUILTIN_MAILSERVER is enabled.
+
+    Returns the created/existing account, or None if builtin mail is disabled.
+    """
+    if not getattr(_settings, "feature_builtin_mailserver", False):
+        return None
+
+    # Check if builtin account already exists
+    result = await db.execute(
+        select(MailAccount).where(
+            MailAccount.user_id == user.id,
+            MailAccount.imap_host == "mailserver",
+        )
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        return existing
+
+    # Create with empty password (user must change password to sync)
+    account = MailAccount(
+        user_id=user.id,
+        display_name=f"{_settings.domain} 메일",
+        email=user.email,
+        imap_host="mailserver", imap_port=993, imap_security="ssl",
+        smtp_host="mailserver", smtp_port=587, smtp_security="starttls",
+        username=user.email,
+        password_encrypted=encrypt_password(""),
+        is_default=True,
+        sync_error="비밀번호를 변경하면 메일 연동이 활성화됩니다.",
+    )
+    db.add(account)
+    await db.commit()
+    await db.refresh(account)
+    return account
+
 
 async def _get_account(
     db: AsyncSession, user: User, account_id: str | None = None
@@ -67,12 +107,18 @@ async def _get_account(
         .limit(1)
     )
     account = result.scalar_one_or_none()
-    if not account:
-        raise HTTPException(
-            status_code=404,
-            detail="메일 계정이 설정되지 않았습니다. 설정에서 메일 계정을 추가해주세요.",
-        )
-    return account
+    if account:
+        return account
+
+    # Fallback: auto-provision builtin account for existing users
+    builtin = await _ensure_builtin_account(db, user)
+    if builtin:
+        return builtin
+
+    raise HTTPException(
+        status_code=404,
+        detail="메일 계정이 설정되지 않았습니다. 설정에서 메일 계정을 추가해주세요.",
+    )
 
 
 def _account_response(account: MailAccount) -> dict:
@@ -107,7 +153,15 @@ async def list_accounts(
         .where(MailAccount.user_id == user.id)
         .order_by(MailAccount.created_at)
     )
-    return [_account_response(a) for a in result.scalars().all()]
+    accounts = result.scalars().all()
+
+    # Auto-provision builtin account if user has none
+    if not accounts:
+        builtin = await _ensure_builtin_account(db, user)
+        if builtin:
+            accounts = [builtin]
+
+    return [_account_response(a) for a in accounts]
 
 
 @router.post("/accounts", response_model=MailAccountResponse, status_code=201)
