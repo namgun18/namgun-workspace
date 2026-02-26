@@ -45,11 +45,12 @@ def _session_response(
 ) -> JSONResponse:
     session_data = sign_value({"user_id": user.id})
     response = JSONResponse(content=body or {"status": "ok"})
+    is_https = settings.app_url.startswith("https://")
     response.set_cookie(
         SESSION_COOKIE,
         session_data,
         httponly=True,
-        secure=True,
+        secure=is_https,
         samesite="lax",
         max_age=max_age,
         path="/",
