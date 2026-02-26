@@ -23,15 +23,6 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  runtimeConfig: {
-    public: {
-      demoMode: process.env.NUXT_PUBLIC_DEMO_MODE === 'true',
-    },
-  },
-
-  // SSR: 데모 모드는 SPA (하이드레이션 미스매치 방지, SEO 불필요)
-  ssr: process.env.NUXT_PUBLIC_DEMO_MODE !== 'true',
-
   // /api/**, /oauth/** → FastAPI 백엔드 프록시
   nitro: {
     devProxy: {
@@ -51,7 +42,7 @@ export default defineNuxtConfig({
     },
   },
 
-  routeRules: process.env.NUXT_PUBLIC_DEMO_MODE === 'true' ? {} : {
+  routeRules: {
     '/api/**': { proxy: 'http://backend:8000/api/**' },
   },
 })

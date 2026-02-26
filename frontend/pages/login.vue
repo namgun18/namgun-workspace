@@ -20,7 +20,7 @@ const redirectTo = computed(() => {
   if (r.startsWith('https://')) {
     try {
       const parsed = new URL(r)
-      if (parsed.hostname === 'namgun.or.kr' || parsed.hostname.endsWith('.namgun.or.kr')) return r
+      if (parsed.hostname === window.location.hostname || parsed.hostname.endsWith(`.${window.location.hostname}`)) return r
     } catch { /* invalid URL */ }
   }
   return '/'
@@ -82,7 +82,7 @@ async function handleSubmit() {
         <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
         <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
-      <h1 class="text-2xl font-bold">namgun.or.kr Portal</h1>
+      <h1 class="text-2xl font-bold">Workspace</h1>
       <p class="text-sm text-muted-foreground">
         서비스에 접근하려면 로그인하세요
       </p>
@@ -147,28 +147,6 @@ async function handleSubmit() {
         <NuxtLink to="/register" class="text-primary hover:underline font-medium">회원가입</NuxtLink>
       </p>
     </form>
-
-    <!-- Demo button -->
-    <div class="relative">
-      <div class="absolute inset-0 flex items-center">
-        <span class="w-full border-t" />
-      </div>
-      <div class="relative flex justify-center text-xs uppercase">
-        <span class="bg-background px-2 text-muted-foreground">또는</span>
-      </div>
-    </div>
-
-    <a
-      href="https://demo.namgun.or.kr"
-      class="flex items-center justify-center gap-2 w-full py-3 px-4 text-sm font-medium rounded-lg border-2 border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:border-primary/60 transition-colors"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-      데모 체험하기
-      <span class="text-xs text-muted-foreground font-normal">(로그인 불필요)</span>
-    </a>
 
   </div>
 </template>

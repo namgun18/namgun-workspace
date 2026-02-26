@@ -112,9 +112,6 @@ let _initialized = false
 
 export function useChat() {
   const { user } = useAuth()
-  const config = useRuntimeConfig()
-  const isDemo = config.public.demoMode
-
   // ─── Computed ───
 
   const selectedChannel = computed(() =>
@@ -404,7 +401,6 @@ export function useChat() {
 
   function connectWS() {
     if (!import.meta.client) return
-    if (isDemo) return
     if (_ws && (_ws.readyState === WebSocket.OPEN || _ws.readyState === WebSocket.CONNECTING)) return
 
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'

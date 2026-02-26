@@ -1,8 +1,4 @@
 export default defineNuxtRouteMiddleware((to) => {
-  // Demo mode: skip auth entirely
-  const config = useRuntimeConfig()
-  if (config.public.demoMode) return
-
   const { user, loading } = useAuth()
 
   // Allow public pages

@@ -140,13 +140,6 @@ export function useFiles() {
   }
 
   async function downloadFile(path: string, isDir = false) {
-    if (import.meta.client) {
-      const config = useRuntimeConfig()
-      if (config.public.demoMode) {
-        alert('데모 모드에서는 파일 다운로드를 사용할 수 없습니다.')
-        return
-      }
-    }
     const endpoint = isDir ? '/api/files/download-zip' : '/api/files/download'
     const url = `${endpoint}?path=${encodeURIComponent(path)}`
     try {
