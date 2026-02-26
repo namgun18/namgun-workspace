@@ -124,4 +124,11 @@ app.include_router(board_router)
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok", "service": settings.app_name, "version": "3.2.0"}
+    return {
+        "status": "ok",
+        "service": settings.app_name,
+        "version": "3.2.0",
+        "domain": settings.domain,
+        "app_url": settings.app_url,
+        "gitea_url": settings.gitea_url,
+    }

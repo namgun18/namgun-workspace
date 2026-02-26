@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { user, logout } = useAuth()
+const { appName } = useAppConfig()
 const colorMode = useColorMode()
 const route = useRoute()
 const mobileMenuOpen = ref(false)
@@ -93,7 +94,7 @@ function toggleDark() {
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
-          <span class="hidden sm:inline">Workspace</span>
+          <span class="hidden sm:inline">{{ appName }}</span>
         </NuxtLink>
 
         <!-- Desktop nav (dynamic from module registry) -->
