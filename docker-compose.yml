@@ -1,18 +1,19 @@
 ## ===========================================
 ## namgun-workspace — Docker Compose
 ## ===========================================
-## 코어: postgres, redis, backend, frontend (항상 기동)
-## 선택: nginx, mailserver, gitea, livekit (COMPOSE_PROFILES로 활성화)
+## 코어: postgres, redis, backend, frontend, nginx (항상 기동)
+## 선택: certbot, mailserver, gitea, livekit (COMPOSE_PROFILES로 활성화)
+##
+## 네트워크: workspace (172.28.0.0/24) 고정 IP
+## 외부 접근: nginx :80 단일 진입점 + 메일/SSH/WebRTC 직접 바인딩
 ##
 ## 배포 예시:
-##   풀스택:      COMPOSE_PROFILES=nginx,certbot,mailserver,gitea,livekit
-##   클라우드 메일: COMPOSE_PROFILES=nginx,certbot,gitea,livekit
-##   외부 프록시:  COMPOSE_PROFILES=certbot,mailserver,livekit
+##   풀스택:      COMPOSE_PROFILES=certbot,mailserver,gitea,livekit
 ##   최소:        COMPOSE_PROFILES= (코어만)
 ## ===========================================
 
 services:
-  # ─── 1. PostgreSQL 16 (workspace + gitea + stalwart 공유) ───
+  # ─── 1. PostgreSQL 16 (workspace + gitea 공유) ───
   postgres:
     image: postgres:16-alpine
     container_name: ws-postgres
@@ -29,6 +30,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.10
     restart: unless-stopped
 
   # ─── 2. Redis 7 ───
@@ -42,6 +46,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.11
     restart: unless-stopped
 
   # ─── 3. Backend (FastAPI) ───
@@ -58,8 +65,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
+    expose:
+      - "8000"
     volumes:
       - storage-vol:/storage
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -69,6 +76,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.20
     restart: unless-stopped
 
   # ─── 4. Frontend (Nuxt 3 SSR) ───
@@ -77,18 +87,19 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: ws-frontend
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+    expose:
+      - "3000"
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.21
     restart: unless-stopped
 
-  # ─── 5. Nginx (TLS 종단) — profiles: nginx ───
+  # ─── 5. Nginx (내장 리버스 프록시, 항상 기동) ───
   nginx:
     image: nginx:alpine
     container_name: ws-nginx
-    profiles: ["nginx"]
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - certbot-data:/etc/letsencrypt:ro
@@ -98,28 +109,31 @@ services:
         condition: service_healthy
       frontend:
         condition: service_started
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.2
     restart: unless-stopped
 
-  # ─── 5½. Certbot (TLS 인증서 자동 발급/갱신) — profiles: certbot ───
+  # ─── 5-1. Certbot (TLS 인증서 자동 발급/갱신) — profiles: certbot ───
   certbot:
     image: certbot/certbot:latest
     container_name: ws-certbot
     profiles: ["certbot"]
-    ports:
-      - "${ACME_HTTP_PORT:-80}:80"
     volumes:
       - certbot-data:/etc/letsencrypt
       - certbot-webroot:/var/www/certbot
       - ./scripts/certbot-entrypoint.sh:/entrypoint.sh:ro
     environment:
-      ACME_MODE: ${ACME_MODE:-standalone}
+      ACME_MODE: webroot
       ACME_DOMAINS: mail.${DOMAIN:-localhost},${DOMAIN:-localhost}
       ACME_EMAIL: ${LETSENCRYPT_EMAIL:-admin@localhost}
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.3
     restart: unless-stopped
 
   # ─── 6. Mail Server (Postfix+Dovecot+Rspamd) — profiles: mailserver ───
-  # docker-mailserver (MIT) — https://github.com/docker-mailserver/docker-mailserver
   mailserver:
     image: mailserver/docker-mailserver:latest
     container_name: ws-mailserver
@@ -154,6 +168,9 @@ services:
       OVERRIDE_HOSTNAME: mail.${DOMAIN:-localhost}
     cap_add:
       - NET_ADMIN
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.30
     restart: unless-stopped
 
   # ─── 7. Gitea — profiles: gitea ───
@@ -162,14 +179,18 @@ services:
     container_name: ws-gitea
     profiles: ["gitea"]
     ports:
-      - "${GIT_HTTP_PORT:-3030}:3000"
       - "${GIT_SSH_PORT:-2222}:22"
+    expose:
+      - "3000"
     volumes:
       - ${GITEA_DATA_PATH:-gitea-data}:/data
     environment:
       GITEA__server__ROOT_URL: ${GITEA_EXTERNAL_URL:-${APP_URL:-http://localhost}/git/}
       GITEA__server__SSH_PORT: ${GIT_SSH_PORT:-2222}
       GITEA__server__SSH_DOMAIN: ${DOMAIN:-localhost}
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.31
     restart: unless-stopped
 
   # ─── 8. LiveKit — profiles: livekit ───
@@ -178,12 +199,23 @@ services:
     container_name: ws-livekit
     profiles: ["livekit"]
     ports:
-      - "7880:7880"
       - "7882:7882/udp"
+    expose:
+      - "7880"
     command: --config /etc/livekit.yaml
     volumes:
       - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
+    networks:
+      workspace:
+        ipv4_address: 172.28.0.32
     restart: unless-stopped
+
+networks:
+  workspace:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
   postgres-data:

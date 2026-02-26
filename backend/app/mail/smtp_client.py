@@ -1,9 +1,11 @@
 """SMTP client for sending mail via user's SMTP server."""
 
 import logging
+from email.header import Header
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 from email import encoders
 
 import aiosmtplib
@@ -12,6 +14,20 @@ from app.db.models import MailAccount
 from app.mail.crypto import decrypt_password
 
 logger = logging.getLogger(__name__)
+
+
+def _encode_address(name: str | None, addr: str) -> str:
+    """Encode a single email address with RFC 2047 display name."""
+    if name:
+        return formataddr((str(Header(name, "utf-8")), addr))
+    return addr
+
+
+def _encode_address_list(addrs: list[dict]) -> str:
+    """Encode a list of {name, email} dicts into a header value."""
+    return ", ".join(
+        _encode_address(a.get("name"), a["email"]) for a in addrs
+    )
 
 
 async def send_message(
@@ -27,8 +43,8 @@ async def send_message(
     references: list[str] | None = None,
     attachments: list[dict] | None = None,
     request_read_receipt: bool = False,
-) -> bool:
-    """Send email via SMTP. Returns True on success."""
+) -> bytes:
+    """Send email via SMTP. Returns raw message bytes on success."""
     from app.config import get_settings
 
     settings = get_settings()
@@ -76,17 +92,11 @@ async def send_message(
     else:
         msg = MIMEText(text_body, "plain", "utf-8")
 
-    msg["Subject"] = subject
-    msg["From"] = f"{from_name} <{account.email}>" if from_name else account.email
-    msg["To"] = ", ".join(
-        f"{a['name']} <{a['email']}>" if a.get("name") else a["email"]
-        for a in to
-    )
+    msg["Subject"] = Header(subject, "utf-8").encode() if subject else ""
+    msg["From"] = _encode_address(from_name, account.email)
+    msg["To"] = _encode_address_list(to)
     if cc:
-        msg["Cc"] = ", ".join(
-            f"{a['name']} <{a['email']}>" if a.get("name") else a["email"]
-            for a in cc
-        )
+        msg["Cc"] = _encode_address_list(cc)
     if in_reply_to:
         msg["In-Reply-To"] = in_reply_to
     if references:
@@ -123,7 +133,7 @@ async def send_message(
             recipients=recipients,
             timeout=30,
         )
-        return True
+        return msg.as_bytes()
     except Exception as e:
         logger.error("SMTP send failed for %s: %s", account.email, e)
         raise

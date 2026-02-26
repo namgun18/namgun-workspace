@@ -674,6 +674,42 @@ async def fetch_raw_headers(account: MailAccount, mailbox: str, uid: str) -> str
             pass
 
 
+async def append_to_sent(account: MailAccount, raw_message: bytes) -> bool:
+    """Append a sent message to the Sent mailbox."""
+    imap = await _connect(account)
+    try:
+        # Find the Sent mailbox name (could be "Sent", localized, etc.)
+        sent_name = "Sent"
+        list_resp = await imap.list('""', "*")
+        if list_resp.result == "OK":
+            for line in list_resp.lines:
+                if not line:
+                    continue
+                line_str = _line_to_str(line)
+                if "\\Sent" in line_str:
+                    match = re.match(
+                        r'(?:\* LIST )?\(([^)]*)\) "([^"]*)" (.+)', line_str
+                    )
+                    if match:
+                        sent_name = match.group(3).strip('"')
+                    break
+
+        resp = await imap.append(
+            raw_message,
+            mailbox=sent_name,
+            flags="(\\Seen)",
+        )
+        return resp.result == "OK"
+    except Exception as e:
+        logger.error("IMAP APPEND to Sent failed: %s", e)
+        return False
+    finally:
+        try:
+            await imap.logout()
+        except Exception:
+            pass
+
+
 async def test_connection(account: MailAccount) -> tuple[bool, str]:
     """Test IMAP connection. Returns (success, message)."""
     try:

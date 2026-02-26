@@ -663,7 +663,7 @@ async def send_message(
     from_name = user.display_name or user.username
 
     try:
-        await smtp_client.send_message(
+        raw_msg = await smtp_client.send_message(
             account=account,
             from_name=from_name,
             to=[a.model_dump() for a in body.to],
@@ -679,6 +679,12 @@ async def send_message(
     except Exception as e:
         logger.error("SMTP send failed: %s", e)
         raise HTTPException(status_code=502, detail=f"메일 전송 실패: {str(e)}")
+
+    # Copy sent message to Sent folder
+    try:
+        await imap_client.append_to_sent(account, raw_msg)
+    except Exception as e:
+        logger.warning("Failed to copy to Sent folder: %s", e)
 
     return {"ok": True}
 
