@@ -108,7 +108,9 @@ async function handleSubmit() {
     }
   } catch (e: any) {
     console.error('Submit error:', e)
-    alert(e?.data?.detail || '게시글 저장에 실패했습니다')
+    const detail = e?.data?.detail
+    const msg = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map((d: any) => d.msg).join(', ') : '게시글 저장에 실패했습니다'
+    alert(msg)
   } finally {
     submitting.value = false
   }

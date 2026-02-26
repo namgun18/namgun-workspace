@@ -22,7 +22,7 @@ watch(name, (val) => {
 function slugify(str: string): string {
   return str
     .toLowerCase()
-    .replace(/[^a-z0-9가-힣\s-]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
     .replace(/[\s]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
@@ -51,7 +51,9 @@ async function handleSubmit() {
     emit('close')
   } catch (e: any) {
     console.error('Create board error:', e)
-    alert(e?.data?.detail || '게시판 생성에 실패했습니다')
+    const detail = e?.data?.detail
+    const msg = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map((d: any) => d.msg).join(', ') : '게시판 생성에 실패했습니다'
+    alert(msg)
   } finally {
     submitting.value = false
   }
