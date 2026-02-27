@@ -4,8 +4,8 @@ import type { CalendarEvent } from '~/composables/useCalendar'
 const { selectedDate, visibleEvents, openCreateModal, openEditModal } = useCalendar()
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
-const { t, tm } = useI18n()
-const DAY_LABELS = computed(() => tm('calendar.weekdaysShort') as string[])
+const { t, tm, rt } = useI18n()
+const DAY_LABELS = computed(() => (tm('calendar.weekdaysShort') as any[]).map(m => rt(m)))
 
 const weekDays = computed(() => {
   const d = selectedDate.value

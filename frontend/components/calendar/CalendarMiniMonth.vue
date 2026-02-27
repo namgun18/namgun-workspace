@@ -13,8 +13,8 @@ watch(() => props.selectedDate, (d) => {
   viewDate.value = new Date(d)
 })
 
-const { t, tm } = useI18n()
-const DAY_LABELS = computed(() => tm('calendar.weekdaysShort') as string[])
+const { t, tm, rt } = useI18n()
+const DAY_LABELS = computed(() => (tm('calendar.weekdaysShort') as any[]).map(m => rt(m)))
 
 const monthLabel = computed(() => {
   const y = viewDate.value.getFullYear()
