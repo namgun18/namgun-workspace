@@ -1074,8 +1074,8 @@
     }
   },
   "demo": {
-    "mailDescription": "자체 메일 서버를 통해 @도메인 이메일을 제공합니다. 데모 환경에서는 메일 서버가 연결되어 있지 않아 미리보기만 제공합니다.",
-    "mailFeature1": "개인 도메인 메일 (user@namgun.or.kr)",
+    "mailDescription": "자체 메일 서버를 통해 도메인 이메일을 제공합니다. 데모 환경에서는 메일 서버가 연결되어 있지 않아 미리보기만 제공합니다.",
+    "mailFeature1": "개인 도메인 메일 (user{'@'}namgun.or.kr)",
     "mailFeature2": "IMAP/SMTP 외부 클라이언트 지원",
     "mailFeature3": "서명 관리 및 다중 계정",
     "mailFeature4": "SPF/DKIM/DMARC 완비",

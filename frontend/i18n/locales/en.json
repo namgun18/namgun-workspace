@@ -1074,8 +1074,8 @@
     }
   },
   "demo": {
-    "mailDescription": "Provides @domain email via a built-in mail server. In the demo environment, the mail server is not connected — only a preview is available.",
-    "mailFeature1": "Custom domain mail (user@namgun.or.kr)",
+    "mailDescription": "Provides domain email via a built-in mail server. In the demo environment, the mail server is not connected — only a preview is available.",
+    "mailFeature1": "Custom domain mail (user{'@'}namgun.or.kr)",
     "mailFeature2": "IMAP/SMTP external client support",
     "mailFeature3": "Signature management & multiple accounts",
     "mailFeature4": "SPF/DKIM/DMARC configured",
