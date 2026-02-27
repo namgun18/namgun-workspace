@@ -3,7 +3,7 @@ definePageMeta({ layout: 'auth' })
 
 const { t } = useI18n()
 const { nativeLogin, user } = useAuth()
-const { appName } = useAppConfig()
+const { appName, registrationMode } = useAppConfig()
 const route = useRoute()
 
 const username = ref('')
@@ -144,7 +144,7 @@ async function handleSubmit() {
         {{ submitting ? $t('auth.loggingIn') : $t('auth.login') }}
       </UiButton>
 
-      <p class="text-center text-sm text-muted-foreground">
+      <p v-if="registrationMode !== 'closed'" class="text-center text-sm text-muted-foreground">
         {{ $t('auth.noAccount') }}
         <NuxtLink to="/register" class="text-primary hover:underline font-medium">{{ $t('auth.register') }}</NuxtLink>
       </p>

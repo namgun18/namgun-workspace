@@ -89,7 +89,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="3.4.1",
+    version="3.4.2",
     lifespan=lifespan,
     docs_url="/api/docs" if settings.debug else None,
     redoc_url=None,
@@ -143,17 +143,41 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     from app.admin.settings import get_settings_by_prefix
 
     db_vals = await get_settings_by_prefix(db, "branding.")
+    gen_vals = await get_settings_by_prefix(db, "general.")
+    auth_vals = await get_settings_by_prefix(db, "auth.")
 
     return {
         "status": "ok",
         "service": db_vals.get("branding.site_name") or settings.app_name,
-        "version": "3.4.1",
+        "version": "3.4.2",
         "domain": settings.domain,
         "app_url": settings.app_url,
         "gitea_url": settings.gitea_external_url or f"{settings.app_url}/git/",
         "brand_logo": db_vals.get("branding.logo_url") or settings.brand_logo,
         "brand_color": db_vals.get("branding.primary_color") or settings.brand_color,
+        "default_theme": db_vals.get("branding.default_theme") or "system",
+        "favicon": db_vals.get("branding.favicon_url") or "",
+        "registration_mode": auth_vals.get("auth.registration_mode") or "approval",
+        "announcement": gen_vals.get("general.announcement") or "",
+        "announcement_type": gen_vals.get("general.announcement_type") or "info",
     }
+
+
+@app.get("/api/branding/favicon")
+async def serve_favicon():
+    """Serve uploaded favicon (no auth required)."""
+    favicon_dir = Path(settings.storage_root) / "branding"
+    if favicon_dir.is_dir():
+        for f in favicon_dir.iterdir():
+            if f.name.startswith("favicon.") and f.is_file():
+                media_map = {
+                    ".ico": "image/x-icon",
+                    ".png": "image/png",
+                    ".svg": "image/svg+xml",
+                }
+                media = media_map.get(f.suffix.lower(), "image/x-icon")
+                return FileResponse(str(f), media_type=media)
+    raise HTTPException(status_code=404, detail="Favicon not found")
 
 
 @app.get("/api/branding/logo")

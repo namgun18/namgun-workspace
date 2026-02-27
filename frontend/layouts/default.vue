@@ -1,9 +1,32 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const { fetchModules, loaded } = usePlatform()
+const { announcement, announcementType } = useAppConfig()
 const { addToast } = useToast()
 
 const moduleError = ref(false)
+const announcementDismissed = ref(false)
+
+// Restore dismissed state from localStorage (key includes announcement text to reset on change)
+watchEffect(() => {
+  if (!import.meta.client) return
+  const stored = localStorage.getItem('announcement-dismissed')
+  announcementDismissed.value = stored === announcement.value
+})
+
+function dismissAnnouncement() {
+  announcementDismissed.value = true
+  if (import.meta.client) {
+    localStorage.setItem('announcement-dismissed', announcement.value)
+  }
+}
+
+const announcementClasses = computed(() => {
+  const type = announcementType.value
+  if (type === 'warning') return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400'
+  if (type === 'error') return 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400'
+  return 'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400'
+})
 
 onMounted(async () => {
   if (!loaded.value) {
@@ -27,6 +50,28 @@ onErrorCaptured((err: Error) => {
 <template>
   <div class="h-screen flex flex-col overflow-hidden">
     <LayoutAppHeader />
+
+    <!-- Announcement banner -->
+    <div
+      v-if="announcement && !announcementDismissed"
+      :class="['border-b px-4 py-2 text-sm flex items-center gap-2', announcementClasses]"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 flex-shrink-0" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4" />
+        <path d="M12 8h.01" />
+      </svg>
+      <span class="flex-1">{{ announcement }}</span>
+      <button
+        class="hover:opacity-70 transition-opacity"
+        @click="dismissAnnouncement"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
 
     <!-- Module loading error banner -->
     <div

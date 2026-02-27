@@ -144,8 +144,13 @@ async def upload_file(
     file: UploadFile,
     path: str = Query("my/", description="Target directory virtual path"),
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    max_bytes = settings.upload_max_size_mb * 1024 * 1024
+    # DB-backed upload size limit (fallback to config)
+    from app.admin.settings import get_setting
+    db_max = await get_setting(db, "general.upload_max_size_mb")
+    max_mb = int(db_max) if db_max else settings.upload_max_size_mb
+    max_bytes = max_mb * 1024 * 1024
 
     vp = path.strip("/")
     if not vp:
@@ -182,7 +187,7 @@ async def upload_file(
                 target.unlink(missing_ok=True)
                 raise HTTPException(
                     status_code=413,
-                    detail=f"File exceeds {settings.upload_max_size_mb}MB limit",
+                    detail=f"File exceeds {max_mb}MB limit",
                 )
             f.write(chunk)
 

@@ -13,10 +13,12 @@ watch(user, (u) => {
 }, { immediate: true })
 
 // ── Branding ──
-const branding = ref({ site_name: '', primary_color: '#3B82F6', logo_url: '' })
+const branding = ref({ site_name: '', primary_color: '#3B82F6', logo_url: '', default_theme: 'system', favicon_url: '' })
 const brandingSaving = ref(false)
 const logoUploading = ref(false)
 const logoFile = ref<File | null>(null)
+const faviconUploading = ref(false)
+const faviconFile = ref<File | null>(null)
 
 async function loadBranding() {
   try {
@@ -29,7 +31,11 @@ async function saveBranding() {
   try {
     await $fetch('/api/admin/settings/branding', {
       method: 'PATCH',
-      body: { site_name: branding.value.site_name, primary_color: branding.value.primary_color },
+      body: {
+        site_name: branding.value.site_name,
+        primary_color: branding.value.primary_color,
+        default_theme: branding.value.default_theme,
+      },
     })
     await refetchAppConfig()
   } catch (e: any) {
@@ -72,6 +78,74 @@ function onLogoSelect(e: Event) {
   const input = e.target as HTMLInputElement
   if (input.files?.[0]) {
     logoFile.value = input.files[0]
+  }
+}
+
+function onFaviconSelect(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (input.files?.[0]) {
+    faviconFile.value = input.files[0]
+  }
+}
+
+async function uploadFavicon() {
+  if (!faviconFile.value) return
+  faviconUploading.value = true
+  try {
+    const form = new FormData()
+    form.append('file', faviconFile.value)
+    const res = await $fetch<{ favicon_url: string }>('/api/admin/settings/branding/favicon', {
+      method: 'POST',
+      body: form,
+    })
+    branding.value.favicon_url = res.favicon_url
+    faviconFile.value = null
+    await refetchAppConfig()
+  } catch (e: any) {
+    alert(e?.data?.detail || t('error.genericError'))
+  } finally {
+    faviconUploading.value = false
+  }
+}
+
+async function deleteFavicon() {
+  if (!confirm(t('admin.settings.branding.deleteFaviconConfirm'))) return
+  try {
+    await $fetch('/api/admin/settings/branding/favicon', { method: 'DELETE' })
+    branding.value.favicon_url = ''
+    await refetchAppConfig()
+  } catch {}
+}
+
+// ── General ──
+const general = ref({
+  registration_mode: 'approval',
+  upload_max_size_mb: 1024,
+  session_hours: 8,
+  session_remember_days: 30,
+  announcement: '',
+  announcement_type: 'info',
+})
+const generalSaving = ref(false)
+
+async function loadGeneral() {
+  try {
+    general.value = await $fetch('/api/admin/settings/general')
+  } catch {}
+}
+
+async function saveGeneral() {
+  generalSaving.value = true
+  try {
+    await $fetch('/api/admin/settings/general', {
+      method: 'PATCH',
+      body: general.value,
+    })
+    await refetchAppConfig()
+  } catch (e: any) {
+    alert(e?.data?.detail || t('error.genericError'))
+  } finally {
+    generalSaving.value = false
   }
 }
 
@@ -163,7 +237,7 @@ async function deleteSsl() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadBranding(), loadSmtp(), loadSsl()])
+  await Promise.all([loadBranding(), loadGeneral(), loadSmtp(), loadSsl()])
 })
 </script>
 
@@ -265,8 +339,137 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- Default Theme -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">{{ $t('admin.settings.branding.defaultTheme') }}</label>
+          <select
+            v-model="branding.default_theme"
+            class="w-48 px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="system">{{ $t('admin.settings.branding.themeSystem') }}</option>
+            <option value="light">{{ $t('admin.settings.branding.themeLight') }}</option>
+            <option value="dark">{{ $t('admin.settings.branding.themeDark') }}</option>
+          </select>
+        </div>
+
+        <!-- Favicon -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2">{{ $t('admin.settings.branding.favicon') }}</label>
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 border rounded flex items-center justify-center bg-muted overflow-hidden">
+              <img v-if="branding.favicon_url" :src="branding.favicon_url" class="max-w-full max-h-full object-contain" />
+              <span v-else class="text-muted-foreground text-xs">-</span>
+            </div>
+            <div class="flex gap-2">
+              <label class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md border cursor-pointer hover:bg-accent transition-colors">
+                {{ $t('admin.settings.branding.uploadFavicon') }}
+                <input type="file" accept=".ico,.png,.svg,image/x-icon,image/png,image/svg+xml" class="hidden" @change="onFaviconSelect" />
+              </label>
+              <UiButton v-if="faviconFile" size="sm" @click="uploadFavicon" :disabled="faviconUploading">
+                {{ faviconUploading ? $t('common.processing') : $t('common.save') }}
+              </UiButton>
+              <UiButton v-if="branding.favicon_url" size="sm" variant="outline" class="text-destructive" @click="deleteFavicon">
+                {{ $t('common.delete') }}
+              </UiButton>
+            </div>
+          </div>
+          <p v-if="faviconFile" class="text-xs text-muted-foreground mt-1">{{ faviconFile.name }}</p>
+          <p class="text-xs text-muted-foreground mt-1">{{ $t('admin.settings.branding.faviconHint') }}</p>
+        </div>
+
         <UiButton @click="saveBranding" :disabled="brandingSaving">
           {{ brandingSaving ? $t('common.saving') : $t('common.save') }}
+        </UiButton>
+      </div>
+
+      <!-- General Card -->
+      <div class="border rounded-lg bg-card p-6">
+        <h2 class="text-lg font-semibold mb-4">{{ $t('admin.settings.general.title') }}</h2>
+
+        <!-- Registration Mode -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">{{ $t('admin.settings.general.registrationMode') }}</label>
+          <select
+            v-model="general.registration_mode"
+            class="w-48 px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="open">{{ $t('admin.settings.general.regOpen') }}</option>
+            <option value="approval">{{ $t('admin.settings.general.regApproval') }}</option>
+            <option value="closed">{{ $t('admin.settings.general.regClosed') }}</option>
+          </select>
+          <p class="text-xs text-muted-foreground mt-1">{{ $t('admin.settings.general.registrationModeHint') }}</p>
+        </div>
+
+        <!-- Upload Max Size -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">{{ $t('admin.settings.general.uploadMaxSize') }}</label>
+          <div class="flex items-center gap-2">
+            <input
+              v-model.number="general.upload_max_size_mb"
+              type="number"
+              min="1"
+              max="10240"
+              class="w-32 px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <span class="text-sm text-muted-foreground">MB</span>
+          </div>
+        </div>
+
+        <!-- Session Hours -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">{{ $t('admin.settings.general.sessionHours') }}</label>
+            <div class="flex items-center gap-2">
+              <input
+                v-model.number="general.session_hours"
+                type="number"
+                min="1"
+                max="720"
+                class="w-24 px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <span class="text-sm text-muted-foreground">{{ $t('admin.settings.general.hours') }}</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">{{ $t('admin.settings.general.sessionRememberDays') }}</label>
+            <div class="flex items-center gap-2">
+              <input
+                v-model.number="general.session_remember_days"
+                type="number"
+                min="1"
+                max="365"
+                class="w-24 px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <span class="text-sm text-muted-foreground">{{ $t('admin.settings.general.days') }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Announcement -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">{{ $t('admin.settings.general.announcement') }}</label>
+          <input
+            v-model="general.announcement"
+            type="text"
+            :placeholder="$t('admin.settings.general.announcementPlaceholder')"
+            class="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">{{ $t('admin.settings.general.announcementType') }}</label>
+          <select
+            v-model="general.announcement_type"
+            class="w-48 px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="info">{{ $t('admin.settings.general.typeInfo') }}</option>
+            <option value="warning">{{ $t('admin.settings.general.typeWarning') }}</option>
+            <option value="error">{{ $t('admin.settings.general.typeError') }}</option>
+          </select>
+        </div>
+
+        <UiButton @click="saveGeneral" :disabled="generalSaving">
+          {{ generalSaving ? $t('common.saving') : $t('common.save') }}
         </UiButton>
       </div>
 

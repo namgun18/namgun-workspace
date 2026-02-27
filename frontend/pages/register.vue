@@ -2,8 +2,13 @@
 definePageMeta({ layout: 'auth' })
 
 const { t } = useI18n()
-const { appName } = useAppConfig()
+const { appName, registrationMode } = useAppConfig()
 const { register } = useAuth()
+
+// Block access if registration is closed
+watch(registrationMode, (mode) => {
+  if (mode === 'closed') navigateTo('/login')
+}, { immediate: true })
 
 useHead({ title: computed(() => `${t('register.title')} | ${appName.value}`) })
 

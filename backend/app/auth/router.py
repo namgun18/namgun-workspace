@@ -19,6 +19,8 @@ from app.auth.deps import (
     SESSION_MAX_AGE_DEFAULT,
     SESSION_MAX_AGE_REMEMBER,
     get_current_user,
+    get_session_max_age_default,
+    get_session_max_age_remember,
     sign_value,
 )
 from app.auth.password import hash_password, verify_password
@@ -79,7 +81,10 @@ async def login_post(request: Request, body: LoginRequest, db: AsyncSession = De
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
 
-    max_age = SESSION_MAX_AGE_REMEMBER if body.remember_me else SESSION_MAX_AGE_DEFAULT
+    if body.remember_me:
+        max_age = await get_session_max_age_remember(db)
+    else:
+        max_age = await get_session_max_age_default(db)
     return _session_response(user, max_age=max_age)
 
 
@@ -109,7 +114,13 @@ async def logout():
 @router.post("/register", status_code=201)
 @limiter.limit("5/minute")
 async def register(request: Request, body: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Register a new user (pending admin approval)."""
+    """Register a new user (respects registration_mode: open/approval/closed)."""
+    from app.admin.settings import get_setting
+
+    reg_mode = await get_setting(db, "auth.registration_mode") or "approval"
+    if reg_mode == "closed":
+        raise HTTPException(status_code=403, detail="현재 회원가입이 비활성화되어 있습니다")
+
     email = f"{body.username}@{settings.domain}"
 
     # Check if username already exists in DB
@@ -121,6 +132,7 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     verify_token = secrets.token_urlsafe(32)
 
     # Create DB record with bcrypt password hash
+    is_active = reg_mode == "open"  # open: immediate activation, approval: pending
     user = User(
         username=body.username,
         display_name=body.display_name,
@@ -130,7 +142,7 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
         email_verified=False,
         email_verify_token=verify_token,
         email_verify_sent_at=datetime.now(timezone.utc),
-        is_active=False,
+        is_active=is_active,
     )
     db.add(user)
     await db.commit()
@@ -156,6 +168,8 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     except Exception as e:
         logger.warning("Failed to send admin registration notification for %s: %s", body.username, e)
 
+    if reg_mode == "open":
+        return {"message": "가입이 완료되었습니다. 로그인해주세요."}
     return {"message": "가입 신청이 완료되었습니다. 복구 이메일로 전송된 인증 링크를 확인해주세요."}
 
 

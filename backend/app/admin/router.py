@@ -741,6 +741,16 @@ SSL_DIR = Path("/etc/nginx/ssl")
 class BrandingUpdate(BaseModel):
     site_name: str | None = None
     primary_color: str | None = None
+    default_theme: str | None = None  # light | dark | system
+
+
+class GeneralUpdate(BaseModel):
+    registration_mode: str | None = None  # open | approval | closed
+    upload_max_size_mb: int | None = None
+    session_hours: int | None = None
+    session_remember_days: int | None = None
+    announcement: str | None = None
+    announcement_type: str | None = None  # info | warning | error
 
 
 class SmtpUpdate(BaseModel):
@@ -770,6 +780,8 @@ async def get_branding(
         "site_name": db_vals.get("branding.site_name") or settings.app_name,
         "primary_color": db_vals.get("branding.primary_color") or settings.brand_color,
         "logo_url": db_vals.get("branding.logo_url") or settings.brand_logo or "",
+        "default_theme": db_vals.get("branding.default_theme") or "system",
+        "favicon_url": db_vals.get("branding.favicon_url") or "",
     }
 
 
@@ -784,6 +796,10 @@ async def update_branding(
         await set_setting(db, "branding.site_name", body.site_name)
     if body.primary_color is not None:
         await set_setting(db, "branding.primary_color", body.primary_color)
+    if body.default_theme is not None:
+        if body.default_theme not in ("light", "dark", "system"):
+            raise HTTPException(status_code=400, detail="유효하지 않은 테마 값입니다")
+        await set_setting(db, "branding.default_theme", body.default_theme)
     return {"message": "브랜딩 설정이 저장되었습니다"}
 
 
@@ -824,6 +840,109 @@ async def delete_logo(
             if f.name.startswith("logo."):
                 f.unlink(missing_ok=True)
     return {"message": "로고가 삭제되었습니다"}
+
+
+# ── Favicon ──────────────────────────────────────────────
+
+FAVICON_ALLOWED_TYPES = {"image/x-icon", "image/vnd.microsoft.icon", "image/png", "image/svg+xml"}
+FAVICON_MAX_BYTES = 1 * 1024 * 1024
+
+
+@router.post("/settings/branding/favicon")
+async def upload_favicon(
+    file: UploadFile,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload site favicon (max 1MB, ico/png/svg)."""
+    ct = file.content_type or ""
+    if ct not in FAVICON_ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail="ico/png/svg 파일만 허용됩니다")
+
+    data = await file.read()
+    if len(data) > FAVICON_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="파비콘은 1MB 이하여야 합니다")
+
+    LOGO_DIR.mkdir(parents=True, exist_ok=True)
+    # Remove old favicons
+    for f in LOGO_DIR.iterdir():
+        if f.name.startswith("favicon."):
+            f.unlink(missing_ok=True)
+
+    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "ico"
+    filename = f"favicon.{ext}"
+    (LOGO_DIR / filename).write_bytes(data)
+
+    favicon_url = "/api/branding/favicon"
+    await set_setting(db, "branding.favicon_url", favicon_url)
+    return {"favicon_url": favicon_url}
+
+
+@router.delete("/settings/branding/favicon")
+async def delete_favicon(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete uploaded favicon."""
+    await delete_setting(db, "branding.favicon_url")
+    if LOGO_DIR.exists():
+        for f in LOGO_DIR.iterdir():
+            if f.name.startswith("favicon."):
+                f.unlink(missing_ok=True)
+    return {"message": "파비콘이 삭제되었습니다"}
+
+
+# ── General settings ─────────────────────────────────────
+
+
+@router.get("/settings/general")
+async def get_general_settings(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get general settings."""
+    gen_vals = await get_settings_by_prefix(db, "general.")
+    auth_vals = await get_settings_by_prefix(db, "auth.")
+    return {
+        "registration_mode": auth_vals.get("auth.registration_mode") or "approval",
+        "upload_max_size_mb": int(gen_vals.get("general.upload_max_size_mb") or str(settings.upload_max_size_mb)),
+        "session_hours": int(auth_vals.get("auth.session_hours") or "8"),
+        "session_remember_days": int(auth_vals.get("auth.session_remember_days") or "30"),
+        "announcement": gen_vals.get("general.announcement") or "",
+        "announcement_type": gen_vals.get("general.announcement_type") or "info",
+    }
+
+
+@router.patch("/settings/general")
+async def update_general_settings(
+    body: GeneralUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update general settings."""
+    if body.registration_mode is not None:
+        if body.registration_mode not in ("open", "approval", "closed"):
+            raise HTTPException(status_code=400, detail="유효하지 않은 가입 모드입니다")
+        await set_setting(db, "auth.registration_mode", body.registration_mode)
+    if body.upload_max_size_mb is not None:
+        if body.upload_max_size_mb < 1 or body.upload_max_size_mb > 10240:
+            raise HTTPException(status_code=400, detail="업로드 크기는 1~10240 MB 범위여야 합니다")
+        await set_setting(db, "general.upload_max_size_mb", str(body.upload_max_size_mb))
+    if body.session_hours is not None:
+        if body.session_hours < 1 or body.session_hours > 720:
+            raise HTTPException(status_code=400, detail="세션 시간은 1~720시간 범위여야 합니다")
+        await set_setting(db, "auth.session_hours", str(body.session_hours))
+    if body.session_remember_days is not None:
+        if body.session_remember_days < 1 or body.session_remember_days > 365:
+            raise HTTPException(status_code=400, detail="기억 기간은 1~365일 범위여야 합니다")
+        await set_setting(db, "auth.session_remember_days", str(body.session_remember_days))
+    if body.announcement is not None:
+        await set_setting(db, "general.announcement", body.announcement)
+    if body.announcement_type is not None:
+        if body.announcement_type not in ("info", "warning", "error"):
+            raise HTTPException(status_code=400, detail="유효하지 않은 공지 유형입니다")
+        await set_setting(db, "general.announcement_type", body.announcement_type)
+    return {"message": "일반 설정이 저장되었습니다"}
 
 
 # ── SMTP ─────────────────────────────────────────────────

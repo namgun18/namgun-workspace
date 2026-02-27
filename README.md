@@ -123,6 +123,7 @@ docker compose up -d
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
+| v3.4.2 | 2026-02-27 | 동적 테마 색상 (hex→HSL --primary 연결), 기본 다크모드 설정, 파비콘 업로드, 회원가입 모드 (open/approval/closed), 최대 업로드 크기·세션 만료 시간 DB 설정, 공지 배너 |
 | v3.4.1 | 2026-02-27 | 관리자 설정 패널 (브랜딩/SMTP/SSL DB 저장), SMTP 공용 유틸 통합, Stalwart 고아 파일 완전 정리 |
 | v3.4.0 | 2026-02-27 | Phase 6: i18n 전체 마이그레이션 (430+ 키, ko/en), 화이트라벨링 (BRAND_LOGO/BRAND_COLOR), SEO 메타 태그 (useHead 전 페이지), a11y 기본 개선, 미사용 의존성 제거 |
 | v3.3.0 | 2026-02-27 | 전수점검 — nginx 보안 헤더/gzip, CORS 미들웨어, bare except 정리(7개 파일), 에러 바운더리/Toast, N+1 쿼리 수정, 백업 스크립트, 컨테이너 리소스 제한, i18n 기반 구축(ko/en), 테스트 인프라(pytest/vitest) |

@@ -1,5 +1,7 @@
 """Authentication dependencies."""
 
+import time as _time
+
 from fastapi import Cookie, Depends, HTTPException, status
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from sqlalchemy import select
@@ -17,6 +19,36 @@ PKCE_COOKIE = "ws_pkce"
 SESSION_MAX_AGE_DEFAULT = 3600 * 8    # 8 hours
 SESSION_MAX_AGE_REMEMBER = 86400 * 30  # 30 days
 SESSION_MAX_AGE = SESSION_MAX_AGE_REMEMBER  # max for unsign validation
+
+# ── Dynamic session durations (DB-backed, cached) ──────────
+_session_cache: dict[str, tuple[float, int]] = {}
+_SESSION_CACHE_TTL = 300  # 5 minutes
+
+
+async def get_session_max_age_default(db: AsyncSession) -> int:
+    """Return session max_age in seconds from DB (cached 5 min)."""
+    entry = _session_cache.get("default")
+    if entry and _time.monotonic() - entry[0] < _SESSION_CACHE_TTL:
+        return entry[1]
+    from app.admin.settings import get_setting
+    val = await get_setting(db, "auth.session_hours")
+    hours = int(val) if val else 8
+    result = hours * 3600
+    _session_cache["default"] = (_time.monotonic(), result)
+    return result
+
+
+async def get_session_max_age_remember(db: AsyncSession) -> int:
+    """Return remember-me max_age in seconds from DB (cached 5 min)."""
+    entry = _session_cache.get("remember")
+    if entry and _time.monotonic() - entry[0] < _SESSION_CACHE_TTL:
+        return entry[1]
+    from app.admin.settings import get_setting
+    val = await get_setting(db, "auth.session_remember_days")
+    days = int(val) if val else 30
+    result = days * 86400
+    _session_cache["remember"] = (_time.monotonic(), result)
+    return result
 
 
 def sign_value(data: dict) -> str:

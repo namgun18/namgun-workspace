@@ -290,7 +290,26 @@
     },
     "settings": {
       "title": "Settings",
-      "subtitle": "Manage branding, SMTP, and SSL certificates",
+      "subtitle": "Manage branding, general, SMTP, and SSL certificates",
+      "general": {
+        "title": "General",
+        "registrationMode": "Registration mode",
+        "regOpen": "Open",
+        "regApproval": "Admin approval",
+        "regClosed": "Closed",
+        "registrationModeHint": "Open: instant login, Approval: admin approval required, Closed: registration disabled",
+        "uploadMaxSize": "Max upload size",
+        "sessionHours": "Session expiry",
+        "sessionRememberDays": "Remember me duration",
+        "hours": "hours",
+        "days": "days",
+        "announcement": "Announcement banner",
+        "announcementPlaceholder": "Leave empty to hide the banner",
+        "announcementType": "Announcement type",
+        "typeInfo": "Info",
+        "typeWarning": "Warning",
+        "typeError": "Error"
+      },
       "branding": {
         "title": "Branding",
         "logo": "Logo",
@@ -298,7 +317,15 @@
         "deleteLogoConfirm": "Delete the logo?",
         "logoHint": "PNG, JPEG, SVG, WebP / Max 2MB",
         "siteName": "Site name",
-        "primaryColor": "Primary color"
+        "primaryColor": "Primary color",
+        "defaultTheme": "Default theme",
+        "themeSystem": "System",
+        "themeLight": "Light",
+        "themeDark": "Dark",
+        "favicon": "Favicon",
+        "uploadFavicon": "Upload favicon",
+        "deleteFaviconConfirm": "Delete the favicon?",
+        "faviconHint": "ICO, PNG, SVG / Max 1MB"
       },
       "smtp": {
         "title": "SMTP Settings",

@@ -290,16 +290,7 @@
     },
     "settings": {
       "title": "설정",
-      "subtitle": "브랜딩, SMTP, SSL 인증서를 관리합니다",
-      "branding": {
-        "title": "브랜딩",
-        "logo": "로고",
-        "uploadLogo": "로고 업로드",
-        "deleteLogoConfirm": "로고를 삭제하시겠습니까?",
-        "logoHint": "PNG, JPEG, SVG, WebP / 최대 2MB",
-        "siteName": "사이트 이름",
-        "primaryColor": "기본 색상"
-      },
+      "subtitle": "브랜딩, 일반, SMTP, SSL 인증서를 관리합니다",
       "smtp": {
         "title": "SMTP 설정",
         "host": "호스트",
@@ -312,6 +303,42 @@
         "testPlaceholder": "테스트 수신 이메일",
         "testButton": "테스트 발송",
         "testFail": "SMTP 테스트에 실패했습니다"
+      },
+      "general": {
+        "title": "일반",
+        "registrationMode": "회원가입 모드",
+        "regOpen": "자유 가입",
+        "regApproval": "관리자 승인",
+        "regClosed": "가입 비활성화",
+        "registrationModeHint": "open: 즉시 로그인 가능, approval: 관리자 승인 필요, closed: 가입 차단",
+        "uploadMaxSize": "최대 업로드 크기",
+        "sessionHours": "세션 만료 시간",
+        "sessionRememberDays": "로그인 유지 기간",
+        "hours": "시간",
+        "days": "일",
+        "announcement": "공지 배너",
+        "announcementPlaceholder": "비워두면 배너가 표시되지 않습니다",
+        "announcementType": "공지 유형",
+        "typeInfo": "정보",
+        "typeWarning": "경고",
+        "typeError": "오류"
+      },
+      "branding": {
+        "title": "브랜딩",
+        "logo": "로고",
+        "uploadLogo": "로고 업로드",
+        "deleteLogoConfirm": "로고를 삭제하시겠습니까?",
+        "logoHint": "PNG, JPEG, SVG, WebP / 최대 2MB",
+        "siteName": "사이트 이름",
+        "primaryColor": "기본 색상",
+        "defaultTheme": "기본 테마",
+        "themeSystem": "시스템 설정",
+        "themeLight": "라이트",
+        "themeDark": "다크",
+        "favicon": "파비콘",
+        "uploadFavicon": "파비콘 업로드",
+        "deleteFaviconConfirm": "파비콘을 삭제하시겠습니까?",
+        "faviconHint": "ICO, PNG, SVG / 최대 1MB"
       },
       "ssl": {
         "title": "SSL 인증서",
