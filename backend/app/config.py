@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     # Portal OAuth Provider (for Gitea etc.)
     oauth_clients_json: str = "{}"
 
+    # Demo mode (password-free login, auto-session)
+    demo_mode: bool = False
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

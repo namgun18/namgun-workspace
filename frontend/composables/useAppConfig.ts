@@ -10,6 +10,7 @@ const registrationMode = ref('approval')
 const announcement = ref('')
 const announcementType = ref('info')
 const gitVisibility = ref('private')
+const demoMode = ref(false)
 const loaded = ref(false)
 
 export function useAppConfig() {
@@ -29,6 +30,7 @@ export function useAppConfig() {
         announcement: string
         announcement_type: string
         git_visibility: string
+        demo_mode: boolean
       }>('/api/health')
       appName.value = data.service || 'Workspace'
       domain.value = data.domain || 'localhost'
@@ -42,6 +44,7 @@ export function useAppConfig() {
       announcement.value = data.announcement || ''
       announcementType.value = data.announcement_type || 'info'
       gitVisibility.value = data.git_visibility || 'private'
+      demoMode.value = data.demo_mode || false
       loaded.value = true
     } catch {
       // fallback to defaults
@@ -66,6 +69,7 @@ export function useAppConfig() {
     announcement: readonly(announcement),
     announcementType: readonly(announcementType),
     gitVisibility: readonly(gitVisibility),
+    demoMode: readonly(demoMode),
     fetchAppConfig,
     refetchAppConfig,
   }

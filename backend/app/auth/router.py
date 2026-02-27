@@ -108,6 +108,25 @@ async def login_post(request: Request, body: LoginRequest, db: AsyncSession = De
     return _session_response(user, max_age=max_age)
 
 
+# ── POST /api/auth/demo-login ─────────────────────────────────
+
+
+@router.post("/demo-login")
+async def demo_login(db: AsyncSession = Depends(get_db)):
+    """Auto-login as demo admin. Only available when DEMO_MODE=true."""
+    if not settings.demo_mode:
+        raise HTTPException(status_code=404, detail="Not found")
+    import os
+    admin_user = os.environ.get("ADMIN_USERNAME", "admin")
+    result = await db.execute(select(User).where(User.username == admin_user))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=500, detail="Demo user not found")
+    user.last_login_at = datetime.now(timezone.utc)
+    await db.commit()
+    return _session_response(user, max_age=86400 * 7)
+
+
 # ── GET /api/auth/me ─────────────────────────────────────────
 
 

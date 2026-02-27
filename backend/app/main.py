@@ -181,6 +181,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         "announcement": gen_vals.get("general.announcement") or "",
         "announcement_type": gen_vals.get("general.announcement_type") or "info",
         "git_visibility": gen_vals.get("general.git_visibility") or "private",
+        "demo_mode": settings.demo_mode,
     }
 
 
