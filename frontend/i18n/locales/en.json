@@ -289,6 +289,14 @@
       "title": "Module management",
       "description": "Enable/disable feature modules. Disabled modules are hidden from navigation and their APIs are blocked."
     },
+    "plugins": {
+      "title": "Plugins",
+      "subtitle": "Manage installed plugins",
+      "empty": "No plugins installed",
+      "emptyHint": "Place plugins in the plugins/ directory and restart the server",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
     "settings": {
       "title": "Settings",
       "subtitle": "Manage branding, general, SMTP, and SSL certificates",
@@ -1150,5 +1158,9 @@
       "deleteConfirm": "Delete address book '{name}'?",
       "addressBookNamePlaceholder": "Address book name"
     }
+  },
+  "plugins": {
+    "placeholder": "This plugin page will be available after rebuild",
+    "rebuildHint": "Please rebuild the frontend after installing the plugin"
   }
 }

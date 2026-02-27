@@ -289,6 +289,14 @@
       "title": "모듈 관리",
       "description": "기능 모듈을 활성화/비활성화합니다. 비활성화된 모듈은 네비게이션에서 숨겨지고 API도 차단됩니다."
     },
+    "plugins": {
+      "title": "플러그인",
+      "subtitle": "설치된 플러그인을 관리합니다",
+      "empty": "설치된 플러그인이 없습니다",
+      "emptyHint": "plugins/ 디렉토리에 플러그인을 배치하고 재시작하세요",
+      "active": "활성",
+      "inactive": "비활성"
+    },
     "settings": {
       "title": "설정",
       "subtitle": "브랜딩, 일반, SMTP, SSL 인증서를 관리합니다",
@@ -1150,5 +1158,9 @@
       "deleteConfirm": "'{name}' 주소록을 삭제하시겠습니까?",
       "addressBookNamePlaceholder": "주소록 이름"
     }
+  },
+  "plugins": {
+    "placeholder": "이 플러그인 페이지는 재빌드 후 사용 가능합니다",
+    "rebuildHint": "플러그인 설치 후 프론트엔드를 재빌드해주세요"
   }
 }

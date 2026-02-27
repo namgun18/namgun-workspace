@@ -33,6 +33,7 @@ from app.board.router import router as board_router
 from app.tasks.router import router as tasks_router
 from app.search.router import router as search_router
 from app.dav.router import dav_app
+from app.plugins.router import router as plugins_router
 
 settings = get_settings()
 _health_task = None
@@ -65,6 +66,14 @@ async def lifespan(app: FastAPI):
     # Load module states from DB
     from app.modules.registry import load_module_states
     from app.db.session import async_session
+    async with async_session() as db:
+        await load_module_states(db)
+
+    # Load plugins from /plugins directory
+    from app.plugins.loader import load_plugins
+    await load_plugins(app)
+
+    # Reload module states to include plugin defaults
     async with async_session() as db:
         await load_module_states(db)
 
@@ -144,6 +153,7 @@ app.include_router(webhook_router)
 app.include_router(board_router)
 app.include_router(tasks_router)
 app.include_router(search_router)
+app.include_router(plugins_router)
 
 
 # ── .well-known CalDAV/CardDAV discovery ──

@@ -1,0 +1,12 @@
+{
+  "id": "notes",
+  "name": "메모",
+  "name_en": "Notes",
+  "version": "1.0.0",
+  "description": "간단한 메모 관리",
+  "author": "namgun",
+  "icon": "edit-3",
+  "route": "/p/notes",
+  "api_prefix": "/api/plugins/notes",
+  "requires": []
+}

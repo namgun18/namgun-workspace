@@ -27,4 +27,13 @@ export default defineNuxtRouteMiddleware((to) => {
       break
     }
   }
+
+  // Plugin routes: /p/{pluginId}
+  const pluginMatch = to.path.match(/^\/p\/([^/]+)/)
+  if (pluginMatch) {
+    const pluginId = pluginMatch[1]
+    if (!isModuleEnabled(pluginId)) {
+      return navigateTo('/')
+    }
+  }
 })

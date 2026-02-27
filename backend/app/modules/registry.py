@@ -1,4 +1,4 @@
-"""Module registry — built-in module definitions + DB-backed enable/disable."""
+"""Module registry — built-in module definitions + plugin modules + DB-backed enable/disable."""
 
 import json
 import logging
@@ -12,6 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import SystemSetting
 
 logger = logging.getLogger(__name__)
+
+# ─── Plugin modules (filled by loader at startup) ───
+
+_plugin_modules: list[dict[str, Any]] = []
 
 # ─── Built-in module definitions ───
 
@@ -118,6 +122,23 @@ def _module_key(module_id: str) -> str:
     return f"module.{module_id}.enabled"
 
 
+def _all_modules() -> list[dict[str, Any]]:
+    """Return combined list of builtin + plugin modules."""
+    return BUILTIN_MODULES + _plugin_modules
+
+
+def register_plugin_module(plugin_meta: dict[str, Any]) -> None:
+    """Register a plugin module (called by plugin loader at startup)."""
+    # Avoid duplicates
+    if any(p["id"] == plugin_meta["id"] for p in _plugin_modules):
+        return
+    _plugin_modules.append(plugin_meta)
+    # Set default state if not already in cache
+    if plugin_meta["id"] not in _module_states:
+        _module_states[plugin_meta["id"]] = plugin_meta.get("default_enabled", True)
+    logger.info("[Modules] registered plugin: %s", plugin_meta["id"])
+
+
 async def load_module_states(db: AsyncSession) -> None:
     """Load module enabled/disabled states from DB into cache."""
     global _cache_loaded
@@ -126,9 +147,9 @@ async def load_module_states(db: AsyncSession) -> None:
     )
     settings = result.scalars().all()
 
-    # Start with defaults
+    # Start with defaults (builtin + already-registered plugins)
     _module_states.clear()
-    for mod in BUILTIN_MODULES:
+    for mod in _all_modules():
         _module_states[mod["id"]] = mod["default_enabled"]
 
     # Override with DB values
@@ -150,19 +171,19 @@ def is_module_enabled(module_id: str) -> bool:
     """Fast cached check. Falls back to default_enabled if cache not loaded."""
     if module_id in _module_states:
         return _module_states[module_id]
-    # Fallback: find in BUILTIN_MODULES
-    for mod in BUILTIN_MODULES:
+    # Fallback: find in all modules
+    for mod in _all_modules():
         if mod["id"] == module_id:
             return mod["default_enabled"]
     return False
 
 
 async def get_enabled_modules() -> list[dict]:
-    """Return list of all modules with their enabled status."""
+    """Return list of all modules (builtin + plugin) with their enabled status."""
     result = []
-    for mod in BUILTIN_MODULES:
+    for mod in _all_modules():
         enabled = is_module_enabled(mod["id"])
-        result.append({
+        entry = {
             "id": mod["id"],
             "name": mod["name"],
             "icon": mod["icon"],
@@ -170,14 +191,21 @@ async def get_enabled_modules() -> list[dict]:
             "type": mod["type"],
             "requires": mod["requires"],
             "enabled": enabled,
-        })
+        }
+        # Include plugin-specific fields
+        if mod["type"] == "plugin":
+            entry["name_en"] = mod.get("name_en", mod["name"])
+            entry["version"] = mod.get("version", "0.0.0")
+            entry["description"] = mod.get("description", "")
+            entry["author"] = mod.get("author", "")
+        result.append(entry)
     return result
 
 
 async def set_module_enabled(db: AsyncSession, module_id: str, enabled: bool) -> bool:
     """Set module enabled/disabled in DB + update cache."""
-    # Validate module exists
-    found = any(m["id"] == module_id for m in BUILTIN_MODULES)
+    # Validate module exists (builtin or plugin)
+    found = any(m["id"] == module_id for m in _all_modules())
     if not found:
         return False
 
