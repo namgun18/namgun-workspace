@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
-const { t } = useI18n()
+const { t, tm } = useI18n()
 const { appName } = useAppConfig()
 useHead({ title: computed(() => `${t('nav.calendar')} | ${appName.value}`) })
 
@@ -34,7 +34,7 @@ const headerLabel = computed(() => {
     }
     return t('calendar.toolbar.weekRangeCrossMonth', { m1: start.getMonth() + 1, d1: start.getDate(), m2: end.getMonth() + 1, d2: end.getDate() })
   } else {
-    const weekdays = t('calendar.weekdaysShort') as unknown as string[]
+    const weekdays = tm('calendar.weekdaysShort') as string[]
     return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} (${weekdays[d.getDay()]})`
   }
 })

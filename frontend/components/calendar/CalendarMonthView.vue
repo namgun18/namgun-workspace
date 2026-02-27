@@ -3,8 +3,8 @@ import type { CalendarEvent } from '~/composables/useCalendar'
 
 const { selectedDate, visibleEvents, openCreateModal, openEditModal } = useCalendar()
 
-const { t } = useI18n()
-const DAY_LABELS = computed(() => t('calendar.weekdaysShort') as unknown as string[])
+const { t, tm } = useI18n()
+const DAY_LABELS = computed(() => tm('calendar.weekdaysShort') as string[])
 
 interface DayCell {
   date: Date

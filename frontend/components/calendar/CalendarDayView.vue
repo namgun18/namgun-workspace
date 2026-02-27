@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CalendarEvent } from '~/composables/useCalendar'
 
-const { t } = useI18n()
+const { t, tm } = useI18n()
 const { selectedDate, visibleEvents, openCreateModal, openEditModal } = useCalendar()
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
@@ -17,8 +17,8 @@ const isToday = computed(() => {
 
 const dateLabel = computed(() => {
   const d = selectedDate.value
-  const weekdays = computed(() => t('calendar.weekdaysFull') as unknown as string[])
-  return `${d.getMonth() + 1}/${d.getDate()} ${weekdays.value[d.getDay()]}`
+  const weekdays = tm('calendar.weekdaysFull') as string[]
+  return `${d.getMonth() + 1}/${d.getDate()} ${weekdays[d.getDay()]}`
 })
 
 const allDayEvts = computed(() =>
