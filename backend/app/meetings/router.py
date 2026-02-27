@@ -8,9 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.auth.deps import get_current_user
 from app.config import get_settings
 from app.db.models import User
-from app.db.session import async_session
 from app.meetings import livekit, store
-from app.chat import service as chat_service
 from app.meetings.invite import (
     create_calendar_event,
     generate_ics,
@@ -61,8 +59,7 @@ async def get_rooms(user: User = Depends(get_current_user)):
             share_token=meta.share_token if meta else "",
             is_host=meta.host_user_id == str(user.id) if meta else False,
             pending_count=len(store.get_pending_requests(r["name"])) if meta else 0,
-            chat_channel_id=meta.chat_channel_id if meta else None,
-        ))
+            ))
     return RoomListResponse(rooms=result)
 
 
@@ -80,20 +77,6 @@ async def create_room(body: RoomCreate, user: User = Depends(get_current_user)):
         host_username=user.username,
         host_display_name=user.display_name or user.username,
     )
-
-    # ── 회의 채팅 채널 자동 생성 ──
-    try:
-        async with async_session() as db:
-            ch = await chat_service.create_channel(
-                db,
-                name=f"회의: {body.name}",
-                type="private",
-                created_by=str(user.id),
-                description=f"회의 '{body.name}' 전용 채팅",
-            )
-            meta.chat_channel_id = ch.id
-    except Exception:
-        logger.warning("Failed to create meeting chat channel", exc_info=True)
 
     # ── 참가자 초대 (best-effort) ──
     if body.invitees:
@@ -165,7 +148,6 @@ async def create_room(body: RoomCreate, user: User = Depends(get_current_user)):
         share_token=meta.share_token,
         is_host=True,
         pending_count=0,
-        chat_channel_id=meta.chat_channel_id,
     )
 
 
@@ -190,18 +172,7 @@ async def create_token(body: TokenRequest, user: User = Depends(get_current_user
         name=user.display_name or user.username,
     )
 
-    # Add user to meeting chat channel if it exists
-    meta = store.get_room_meta(body.room)
-    chat_channel_id = None
-    if meta and meta.chat_channel_id:
-        chat_channel_id = meta.chat_channel_id
-        try:
-            async with async_session() as db:
-                await chat_service.add_members(db, meta.chat_channel_id, [str(user.id)])
-        except Exception:
-            logger.warning("Failed to add user to meeting chat channel", exc_info=True)
-
-    return TokenResponse(token=token, livekit_url=livekit.get_ws_url(), chat_channel_id=chat_channel_id)
+    return TokenResponse(token=token, livekit_url=livekit.get_ws_url())
 
 
 @router.get("/rooms/{name}/participants", response_model=list[ParticipantInfo])

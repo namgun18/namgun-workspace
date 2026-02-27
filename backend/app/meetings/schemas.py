@@ -29,7 +29,6 @@ class RoomInfo(BaseModel):
     share_token: str = ""
     is_host: bool = False
     pending_count: int = 0
-    chat_channel_id: str | None = None
 
 
 class RoomListResponse(BaseModel):
@@ -43,7 +42,6 @@ class TokenRequest(BaseModel):
 class TokenResponse(BaseModel):
     token: str
     livekit_url: str
-    chat_channel_id: str | None = None
 
 
 class ParticipantInfo(BaseModel):
