@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +30,7 @@ from app.chat.websocket import router as chat_ws_router
 from app.chat.webhook import router as webhook_router
 from app.modules.router import router as modules_router
 from app.board.router import router as board_router
+from app.dav.router import dav_app
 
 settings = get_settings()
 _health_task = None
@@ -89,7 +90,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="3.4.2",
+    version="3.5.0",
     lifespan=lifespan,
     docs_url="/api/docs" if settings.debug else None,
     redoc_url=None,
@@ -120,6 +121,9 @@ async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
         content={"detail": "Too many requests. Please try again later."},
     )
 
+# Mount DAV sub-application (PROPFIND/REPORT via raw ASGI)
+app.mount("/dav", dav_app)
+
 app.include_router(modules_router)
 app.include_router(auth_router)
 app.include_router(oauth_router)
@@ -138,6 +142,18 @@ app.include_router(webhook_router)
 app.include_router(board_router)
 
 
+# ── .well-known CalDAV/CardDAV discovery ──
+
+@app.get("/.well-known/caldav")
+async def well_known_caldav():
+    return RedirectResponse(url="/dav/", status_code=301)
+
+
+@app.get("/.well-known/carddav")
+async def well_known_carddav():
+    return RedirectResponse(url="/dav/", status_code=301)
+
+
 @app.get("/api/health")
 async def health_check(db: AsyncSession = Depends(get_db)):
     from app.admin.settings import get_settings_by_prefix
@@ -149,7 +165,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     return {
         "status": "ok",
         "service": db_vals.get("branding.site_name") or settings.app_name,
-        "version": "3.4.2",
+        "version": "3.5.0",
         "domain": settings.domain,
         "app_url": settings.app_url,
         "gitea_url": settings.gitea_external_url or f"{settings.app_url}/git/",
