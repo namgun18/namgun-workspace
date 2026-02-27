@@ -18,18 +18,15 @@ class Settings(BaseSettings):
     storage_root: str = "/storage"
     upload_max_size_mb: int = 5120
 
-    # Built-in mail server (Stalwart/Postfix+Dovecot) — disabled by default
+    # Built-in mail server (Postfix+Dovecot) — disabled by default
     feature_builtin_mailserver: bool = False
-    stalwart_url: str = "http://stalwart:8080"
-    stalwart_admin_user: str = "admin"
-    stalwart_admin_password: str = ""
 
     # Dovecot master user (SSO: backend accesses any mailbox without per-user passwords)
     dovecot_master_user: str = ""
     dovecot_master_password: str = ""
 
     # SMTP (noreply sender)
-    smtp_host: str = "stalwart"
+    smtp_host: str = "mailserver"
     smtp_port: int = 587
     smtp_user: str = "noreply@localhost"
     smtp_password: str = ""

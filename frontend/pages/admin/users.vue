@@ -146,6 +146,18 @@ function formatDate(dateStr: string | null) {
         >
           {{ $t('admin.users.title') }}
         </NuxtLink>
+        <NuxtLink
+          to="/admin/modules"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
+        >
+          {{ $t('admin.modules.title') }}
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/settings"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
+        >
+          {{ $t('admin.settings.title') }}
+        </NuxtLink>
       </div>
     </div>
 

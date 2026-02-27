@@ -30,6 +30,11 @@ export function useAppConfig() {
     }
   }
 
+  async function refetchAppConfig() {
+    loaded.value = false
+    await fetchAppConfig()
+  }
+
   return {
     appName: readonly(appName),
     domain: readonly(domain),
@@ -38,5 +43,6 @@ export function useAppConfig() {
     brandLogo: readonly(brandLogo),
     brandColor: readonly(brandColor),
     fetchAppConfig,
+    refetchAppConfig,
   }
 }

@@ -123,6 +123,7 @@ docker compose up -d
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
+| v3.4.1 | 2026-02-27 | 관리자 설정 패널 (브랜딩/SMTP/SSL DB 저장), SMTP 공용 유틸 통합, Stalwart 고아 파일 완전 정리 |
 | v3.4.0 | 2026-02-27 | Phase 6: i18n 전체 마이그레이션 (430+ 키, ko/en), 화이트라벨링 (BRAND_LOGO/BRAND_COLOR), SEO 메타 태그 (useHead 전 페이지), a11y 기본 개선, 미사용 의존성 제거 |
 | v3.3.0 | 2026-02-27 | 전수점검 — nginx 보안 헤더/gzip, CORS 미들웨어, bare except 정리(7개 파일), 에러 바운더리/Toast, N+1 쿼리 수정, 백업 스크립트, 컨테이너 리소스 제한, i18n 기반 구축(ko/en), 테스트 인프라(pytest/vitest) |
 | v3.2.2 | 2026-02-27 | setup.sh 전면 재작성 — 배포 모드 도입 (external_proxy/standalone/dev), nginx.conf 모드별 자동 생성, standalone SSL 자동화 (override.yml + certbot), Stalwart 변수 제거, `local` 버그 수정, 5단계 배포 후 검증 체인 |

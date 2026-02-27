@@ -61,10 +61,7 @@ onMounted(async () => {
       <div class="flex gap-1">
         <NuxtLink
           to="/admin/dashboard"
-          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
-          :class="route.path === '/admin/dashboard'
-            ? 'border-primary text-primary'
-            : 'border-transparent text-muted-foreground hover:text-foreground'"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-primary text-primary"
         >
           {{ $t('nav.dashboard') }}
         </NuxtLink>
@@ -73,6 +70,18 @@ onMounted(async () => {
           class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
         >
           {{ $t('admin.users.title') }}
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/modules"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
+        >
+          {{ $t('admin.modules.title') }}
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/settings"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
+        >
+          {{ $t('admin.settings.title') }}
         </NuxtLink>
       </div>
       <div class="flex gap-1 mb-1">

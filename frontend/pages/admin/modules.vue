@@ -37,11 +37,43 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="user?.is_admin" class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-2">{{ $t('admin.modules.title') }}</h1>
-    <p class="text-muted-foreground mb-6">{{ $t('admin.modules.description') }}</p>
+  <div v-if="user?.is_admin" class="h-full overflow-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold tracking-tight">{{ $t('admin.modules.title') }}</h1>
+      <p class="text-muted-foreground mt-1">{{ $t('admin.modules.description') }}</p>
+    </div>
 
-    <div class="space-y-3">
+    <!-- Admin sub tabs -->
+    <div class="flex items-center mb-6 border-b">
+      <div class="flex gap-1">
+        <NuxtLink
+          to="/admin/dashboard"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
+        >
+          {{ $t('nav.dashboard') }}
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/users"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
+        >
+          {{ $t('admin.users.title') }}
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/modules"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-primary text-primary"
+        >
+          {{ $t('admin.modules.title') }}
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/settings"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px border-transparent text-muted-foreground hover:text-foreground"
+        >
+          {{ $t('admin.settings.title') }}
+        </NuxtLink>
+      </div>
+    </div>
+
+    <div class="max-w-3xl space-y-3">
       <div
         v-for="mod in modules"
         :key="mod.id"

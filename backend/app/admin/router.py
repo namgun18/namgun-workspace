@@ -1,12 +1,15 @@
-"""Admin API routes: user approval, management, analytics."""
+"""Admin API routes: user approval, management, analytics, settings."""
 
 import asyncio
 import logging
+import os
 import time as _time
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import func, select, and_, case, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +18,14 @@ from app.auth.deps import get_current_user
 from app.db.models import AccessLog, User
 from app.db.session import get_db
 from app.config import get_settings
+from app.admin.settings import (
+    get_setting,
+    set_setting,
+    delete_setting,
+    get_settings_by_prefix,
+    get_smtp_config,
+    send_system_email,
+)
 from app.admin.schemas import (
     AccessLogEntry,
     AccessLogPage,
@@ -691,29 +702,269 @@ async def analytics_git_stats(
 # ── Email helper ──────────────────────────────────────────
 
 
-async def _send_welcome_email(to_email: str, username: str) -> None:
-    """Send welcome email via SMTP to trigger Stalwart mailbox creation."""
-    import smtplib
+async def _send_welcome_email(to_email: str, username: str, db: AsyncSession | None = None) -> None:
+    """Send welcome email via system SMTP."""
+    from email.mime.text import MIMEText
+    from app.db.session import async_session as _async_session
+
+    async def _inner(session: AsyncSession):
+        smtp_cfg = await get_smtp_config(session)
+        msg = MIMEText(
+            f"{username}님, {settings.app_name} 가입이 승인되었습니다.\n\n"
+            f"이제 {settings.app_url} 에 로그인하여 메일, 파일, "
+            f"회의 등 모든 서비스를 이용하실 수 있습니다.\n\n"
+            f"— {settings.app_name} 관리팀",
+            "plain",
+            "utf-8",
+        )
+        msg["Subject"] = f"[{settings.domain}] 가입이 승인되었습니다"
+        msg["From"] = smtp_cfg.from_addr
+        msg["To"] = to_email
+        await asyncio.to_thread(send_system_email, smtp_cfg, msg)
+
+    if db:
+        await _inner(db)
+    else:
+        async with _async_session() as session:
+            await _inner(session)
+
+
+# ── Settings API ─────────────────────────────────────────
+
+
+LOGO_DIR = Path(settings.storage_root) / "branding"
+LOGO_MAX_BYTES = 2 * 1024 * 1024
+LOGO_ALLOWED_TYPES = {"image/png", "image/jpeg", "image/svg+xml", "image/webp"}
+SSL_DIR = Path("/etc/nginx/ssl")
+
+
+class BrandingUpdate(BaseModel):
+    site_name: str | None = None
+    primary_color: str | None = None
+
+
+class SmtpUpdate(BaseModel):
+    host: str | None = None
+    port: int | None = None
+    security: str | None = None  # starttls | ssl | none
+    user: str | None = None
+    password: str | None = None
+    from_addr: str | None = None
+
+
+class SmtpTestRequest(BaseModel):
+    to_email: str
+
+
+# ── Branding ─────────────────────────────────────────────
+
+
+@router.get("/settings/branding")
+async def get_branding(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current branding settings (DB values with .env fallback)."""
+    db_vals = await get_settings_by_prefix(db, "branding.")
+    return {
+        "site_name": db_vals.get("branding.site_name") or settings.app_name,
+        "primary_color": db_vals.get("branding.primary_color") or settings.brand_color,
+        "logo_url": db_vals.get("branding.logo_url") or settings.brand_logo or "",
+    }
+
+
+@router.patch("/settings/branding")
+async def update_branding(
+    body: BrandingUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update branding settings in DB."""
+    if body.site_name is not None:
+        await set_setting(db, "branding.site_name", body.site_name)
+    if body.primary_color is not None:
+        await set_setting(db, "branding.primary_color", body.primary_color)
+    return {"message": "브랜딩 설정이 저장되었습니다"}
+
+
+@router.post("/settings/branding/logo")
+async def upload_logo(
+    file: UploadFile,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload site logo (max 2MB, png/jpeg/svg/webp)."""
+    if file.content_type not in LOGO_ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail="png/jpeg/svg/webp 이미지만 허용됩니다")
+
+    data = await file.read()
+    if len(data) > LOGO_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="로고 이미지는 2MB 이하여야 합니다")
+
+    LOGO_DIR.mkdir(parents=True, exist_ok=True)
+    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "png"
+    filename = f"logo.{ext}"
+    (LOGO_DIR / filename).write_bytes(data)
+
+    logo_url = "/api/branding/logo"
+    await set_setting(db, "branding.logo_url", logo_url)
+    return {"logo_url": logo_url}
+
+
+@router.delete("/settings/branding/logo")
+async def delete_logo(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete uploaded logo."""
+    await delete_setting(db, "branding.logo_url")
+    # Remove logo files
+    if LOGO_DIR.exists():
+        for f in LOGO_DIR.iterdir():
+            if f.name.startswith("logo."):
+                f.unlink(missing_ok=True)
+    return {"message": "로고가 삭제되었습니다"}
+
+
+# ── SMTP ─────────────────────────────────────────────────
+
+
+@router.get("/settings/smtp")
+async def get_smtp(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get SMTP settings (password masked)."""
+    cfg = await get_smtp_config(db)
+    return {
+        "host": cfg.host,
+        "port": cfg.port,
+        "security": cfg.security,
+        "user": cfg.user,
+        "password": "••••••••" if cfg.password else "",
+        "from_addr": cfg.from_addr,
+    }
+
+
+@router.patch("/settings/smtp")
+async def update_smtp(
+    body: SmtpUpdate,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update SMTP settings in DB."""
+    if body.host is not None:
+        await set_setting(db, "smtp.host", body.host)
+    if body.port is not None:
+        await set_setting(db, "smtp.port", str(body.port))
+    if body.security is not None:
+        await set_setting(db, "smtp.security", body.security)
+    if body.user is not None:
+        await set_setting(db, "smtp.user", body.user)
+    if body.password is not None:
+        await set_setting(db, "smtp.password", body.password)
+    if body.from_addr is not None:
+        await set_setting(db, "smtp.from", body.from_addr)
+    return {"message": "SMTP 설정이 저장되었습니다"}
+
+
+@router.post("/settings/smtp/test")
+async def test_smtp(
+    body: SmtpTestRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a test email using current SMTP settings."""
     from email.mime.text import MIMEText
 
+    cfg = await get_smtp_config(db)
     msg = MIMEText(
-        f"{username}님, {settings.app_name} 가입이 승인되었습니다.\n\n"
-        f"이제 {settings.app_url} 에 로그인하여 메일, 파일, "
-        f"회의 등 모든 서비스를 이용하실 수 있습니다.\n\n"
-        f"— {settings.app_name} 관리팀",
+        f"이 메일은 {settings.domain} 포털의 SMTP 테스트 메일입니다.\n\n"
+        f"이 메일이 정상 수신되었다면 SMTP 설정이 올바르게 구성된 것입니다.",
         "plain",
         "utf-8",
     )
-    msg["Subject"] = f"[{settings.domain}] 가입이 승인되었습니다"
-    msg["From"] = settings.smtp_from
-    msg["To"] = to_email
+    msg["Subject"] = f"[{settings.domain}] SMTP 테스트"
+    msg["From"] = cfg.from_addr
+    msg["To"] = body.to_email
 
-    def _do_send():
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as smtp:
-            smtp.ehlo()
-            smtp.starttls()
-            smtp.ehlo()
-            smtp.login(settings.smtp_user, settings.smtp_password)
-            smtp.send_message(msg)
+    try:
+        await asyncio.to_thread(send_system_email, cfg, msg)
+        return {"message": f"{body.to_email}으로 테스트 메일이 전송되었습니다"}
+    except Exception as e:
+        logger.error("SMTP test failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"SMTP 테스트 실패: {e}")
 
-    await asyncio.to_thread(_do_send)
+
+# ── SSL ──────────────────────────────────────────────────
+
+
+@router.get("/settings/ssl")
+async def get_ssl_status(
+    admin: User = Depends(require_admin),
+):
+    """Get current SSL certificate status."""
+    import subprocess
+
+    cert_path = SSL_DIR / "cert.pem"
+    key_path = SSL_DIR / "key.pem"
+
+    if not cert_path.is_file():
+        return {"installed": False, "message": "SSL 인증서가 설치되지 않았습니다"}
+
+    try:
+        result = subprocess.run(
+            ["openssl", "x509", "-in", str(cert_path), "-noout",
+             "-subject", "-issuer", "-dates"],
+            capture_output=True, text=True, timeout=5,
+        )
+        lines = result.stdout.strip().split("\n")
+        info = {}
+        for line in lines:
+            if "=" in line:
+                k, v = line.split("=", 1)
+                info[k.strip()] = v.strip()
+        return {
+            "installed": True,
+            "subject": info.get("subject", ""),
+            "issuer": info.get("issuer", ""),
+            "not_before": info.get("notBefore", ""),
+            "not_after": info.get("notAfter", ""),
+            "has_key": key_path.is_file(),
+        }
+    except Exception as e:
+        return {"installed": True, "error": str(e)}
+
+
+@router.post("/settings/ssl")
+async def upload_ssl(
+    cert: UploadFile,
+    key: UploadFile,
+    admin: User = Depends(require_admin),
+):
+    """Upload SSL certificate and private key."""
+    cert_data = await cert.read()
+    key_data = await key.read()
+
+    if len(cert_data) > 1024 * 1024 or len(key_data) > 1024 * 1024:
+        raise HTTPException(status_code=413, detail="인증서/키 파일은 1MB 이하여야 합니다")
+
+    SSL_DIR.mkdir(parents=True, exist_ok=True)
+    (SSL_DIR / "cert.pem").write_bytes(cert_data)
+    (SSL_DIR / "key.pem").write_bytes(key_data)
+
+    return {
+        "message": "SSL 인증서가 업로드되었습니다. nginx 재시작이 필요할 수 있습니다.",
+    }
+
+
+@router.delete("/settings/ssl")
+async def delete_ssl(
+    admin: User = Depends(require_admin),
+):
+    """Delete uploaded SSL certificate."""
+    for name in ("cert.pem", "key.pem"):
+        path = SSL_DIR / name
+        if path.is_file():
+            path.unlink()
+    return {"message": "SSL 인증서가 삭제되었습니다"}

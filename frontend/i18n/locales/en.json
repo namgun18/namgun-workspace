@@ -288,6 +288,46 @@
       "title": "Module management",
       "description": "Enable/disable feature modules. Disabled modules are hidden from navigation and their APIs are blocked."
     },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Manage branding, SMTP, and SSL certificates",
+      "branding": {
+        "title": "Branding",
+        "logo": "Logo",
+        "uploadLogo": "Upload logo",
+        "deleteLogoConfirm": "Delete the logo?",
+        "logoHint": "PNG, JPEG, SVG, WebP / Max 2MB",
+        "siteName": "Site name",
+        "primaryColor": "Primary color"
+      },
+      "smtp": {
+        "title": "SMTP Settings",
+        "host": "Host",
+        "port": "Port",
+        "security": "Security",
+        "user": "Username",
+        "password": "Password",
+        "fromAddr": "From address",
+        "testTitle": "Send test email",
+        "testPlaceholder": "Test recipient email",
+        "testButton": "Send test",
+        "testFail": "SMTP test failed"
+      },
+      "ssl": {
+        "title": "SSL Certificate",
+        "subject": "Subject",
+        "issuer": "Issuer",
+        "notAfter": "Expires",
+        "noCert": "No SSL certificate installed",
+        "deleteCert": "Delete certificate",
+        "deleteConfirm": "Delete SSL certificate?",
+        "uploadTitle": "Upload certificate",
+        "certFile": "Certificate file (.pem, .crt)",
+        "keyFile": "Key file (.pem, .key)",
+        "upload": "Upload",
+        "nginxHint": "A nginx restart may be required after uploading certificates"
+      }
+    },
     "users": {
       "title": "User management",
       "subtitle": "Approve registrations and manage users",

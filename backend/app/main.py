@@ -1,15 +1,17 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.db.session import get_db, init_db
 from app.rate_limit import limiter
-from app.db.session import init_db
 from app.middleware.access_log import AccessLogMiddleware, run_log_flusher, run_log_cleanup
 from app.auth.router import router as auth_router
 from app.auth.oauth_provider import router as oauth_router
@@ -87,7 +89,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="3.4.0",
+    version="3.4.1",
     lifespan=lifespan,
     docs_url="/api/docs" if settings.debug else None,
     redoc_url=None,
@@ -137,14 +139,37 @@ app.include_router(board_router)
 
 
 @app.get("/api/health")
-async def health_check():
+async def health_check(db: AsyncSession = Depends(get_db)):
+    from app.admin.settings import get_settings_by_prefix
+
+    db_vals = await get_settings_by_prefix(db, "branding.")
+
     return {
         "status": "ok",
-        "service": settings.app_name,
-        "version": "3.4.0",
+        "service": db_vals.get("branding.site_name") or settings.app_name,
+        "version": "3.4.1",
         "domain": settings.domain,
         "app_url": settings.app_url,
         "gitea_url": settings.gitea_external_url or f"{settings.app_url}/git/",
-        "brand_logo": settings.brand_logo,
-        "brand_color": settings.brand_color,
+        "brand_logo": db_vals.get("branding.logo_url") or settings.brand_logo,
+        "brand_color": db_vals.get("branding.primary_color") or settings.brand_color,
     }
+
+
+@app.get("/api/branding/logo")
+async def serve_logo():
+    """Serve uploaded branding logo (no auth required)."""
+    logo_dir = Path(settings.storage_root) / "branding"
+    if logo_dir.is_dir():
+        for f in logo_dir.iterdir():
+            if f.name.startswith("logo.") and f.is_file():
+                media_map = {
+                    ".png": "image/png",
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                    ".svg": "image/svg+xml",
+                    ".webp": "image/webp",
+                }
+                media = media_map.get(f.suffix.lower(), "application/octet-stream")
+                return FileResponse(str(f), media_type=media)
+    raise HTTPException(status_code=404, detail="Logo not found")

@@ -410,24 +410,17 @@ async def search_users(
 # ── Email helpers ────────────────────────────────────────────
 
 
-def _smtp_send(msg) -> None:
-    """Send email via SMTP (blocking, meant to be called via asyncio.to_thread)."""
-    import smtplib
-
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as smtp:
-        smtp.ehlo()
-        smtp.starttls()
-        smtp.ehlo()
-        smtp.login(settings.smtp_user, settings.smtp_password)
-        smtp.send_message(msg)
-
-
 async def _send_verify_email(
     to_email: str, username: str, verify_url: str
 ) -> None:
-    """Send email verification link via Stalwart SMTP."""
+    """Send email verification link via system SMTP."""
     import asyncio
     from email.mime.text import MIMEText
+    from app.admin.settings import get_smtp_config, send_system_email
+    from app.db.session import async_session
+
+    async with async_session() as db:
+        cfg = await get_smtp_config(db)
 
     msg = MIMEText(
         f"{username}님, 아래 링크를 클릭하여 이메일을 인증해주세요:\n\n"
@@ -438,18 +431,23 @@ async def _send_verify_email(
         "utf-8",
     )
     msg["Subject"] = f"[{settings.domain}] 이메일 인증"
-    msg["From"] = settings.smtp_from
+    msg["From"] = cfg.from_addr
     msg["To"] = to_email
 
-    await asyncio.to_thread(_smtp_send, msg)
+    await asyncio.to_thread(send_system_email, cfg, msg)
 
 
 async def _send_recovery_email(
     to_email: str, username: str, recovery_link: str
 ) -> None:
-    """Send recovery email via Stalwart SMTP."""
+    """Send recovery email via system SMTP."""
     import asyncio
     from email.mime.text import MIMEText
+    from app.admin.settings import get_smtp_config, send_system_email
+    from app.db.session import async_session
+
+    async with async_session() as db:
+        cfg = await get_smtp_config(db)
 
     msg = MIMEText(
         f"{username}님, 아래 링크를 클릭하여 비밀번호를 재설정하세요:\n\n"
@@ -460,10 +458,10 @@ async def _send_recovery_email(
         "utf-8",
     )
     msg["Subject"] = f"[{settings.domain}] 비밀번호 재설정"
-    msg["From"] = settings.smtp_from
+    msg["From"] = cfg.from_addr
     msg["To"] = to_email
 
-    await asyncio.to_thread(_smtp_send, msg)
+    await asyncio.to_thread(send_system_email, cfg, msg)
 
 
 async def _send_admin_registration_notify(
@@ -472,10 +470,15 @@ async def _send_admin_registration_notify(
     """Notify admins when a new user registers."""
     import asyncio
     from email.mime.text import MIMEText
+    from app.admin.settings import get_smtp_config, send_system_email
+    from app.db.session import async_session
 
     admin_list = [e.strip() for e in settings.admin_emails.split(",") if e.strip()]
     if not admin_list:
         return
+
+    async with async_session() as db:
+        cfg = await get_smtp_config(db)
 
     msg = MIMEText(
         f"새로운 가입 신청이 접수되었습니다.\n\n"
@@ -489,7 +492,7 @@ async def _send_admin_registration_notify(
         "utf-8",
     )
     msg["Subject"] = f"[{settings.domain}] 새 가입 신청: {username}"
-    msg["From"] = settings.smtp_from
+    msg["From"] = cfg.from_addr
     msg["To"] = ", ".join(admin_list)
 
-    await asyncio.to_thread(_smtp_send, msg)
+    await asyncio.to_thread(send_system_email, cfg, msg)

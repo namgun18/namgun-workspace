@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import smtplib
 import uuid
 from datetime import datetime, timedelta, timezone
 from email.mime.base import MIMEBase
@@ -62,16 +61,6 @@ def generate_ics(
 # ─── SMTP invite email ───
 
 
-def _smtp_send(msg) -> None:
-    """Send email via SMTP (blocking)."""
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as smtp:
-        smtp.ehlo()
-        smtp.starttls()
-        smtp.ehlo()
-        smtp.login(settings.smtp_user, settings.smtp_password)
-        smtp.send_message(msg)
-
-
 async def send_invite_email(
     to_email: str,
     meeting_name: str,
@@ -106,9 +95,15 @@ async def send_invite_email(
   </p>
 </div>"""
 
+    from app.admin.settings import get_smtp_config, send_system_email
+    from app.db.session import async_session
+
+    async with async_session() as db:
+        cfg = await get_smtp_config(db)
+
     msg = MIMEMultipart("mixed")
     msg["Subject"] = f"[회의 초대] {meeting_name}"
-    msg["From"] = settings.smtp_from
+    msg["From"] = cfg.from_addr
     msg["To"] = to_email
 
     msg.attach(MIMEText(html_body, "html", "utf-8"))
@@ -120,7 +115,7 @@ async def send_invite_email(
     ics_part.add_header("Content-Disposition", "attachment", filename="invite.ics")
     msg.attach(ics_part)
 
-    await asyncio.to_thread(_smtp_send, msg)
+    await asyncio.to_thread(send_system_email, cfg, msg)
 
 
 # ─── Calendar event creation (internal users) ───
