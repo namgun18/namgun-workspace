@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default', middleware: 'auth' })
+definePageMeta({ layout: 'default' })
 
 const { t } = useI18n()
 const { appName } = useAppConfig()
@@ -129,7 +129,11 @@ function statusLabel(s: string) {
 
 function formatDate(d: string | null) {
   if (!d) return ''
-  return new Date(d).toLocaleDateString()
+  const dt = new Date(d)
+  const y = dt.getFullYear()
+  const m = String(dt.getMonth() + 1).padStart(2, '0')
+  const day = String(dt.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 </script>
 
