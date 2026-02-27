@@ -1,4 +1,6 @@
 .env
+.env.demo
+docker-compose.demo.yml
 mailserver/config/ssl/
 mailserver/config/postfix-accounts.cf
 mailserver/config/rspamd/dkim/*.private.txt

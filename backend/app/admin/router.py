@@ -751,6 +751,7 @@ class GeneralUpdate(BaseModel):
     session_remember_days: int | None = None
     announcement: str | None = None
     announcement_type: str | None = None  # info | warning | error
+    git_visibility: str | None = None  # public | private
 
 
 class SmtpUpdate(BaseModel):
@@ -910,6 +911,7 @@ async def get_general_settings(
         "session_remember_days": int(auth_vals.get("auth.session_remember_days") or "30"),
         "announcement": gen_vals.get("general.announcement") or "",
         "announcement_type": gen_vals.get("general.announcement_type") or "info",
+        "git_visibility": gen_vals.get("general.git_visibility") or "private",
     }
 
 
@@ -942,6 +944,10 @@ async def update_general_settings(
         if body.announcement_type not in ("info", "warning", "error"):
             raise HTTPException(status_code=400, detail="유효하지 않은 공지 유형입니다")
         await set_setting(db, "general.announcement_type", body.announcement_type)
+    if body.git_visibility is not None:
+        if body.git_visibility not in ("public", "private"):
+            raise HTTPException(status_code=400, detail="유효하지 않은 Git 공개 설정입니다")
+        await set_setting(db, "general.git_visibility", body.git_visibility)
     return {"message": "일반 설정이 저장되었습니다"}
 
 

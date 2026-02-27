@@ -9,6 +9,7 @@ const favicon = ref('')
 const registrationMode = ref('approval')
 const announcement = ref('')
 const announcementType = ref('info')
+const gitVisibility = ref('private')
 const loaded = ref(false)
 
 export function useAppConfig() {
@@ -27,6 +28,7 @@ export function useAppConfig() {
         registration_mode: string
         announcement: string
         announcement_type: string
+        git_visibility: string
       }>('/api/health')
       appName.value = data.service || 'Workspace'
       domain.value = data.domain || 'localhost'
@@ -39,6 +41,7 @@ export function useAppConfig() {
       registrationMode.value = data.registration_mode || 'approval'
       announcement.value = data.announcement || ''
       announcementType.value = data.announcement_type || 'info'
+      gitVisibility.value = data.git_visibility || 'private'
       loaded.value = true
     } catch {
       // fallback to defaults
@@ -62,6 +65,7 @@ export function useAppConfig() {
     registrationMode: readonly(registrationMode),
     announcement: readonly(announcement),
     announcementType: readonly(announcementType),
+    gitVisibility: readonly(gitVisibility),
     fetchAppConfig,
     refetchAppConfig,
   }

@@ -125,6 +125,7 @@ const general = ref({
   session_remember_days: 30,
   announcement: '',
   announcement_type: 'info',
+  git_visibility: 'private',
 })
 const generalSaving = ref(false)
 
@@ -466,6 +467,19 @@ onMounted(async () => {
             <option value="warning">{{ $t('admin.settings.general.typeWarning') }}</option>
             <option value="error">{{ $t('admin.settings.general.typeError') }}</option>
           </select>
+        </div>
+
+        <!-- Git Visibility -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">{{ $t('admin.settings.general.gitVisibility') }}</label>
+          <select
+            v-model="general.git_visibility"
+            class="w-48 px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="private">{{ $t('admin.settings.general.gitPrivate') }}</option>
+            <option value="public">{{ $t('admin.settings.general.gitPublic') }}</option>
+          </select>
+          <p class="text-xs text-muted-foreground mt-1">{{ $t('admin.settings.general.gitVisibilityHint') }}</p>
         </div>
 
         <UiButton @click="saveGeneral" :disabled="generalSaving">

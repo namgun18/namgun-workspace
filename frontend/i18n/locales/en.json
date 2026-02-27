@@ -86,7 +86,8 @@
     "enterCredentials": "Please enter your username and password.",
     "invalidCredentials": "Invalid username or password.",
     "authServerUnavailable": "Cannot connect to authentication server.",
-    "loginError": "An error occurred during login. Please try again."
+    "loginError": "An error occurred during login. Please try again.",
+    "gitShortcut": "Go to Git"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -308,7 +309,11 @@
         "announcementType": "Announcement type",
         "typeInfo": "Info",
         "typeWarning": "Warning",
-        "typeError": "Error"
+        "typeError": "Error",
+        "gitVisibility": "Git visibility",
+        "gitPublic": "Public",
+        "gitPrivate": "Private",
+        "gitVisibilityHint": "Public: show Git shortcut on login page, Private: accessible only after login"
       },
       "branding": {
         "title": "Branding",
@@ -1067,6 +1072,23 @@
       "week": "Week",
       "day": "Day"
     }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "subtitle": "Manage your tasks",
+    "newTask": "New task",
+    "titlePlaceholder": "Task title",
+    "descriptionPlaceholder": "Description (optional)",
+    "empty": "No tasks",
+    "deleteConfirm": "Delete this task?",
+    "dueDate": "Due",
+    "totalCount": "{n} total",
+    "statusTodo": "To do",
+    "statusInProgress": "In progress",
+    "statusDone": "Done",
+    "priorityLow": "Low",
+    "priorityMedium": "Medium",
+    "priorityHigh": "High"
   },
   "contacts": {
     "type": {
