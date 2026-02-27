@@ -1087,3 +1087,24 @@ async def delete_ssl(
         if path.is_file():
             path.unlink()
     return {"message": "SSL 인증서가 삭제되었습니다"}
+
+
+# ── Audit Logs ────────────────────────────────────────────
+
+
+@router.get("/audit-logs")
+async def list_audit_logs(
+    page: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    actor_id: str | None = Query(None),
+    action: str | None = Query(None),
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List audit log entries with optional filters (admin only)."""
+    from app.admin.audit import get_audit_logs
+
+    logs, total = await get_audit_logs(
+        db, page=page, limit=limit, actor_id=actor_id, action=action
+    )
+    return {"logs": logs, "total": total, "page": page, "limit": limit}

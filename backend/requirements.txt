@@ -20,6 +20,8 @@ aiosmtplib>=3.0.0
 cryptography>=42.0.0
 icalendar>=6.0.0
 vobject>=0.9.7
+pyotp>=2.9.0
+qrcode[pil]>=7.4
 
 # Testing
 pytest>=8.0.0

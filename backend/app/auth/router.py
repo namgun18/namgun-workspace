@@ -1,10 +1,11 @@
-"""Auth API routes: login, me, logout, register, profile, password management."""
+"""Auth API routes: login, me, logout, register, profile, password management, 2FA."""
 
 import logging
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pyotp
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import or_, select
@@ -22,6 +23,7 @@ from app.auth.deps import (
     get_session_max_age_default,
     get_session_max_age_remember,
     sign_value,
+    unsign_value,
 )
 from app.auth.password import hash_password, verify_password
 from app.auth.schemas import (
@@ -31,6 +33,9 @@ from app.auth.schemas import (
     ProfileUpdateRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    TwoFactorDisableRequest,
+    TwoFactorEnableRequest,
+    TwoFactorVerifyRequest,
     UserResponse,
 )
 
@@ -65,10 +70,13 @@ def _session_response(
 # ── POST /api/auth/login ─────────────────────────────────────
 
 
+TEMP_TOKEN_MAX_AGE = 300  # 5 minutes for 2FA temp tokens
+
+
 @router.post("/login")
 @limiter.limit("10/minute")
 async def login_post(request: Request, body: LoginRequest, db: AsyncSession = Depends(get_db)):
-    """Authenticate with username and password (bcrypt)."""
+    """Authenticate with username and password (bcrypt). Returns temp_token if 2FA is enabled."""
     result = await db.execute(select(User).where(User.username == body.username))
     user = result.scalar_one_or_none()
 
@@ -77,6 +85,18 @@ async def login_post(request: Request, body: LoginRequest, db: AsyncSession = De
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="계정이 비활성 상태입니다. 관리자 승인을 기다려주세요.")
+
+    # If 2FA is enabled, return a temp token instead of session cookie
+    if user.totp_secret:
+        temp_token = sign_value({
+            "user_id": user.id,
+            "purpose": "2fa",
+            "remember_me": body.remember_me,
+        })
+        return JSONResponse(content={
+            "requires_2fa": True,
+            "temp_token": temp_token,
+        })
 
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
@@ -94,7 +114,7 @@ async def login_post(request: Request, body: LoginRequest, db: AsyncSession = De
 @router.get("/me", response_model=UserResponse)
 async def me(user: User = Depends(get_current_user)):
     """Return current authenticated user info."""
-    return user
+    return UserResponse.from_user(user)
 
 
 # ── POST /api/auth/logout ───────────────────────────────────
@@ -419,6 +439,102 @@ async def search_users(
         }
         for u in users
     ]
+
+
+# ── 2FA (TOTP) endpoints ─────────────────────────────────────
+
+
+@router.post("/2fa/setup")
+async def setup_2fa(
+    user: User = Depends(get_current_user),
+):
+    """Generate a new TOTP secret and return the otpauth URI for QR code display."""
+    if user.totp_secret:
+        raise HTTPException(status_code=400, detail="2단계 인증이 이미 활성화되어 있습니다")
+
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret)
+    otpauth_url = totp.provisioning_uri(
+        name=user.username,
+        issuer_name=settings.app_name,
+    )
+    return {"secret": secret, "otpauth_url": otpauth_url}
+
+
+@router.post("/2fa/enable")
+async def enable_2fa(
+    body: TwoFactorEnableRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify a TOTP code against the pending secret and enable 2FA."""
+    if user.totp_secret:
+        raise HTTPException(status_code=400, detail="2단계 인증이 이미 활성화되어 있습니다")
+
+    # Validate the code against the secret provided during setup
+    totp = pyotp.TOTP(body.secret)
+    if not totp.verify(body.code, valid_window=1):
+        raise HTTPException(status_code=400, detail="인증 코드가 올바르지 않습니다")
+
+    # Store the secret only after successful verification
+    user.totp_secret = body.secret
+    await db.commit()
+    return {"message": "2단계 인증이 활성화되었습니다"}
+
+
+@router.post("/2fa/disable")
+@limiter.limit("5/minute")
+async def disable_2fa(
+    request: Request,
+    body: TwoFactorDisableRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Disable 2FA after verifying the TOTP code."""
+    if not user.totp_secret:
+        raise HTTPException(status_code=400, detail="2단계 인증이 활성화되어 있지 않습니다")
+
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(body.code, valid_window=1):
+        raise HTTPException(status_code=400, detail="인증 코드가 올바르지 않습니다")
+
+    user.totp_secret = None
+    await db.commit()
+    return {"message": "2단계 인증이 비활성화되었습니다"}
+
+
+@router.post("/2fa/verify")
+@limiter.limit("10/minute")
+async def verify_2fa(
+    request: Request,
+    body: TwoFactorVerifyRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify TOTP code during login flow using the temp_token."""
+    data = unsign_value(body.temp_token, max_age=TEMP_TOKEN_MAX_AGE)
+    if not data or data.get("purpose") != "2fa" or "user_id" not in data:
+        raise HTTPException(status_code=401, detail="유효하지 않거나 만료된 임시 토큰입니다")
+
+    user = await db.get(User, data["user_id"])
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="유효하지 않은 사용자입니다")
+
+    if not user.totp_secret:
+        raise HTTPException(status_code=400, detail="2단계 인증이 설정되어 있지 않습니다")
+
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(body.code, valid_window=1):
+        raise HTTPException(status_code=401, detail="인증 코드가 올바르지 않습니다")
+
+    user.last_login_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    remember_me = data.get("remember_me", False)
+    if remember_me:
+        max_age = await get_session_max_age_remember(db)
+    else:
+        max_age = await get_session_max_age_default(db)
+    return _session_response(user, max_age=max_age)
 
 
 # ── Email helpers ────────────────────────────────────────────

@@ -30,6 +30,8 @@ from app.chat.websocket import router as chat_ws_router
 from app.chat.webhook import router as webhook_router
 from app.modules.router import router as modules_router
 from app.board.router import router as board_router
+from app.tasks.router import router as tasks_router
+from app.search.router import router as search_router
 from app.dav.router import dav_app
 
 settings = get_settings()
@@ -90,7 +92,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="3.5.0",
+    version="4.0.0",
     lifespan=lifespan,
     docs_url="/api/docs" if settings.debug else None,
     redoc_url=None,
@@ -140,6 +142,8 @@ app.include_router(chat_router)
 app.include_router(chat_ws_router)
 app.include_router(webhook_router)
 app.include_router(board_router)
+app.include_router(tasks_router)
+app.include_router(search_router)
 
 
 # ── .well-known CalDAV/CardDAV discovery ──

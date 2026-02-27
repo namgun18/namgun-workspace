@@ -8,7 +8,7 @@ const { appName } = useAppConfig()
 const { user, updateProfile, changePassword, uploadAvatar } = useAuth()
 
 useHead({ title: computed(() => `${t('profile.title')} | ${appName.value}`) })
-const domain = import.meta.client ? window.location.hostname : 'localhost'
+const appUrl = import.meta.client ? window.location.origin : ''
 const { signatures, loading: sigLoading, fetchSignatures, createSignature, updateSignature, deleteSignature } = useMailSignature()
 
 function stripHtml(html: string): string {
@@ -393,12 +393,12 @@ async function handlePasswordSubmit() {
             <label class="block text-sm font-medium mb-1">{{ $t('profile.caldavLabel') }}</label>
             <div class="flex items-center gap-2">
               <input
-                :value="`https://mail.${domain}/dav/calendars/${user?.email || ''}/`"
+                :value="`${appUrl}/dav/calendars/${user?.username || ''}/`"
                 readonly
                 class="flex-1 px-3 py-2 text-sm border rounded-lg bg-muted font-mono cursor-text"
               />
               <button
-                @click="navigator.clipboard.writeText(`https://mail.${domain}/dav/calendars/${user?.email || ''}/`)"
+                @click="navigator.clipboard.writeText(`${appUrl}/dav/calendars/${user?.username || ''}/`)"
                 class="px-3 py-2 text-sm border rounded-lg hover:bg-accent transition-colors shrink-0"
                 :title="$t('common.copy')"
                 :aria-label="$t('common.copy')"
@@ -412,12 +412,12 @@ async function handlePasswordSubmit() {
             <label class="block text-sm font-medium mb-1">{{ $t('profile.carddavLabel') }}</label>
             <div class="flex items-center gap-2">
               <input
-                :value="`https://mail.${domain}/dav/addressbooks/${user?.email || ''}/`"
+                :value="`${appUrl}/dav/addressbooks/${user?.username || ''}/`"
                 readonly
                 class="flex-1 px-3 py-2 text-sm border rounded-lg bg-muted font-mono cursor-text"
               />
               <button
-                @click="navigator.clipboard.writeText(`https://mail.${domain}/dav/addressbooks/${user?.email || ''}/`)"
+                @click="navigator.clipboard.writeText(`${appUrl}/dav/addressbooks/${user?.username || ''}/`)"
                 class="px-3 py-2 text-sm border rounded-lg hover:bg-accent transition-colors shrink-0"
                 :title="$t('common.copy')"
                 :aria-label="$t('common.copy')"
@@ -428,7 +428,7 @@ async function handlePasswordSubmit() {
           </div>
 
           <div class="text-xs text-muted-foreground space-y-1">
-            <p>{{ $t('profile.syncUsernameHint', { email: user?.email || '' }) }}</p>
+            <p>{{ $t('profile.syncUsernameHint', { email: user?.username || '' }) }}</p>
             <p>{{ $t('profile.syncPasswordHint') }}</p>
           </div>
         </div>

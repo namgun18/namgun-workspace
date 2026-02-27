@@ -21,8 +21,8 @@ from app.auth.deps import SESSION_COOKIE, unsign_value
 from app.auth.oauth_store import (
     CODE_TTL,
     AuthorizationCode,
-    consume_code,
-    store_code,
+    consume_code_async,
+    store_code_async,
 )
 
 logger = logging.getLogger(__name__)
@@ -140,7 +140,7 @@ async def authorize(
 
     # Generate authorization code
     code = secrets.token_urlsafe(32)
-    store_code(
+    await store_code_async(
         code,
         AuthorizationCode(
             user_id=user.id,
@@ -194,7 +194,7 @@ async def token(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid client credentials")
 
     # Consume authorization code (one-time)
-    auth_code = consume_code(code)
+    auth_code = await consume_code_async(code)
     if not auth_code:
         raise HTTPException(status_code=400, detail="Code expired or invalid")
 

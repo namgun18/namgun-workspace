@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user
 from app.config import get_settings
-from app.db.models import MailAccount, MailSignature, User
+from app.db.models import MailAccount, MailDraft, MailSignature, User
 from app.db.session import get_db
 from app.mail import imap_client, smtp_client
 from app.mail.crypto import encrypt_password
@@ -33,6 +33,8 @@ from app.mail.schemas import (
     MailAccountCreate,
     MailAccountUpdate,
     MailAccountResponse,
+    DraftSave,
+    DraftResponse,
 )
 from app.modules.registry import require_module
 
@@ -917,5 +919,106 @@ async def delete_signature(
     if not sig or sig.user_id != user.id:
         raise HTTPException(status_code=404, detail="서명을 찾을 수 없습니다")
     await db.delete(sig)
+    await db.commit()
+    return {"ok": True}
+
+
+# ─── Drafts CRUD ───
+
+
+def _draft_to_response(draft: MailDraft) -> DraftResponse:
+    import json
+    to_list = []
+    cc_list = []
+    try:
+        if draft.to_addresses:
+            to_list = [EmailAddress(**a) for a in json.loads(draft.to_addresses)]
+    except (json.JSONDecodeError, TypeError):
+        pass
+    try:
+        if draft.cc_addresses:
+            cc_list = [EmailAddress(**a) for a in json.loads(draft.cc_addresses)]
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return DraftResponse(
+        id=draft.id,
+        account_id=draft.account_id,
+        subject=draft.subject,
+        to=to_list,
+        cc=cc_list,
+        body_html=draft.body_html,
+        created_at=draft.created_at.isoformat(),
+        updated_at=draft.updated_at.isoformat(),
+    )
+
+
+@router.get("/drafts", response_model=list[DraftResponse])
+@require_module("mail")
+async def list_drafts(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(MailDraft)
+        .where(MailDraft.user_id == user.id)
+        .order_by(MailDraft.updated_at.desc())
+    )
+    drafts = result.scalars().all()
+    return [_draft_to_response(d) for d in drafts]
+
+
+@router.post("/drafts", response_model=DraftResponse, status_code=201)
+@require_module("mail")
+async def save_draft(
+    body: DraftSave,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    import json
+    from datetime import datetime, timezone
+
+    to_json = json.dumps([a.model_dump() for a in body.to], ensure_ascii=False) if body.to else None
+    cc_json = json.dumps([a.model_dump() for a in body.cc], ensure_ascii=False) if body.cc else None
+
+    # Update existing draft if id provided
+    if body.id:
+        draft = await db.get(MailDraft, body.id)
+        if draft and draft.user_id == user.id:
+            draft.account_id = body.account_id
+            draft.subject = body.subject
+            draft.to_addresses = to_json
+            draft.cc_addresses = cc_json
+            draft.body_html = body.body_html
+            draft.updated_at = datetime.now(timezone.utc)
+            await db.commit()
+            await db.refresh(draft)
+            return _draft_to_response(draft)
+
+    # Create new draft
+    draft = MailDraft(
+        user_id=user.id,
+        account_id=body.account_id,
+        subject=body.subject,
+        to_addresses=to_json,
+        cc_addresses=cc_json,
+        body_html=body.body_html,
+    )
+    db.add(draft)
+    await db.commit()
+    await db.refresh(draft)
+    return _draft_to_response(draft)
+
+
+@router.delete("/drafts/{draft_id}")
+@require_module("mail")
+async def delete_draft(
+    draft_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    draft = await db.get(MailDraft, draft_id)
+    if not draft or draft.user_id != user.id:
+        raise HTTPException(status_code=404, detail="임시보관 메일을 찾을 수 없습니다")
+    await db.delete(draft)
     await db.commit()
     return {"ok": True}

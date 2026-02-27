@@ -64,3 +64,19 @@ class ShareLinkListItem(BaseModel):
     max_downloads: int | None
     download_count: int
     created_at: datetime
+
+
+class TrashItem(BaseModel):
+    name: str
+    original_path: str  # virtual path before deletion
+    size: int = 0
+    trashed_at: datetime | None = None
+    trash_name: str  # unique name in .trash/ (for restore/permanent delete)
+
+
+class TrashListResponse(BaseModel):
+    items: list[TrashItem]
+
+
+class TrashRestoreRequest(BaseModel):
+    trash_name: str  # the unique name in .trash/

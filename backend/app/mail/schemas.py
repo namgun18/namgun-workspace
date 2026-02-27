@@ -177,3 +177,26 @@ class MailAccountResponse(BaseModel):
     is_builtin: bool = False
     last_sync_at: str | None = None
     sync_error: str | None = None
+
+
+# ─── Draft schemas ───
+
+
+class DraftSave(BaseModel):
+    id: str | None = None  # if provided, update existing draft
+    account_id: str | None = None
+    subject: str | None = None
+    to: list[EmailAddress] = []
+    cc: list[EmailAddress] = []
+    body_html: str | None = None
+
+
+class DraftResponse(BaseModel):
+    id: str
+    account_id: str | None = None
+    subject: str | None = None
+    to: list[EmailAddress] = []
+    cc: list[EmailAddress] = []
+    body_html: str | None = None
+    created_at: str
+    updated_at: str

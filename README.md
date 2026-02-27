@@ -118,12 +118,14 @@ docker compose up -d
 | Phase 5 | 배포 자동화 | Done (v3.2) |
 | Phase 6 | 화이트라벨링 + i18n | Done (v3.4) |
 | Phase 7 | CalDAV/CardDAV 동기화 | Done (v3.5) |
-| Phase 8~11 | 플러그인, 운영도구, PWA, 오픈코어 | Planned |
+| Phase 8 | 보안 강화 + 기능 확장 | Done (v4.0) |
+| Phase 9~11 | 플러그인, PWA, 오픈코어 | Planned |
 
 ## 변경이력
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
+| v4.0.0 | 2026-02-27 | Phase 8: 전수조사+보안강화+기능확장 — TOTP 2FA, 할일관리(Tasks), 통합검색, 감사로그, 파일휴지통, 메일임시저장, vCard 가져오기/내보내기, 채팅파일첨부, 비밀번호복잡도, nginx rate limiting, DAV If-Match 충돌방지, OAuth Redis 저장, LiveKit 크리덴셜 보안, Docker non-root, .dockerignore, restore.sh |
 | v3.5.0 | 2026-02-27 | Phase 7: CalDAV/CardDAV 동기화 서버 — .well-known 자동 디스커버리, PROPFIND/REPORT/GET/PUT/DELETE, Thunderbird·iOS·DAVx5 양방향 동기화, HTTP Basic Auth, iCalendar/vCard 직렬화 |
 | v3.4.2 | 2026-02-27 | 동적 테마 색상 (hex→HSL --primary 연결), 기본 다크모드 설정, 파비콘 업로드, 회원가입 모드 (open/approval/closed), 최대 업로드 크기·세션 만료 시간 DB 설정, 공지 배너 |
 | v3.4.1 | 2026-02-27 | 관리자 설정 패널 (브랜딩/SMTP/SSL DB 저장), SMTP 공용 유틸 통합, Stalwart 고아 파일 완전 정리 |

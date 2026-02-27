@@ -3,6 +3,7 @@
 import asyncio
 import os
 import secrets
+import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -26,6 +27,9 @@ from app.files.schemas import (
     ShareLinkListItem,
     ShareLinkResponse,
     StorageInfo,
+    TrashItem,
+    TrashListResponse,
+    TrashRestoreRequest,
 )
 
 router = APIRouter(prefix="/api/files", tags=["files"])
@@ -223,20 +227,177 @@ async def mkdir(body: MkdirRequest, user: User = Depends(get_current_user)):
     return {"ok": True, "path": vp}
 
 
-# ─── Delete ───
+# ─── Delete (soft → trash) ───
+
+
+def _trash_dir(user: User) -> Path:
+    """Return the .trash/ directory for the user's storage."""
+    trash = Path(settings.storage_root) / "users" / user.id / ".trash"
+    trash.mkdir(parents=True, exist_ok=True)
+    return trash
+
+
+def _trash_meta_path(user: User) -> Path:
+    """Path to the JSON file mapping trash names → original virtual paths."""
+    return Path(settings.storage_root) / "users" / user.id / ".trash_meta.json"
+
+
+def _load_trash_meta(user: User) -> dict:
+    import json
+    meta_path = _trash_meta_path(user)
+    if meta_path.exists():
+        try:
+            return json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_trash_meta(user: User, meta: dict) -> None:
+    import json
+    meta_path = _trash_meta_path(user)
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
 
 
 @router.delete("/delete")
 async def delete_file(
     path: str = Query(...),
+    permanent: bool = Query(False, description="Skip trash, delete permanently"),
     user: User = Depends(get_current_user),
 ):
     real = _check_path(path, user)
     if not real.exists():
         raise HTTPException(status_code=404, detail="Not found")
 
-    fs.delete_path(real)
+    if permanent:
+        fs.delete_path(real)
+        fs.invalidate_cache(real.parent)
+        return {"ok": True}
+
+    # Soft delete: move to .trash/
+    import json
+    trash = _trash_dir(user)
+    # Create unique trash name to avoid collisions
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    trash_name = f"{ts}_{real.name}"
+    target = trash / trash_name
+
+    # Avoid collision (unlikely but safe)
+    counter = 1
+    while target.exists():
+        trash_name = f"{ts}_{counter}_{real.name}"
+        target = trash / trash_name
+        counter += 1
+
+    await asyncio.to_thread(shutil.move, str(real), str(target))
+
+    # Save metadata (original virtual path + trashed_at)
+    meta = await asyncio.to_thread(_load_trash_meta, user)
+    meta[trash_name] = {
+        "original_path": path.strip("/"),
+        "trashed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await asyncio.to_thread(_save_trash_meta, user, meta)
+
     fs.invalidate_cache(real.parent)
+    return {"ok": True, "trash_name": trash_name}
+
+
+# ─── Trash: list ───
+
+
+@router.get("/trash", response_model=TrashListResponse)
+async def list_trash(
+    user: User = Depends(get_current_user),
+):
+    trash = _trash_dir(user)
+    meta = await asyncio.to_thread(_load_trash_meta, user)
+
+    items: list[TrashItem] = []
+    if trash.exists():
+        for entry in sorted(trash.iterdir(), key=lambda e: e.name, reverse=True):
+            info = meta.get(entry.name, {})
+            stat = entry.stat()
+            items.append(TrashItem(
+                name=entry.name.split("_", 2)[-1] if "_" in entry.name else entry.name,
+                original_path=info.get("original_path", ""),
+                size=stat.st_size if entry.is_file() else 0,
+                trashed_at=info.get("trashed_at"),
+                trash_name=entry.name,
+            ))
+
+    return TrashListResponse(items=items)
+
+
+# ─── Trash: restore ───
+
+
+@router.post("/restore")
+async def restore_from_trash(
+    body: TrashRestoreRequest,
+    user: User = Depends(get_current_user),
+):
+    trash = _trash_dir(user)
+    source = trash / body.trash_name
+
+    # Security: ensure the trash_name doesn't escape .trash/
+    if not str(source.resolve()).startswith(str(trash.resolve())):
+        raise HTTPException(status_code=403, detail="Path traversal blocked")
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="Trashed file not found")
+
+    meta = await asyncio.to_thread(_load_trash_meta, user)
+    info = meta.get(body.trash_name, {})
+    original_vpath = info.get("original_path", "")
+
+    if not original_vpath:
+        raise HTTPException(status_code=400, detail="Original path unknown, cannot restore")
+
+    # Resolve the original destination
+    try:
+        dest = fs.resolve_path(original_vpath, user)
+    except (fs.PathSecurityError, fs.AccessDeniedError):
+        raise HTTPException(status_code=400, detail="Cannot restore to original path")
+
+    # Ensure parent directory exists
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    # If destination already exists, add a suffix
+    if dest.exists():
+        stem = dest.stem
+        suffix = dest.suffix
+        counter = 1
+        while dest.exists():
+            dest = dest.parent / f"{stem} ({counter}){suffix}"
+            counter += 1
+
+    await asyncio.to_thread(shutil.move, str(source), str(dest))
+
+    # Remove from meta
+    meta.pop(body.trash_name, None)
+    await asyncio.to_thread(_save_trash_meta, user, meta)
+
+    fs.invalidate_cache(dest.parent)
+    return {"ok": True, "restored_path": original_vpath}
+
+
+# ─── Trash: empty (permanent delete all) ───
+
+
+@router.delete("/trash/empty")
+async def empty_trash(
+    user: User = Depends(get_current_user),
+):
+    trash = _trash_dir(user)
+    if trash.exists():
+        for entry in trash.iterdir():
+            if entry.is_dir():
+                await asyncio.to_thread(shutil.rmtree, str(entry))
+            else:
+                await asyncio.to_thread(entry.unlink)
+
+    # Clear meta
+    await asyncio.to_thread(_save_trash_meta, user, {})
     return {"ok": True}
 
 

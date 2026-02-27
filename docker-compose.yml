@@ -259,6 +259,8 @@ services:
     expose:
       - "7880"
     command: --config /etc/livekit.yaml
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-secret}"
     volumes:
       - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
     deploy:

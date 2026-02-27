@@ -96,6 +96,16 @@ BUILTIN_MODULES: list[dict[str, Any]] = [
         "requires": [],
         "default_enabled": True,
     },
+    {
+        "id": "tasks",
+        "name": "할 일",
+        "icon": "check-square",
+        "route": "/tasks",
+        "api_prefix": "/api/tasks",
+        "type": "builtin",
+        "requires": [],
+        "default_enabled": True,
+    },
 ]
 
 # ─── In-memory cache ───

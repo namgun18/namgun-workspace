@@ -6,8 +6,6 @@ rtc:
   port_range_end: 7882
   use_external_ip: false
   node_ip: 211.244.144.69
-keys:
-  devkey: secret
 room:
   enabled_codecs:
     - mime: video/vp9

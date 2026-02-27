@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.config import get_settings
 from app.db.models import (  # noqa: F401 — ensure all models registered
-    Base, AccessLog, Channel, ChannelMember, Message, Notification, Reaction,
-    SystemSetting, MailAccount, CalendarDB, CalendarEventDB, CalendarShareDB,
-    AddressBookDB, ContactDB,
+    Base, AccessLog, AuditLog, Channel, ChannelMember, Message, Notification, Reaction,
+    SystemSetting, MailAccount, MailDraft, CalendarDB, CalendarEventDB, CalendarShareDB,
+    AddressBookDB, ContactDB, TaskDB,
     Board, Post, PostComment, PostReaction, PostBookmark, PostReadLog,
 )
 
@@ -45,6 +45,7 @@ async def _run_migrations():
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_reactions_unique ON reactions(message_id, user_id, emoji)",
         "CREATE INDEX IF NOT EXISTS ix_messages_parent_id ON messages(parent_id)",
         "ALTER TABLE messages ADD CONSTRAINT fk_messages_parent_id FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE SET NULL",
+        "ALTER TABLE users ADD COLUMN totp_secret VARCHAR(64)",
     ]
 
     async with engine.begin() as conn:

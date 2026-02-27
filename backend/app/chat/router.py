@@ -1,9 +1,14 @@
 """Chat REST API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import json
+import os
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user
+from app.config import get_settings
 from app.db.models import User
 from app.db.session import get_db
 from app.chat import service
@@ -186,6 +191,109 @@ async def send_message(
         parent_id=body.parent_id,
     )
     return msg
+
+
+# ─── File Upload (chat attachments) ───
+
+@router.post("/channels/{channel_id}/upload", status_code=201)
+async def upload_chat_file(
+    channel_id: str,
+    file: UploadFile,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload a file and create a message with message_type='file'."""
+    if not await service.is_channel_member(db, channel_id, user.id):
+        raise HTTPException(403, "채널 멤버가 아닙니다")
+
+    settings = get_settings()
+
+    # Prepare storage directory
+    chat_files_dir = Path(settings.storage_root) / "chat_files" / channel_id
+    chat_files_dir.mkdir(parents=True, exist_ok=True)
+
+    # Sanitize filename
+    raw_name = file.filename or "upload"
+    safe_name = os.path.basename(raw_name).strip()
+    if not safe_name or safe_name.startswith(".") or "\x00" in safe_name:
+        raise HTTPException(400, "잘못된 파일명입니다")
+    if ".." in safe_name or len(safe_name) > 255:
+        raise HTTPException(400, "잘못된 파일명입니다")
+
+    # Unique filename to avoid collisions
+    import uuid as _uuid
+    unique_prefix = _uuid.uuid4().hex[:8]
+    disk_name = f"{unique_prefix}_{safe_name}"
+    target = chat_files_dir / disk_name
+
+    # Stream write with size limit (50 MB for chat files)
+    max_bytes = 50 * 1024 * 1024
+    written = 0
+    with open(target, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            written += len(chunk)
+            if written > max_bytes:
+                f.close()
+                target.unlink(missing_ok=True)
+                raise HTTPException(413, "파일 크기가 50MB를 초과합니다")
+            f.write(chunk)
+
+    # Determine mime type
+    import mimetypes
+    mime_type = file.content_type or mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
+
+    # Build file URL (served via /api/files/download with a special path, or direct)
+    file_url = f"/api/chat/channels/{channel_id}/files/{disk_name}"
+
+    file_meta = json.dumps({
+        "filename": safe_name,
+        "size": written,
+        "mime_type": mime_type,
+        "url": file_url,
+        "disk_name": disk_name,
+    }, ensure_ascii=False)
+
+    # Create file message
+    msg = await service.create_message(
+        db, channel_id, user.id,
+        content=safe_name,
+        message_type="file",
+        file_meta=file_meta,
+    )
+    return msg
+
+
+# ─── Chat file download ───
+
+@router.get("/channels/{channel_id}/files/{filename}")
+async def download_chat_file(
+    channel_id: str,
+    filename: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Download a file uploaded to a chat channel."""
+    if not await service.is_channel_member(db, channel_id, user.id):
+        raise HTTPException(403, "채널 멤버가 아닙니다")
+
+    settings = get_settings()
+    chat_files_dir = Path(settings.storage_root) / "chat_files" / channel_id
+    file_path = chat_files_dir / filename
+
+    # Security: ensure path doesn't escape
+    if not str(file_path.resolve()).startswith(str(chat_files_dir.resolve())):
+        raise HTTPException(403, "경로 접근이 거부되었습니다")
+    if not file_path.is_file():
+        raise HTTPException(404, "파일을 찾을 수 없습니다")
+
+    from fastapi.responses import FileResponse
+    # Extract original filename from disk_name (strip uuid prefix)
+    original_name = filename.split("_", 1)[1] if "_" in filename else filename
+    return FileResponse(
+        path=str(file_path),
+        filename=original_name,
+        media_type="application/octet-stream",
+    )
 
 
 @router.get("/messages/search")

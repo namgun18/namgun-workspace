@@ -484,6 +484,8 @@ class DavApp:
     async def _put(self, request, route, user, db, rp) -> Response:
         body = (await request.body()).decode("utf-8")
         rt = route["type"]
+        if_match = request.headers.get("if-match")
+        if_none_match = request.headers.get("if-none-match")
 
         if rt == "event":
             cal = await svc.get_calendar(db, route["col"])
@@ -493,13 +495,22 @@ class DavApp:
             if not data:
                 return Response(status_code=400)
             event_id = route["rid"]
+            # If-Match / If-None-Match conflict detection
+            existing = await svc.get_event(db, event_id)
+            if if_none_match == "*" and existing:
+                return Response(status_code=412)
+            if if_match and existing:
+                cur_etag = f'"{svc.compute_etag(existing.id, existing.updated_at)}"'
+                if if_match != cur_etag:
+                    return Response(status_code=412)
             ev = await svc.upsert_event(db, event_id, cal.id, data)
             etag = svc.compute_etag(ev.id, ev.updated_at)
+            status = 204 if existing else 201
             href = _href_res(
                 rp, "calendars", user.username, cal.id, f"{ev.id}.ics",
             )
             return Response(
-                status_code=201,
+                status_code=status,
                 headers={"ETag": f'"{etag}"', "Location": href},
             )
 
@@ -511,13 +522,21 @@ class DavApp:
             if not data:
                 return Response(status_code=400)
             contact_id = route["rid"]
+            existing = await svc.get_contact(db, contact_id)
+            if if_none_match == "*" and existing:
+                return Response(status_code=412)
+            if if_match and existing:
+                cur_etag = f'"{svc.compute_etag(existing.id, existing.updated_at)}"'
+                if if_match != cur_etag:
+                    return Response(status_code=412)
             c = await svc.upsert_contact(db, contact_id, ab.id, data)
             etag = svc.compute_etag(c.id, c.updated_at)
+            status = 204 if existing else 201
             href = _href_res(
                 rp, "addressbooks", user.username, ab.id, f"{c.id}.vcf",
             )
             return Response(
-                status_code=201,
+                status_code=status,
                 headers={"ETag": f'"{etag}"', "Location": href},
             )
 

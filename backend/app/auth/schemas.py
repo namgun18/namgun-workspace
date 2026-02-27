@@ -12,9 +12,24 @@ class UserResponse(BaseModel):
     avatar_url: str | None
     recovery_email: str | None
     is_admin: bool
+    has_2fa: bool = False
     last_login_at: datetime | None
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_user(cls, user) -> "UserResponse":
+        return cls(
+            id=user.id,
+            username=user.username,
+            display_name=user.display_name,
+            email=user.email,
+            avatar_url=user.avatar_url,
+            recovery_email=user.recovery_email,
+            is_admin=user.is_admin,
+            has_2fa=bool(user.totp_secret),
+            last_login_at=user.last_login_at,
+        )
 
 
 class LoginRequest(BaseModel):
@@ -46,6 +61,14 @@ class RegisterRequest(BaseModel):
     def validate_password(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("비밀번호는 최소 8자 이상이어야 합니다")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("비밀번호에 대문자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("비밀번호에 소문자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("비밀번호에 숫자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("비밀번호에 특수문자를 1개 이상 포함해야 합니다")
         return v
 
     @field_validator("recovery_email")
@@ -91,6 +114,14 @@ class ChangePasswordRequest(BaseModel):
     def validate_new_password(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("비밀번호는 최소 8자 이상이어야 합니다")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("비밀번호에 대문자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("비밀번호에 소문자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("비밀번호에 숫자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("비밀번호에 특수문자를 1개 이상 포함해야 합니다")
         return v
 
 
@@ -107,4 +138,29 @@ class ResetPasswordRequest(BaseModel):
     def validate_new_password(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError("비밀번호는 최소 8자 이상이어야 합니다")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("비밀번호에 대문자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("비밀번호에 소문자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[0-9]", v):
+            raise ValueError("비밀번호에 숫자를 1개 이상 포함해야 합니다")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("비밀번호에 특수문자를 1개 이상 포함해야 합니다")
         return v
+
+
+# ── 2FA (TOTP) schemas ──────────────────────────────────────
+
+
+class TwoFactorEnableRequest(BaseModel):
+    secret: str
+    code: str
+
+
+class TwoFactorDisableRequest(BaseModel):
+    code: str
+
+
+class TwoFactorVerifyRequest(BaseModel):
+    temp_token: str
+    code: str
