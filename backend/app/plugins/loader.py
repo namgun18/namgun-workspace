@@ -134,4 +134,4 @@ async def load_plugins(app: FastAPI) -> None:
         register_plugin_module(plugin_meta)
         _loaded_plugins.append(plugin_meta)
 
-    logger.info("[Plugins] loaded %d plugin(s)", len(_loaded_plugins))
+    print(f"[Plugins] loaded {len(_loaded_plugins)} plugin(s): {[p['id'] for p in _loaded_plugins]}")
