@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'default' })
 
 const { t } = useI18n()
-const { appName } = useAppConfig()
+const { appName, demoMode } = useAppConfig()
 useHead({ title: computed(() => `${t('nav.mail')} | ${appName.value}`) })
 
 const {
@@ -16,13 +16,35 @@ const {
 const showMobileSidebar = ref(false)
 
 onMounted(async () => {
-  await fetchMailboxes()
-  await fetchMessages()
+  if (!demoMode.value) {
+    await fetchMailboxes()
+    await fetchMessages()
+  }
 })
 </script>
 
 <template>
-  <div class="flex h-full overflow-hidden relative">
+  <!-- Demo mode placeholder -->
+  <div v-if="demoMode" class="h-full flex items-center justify-center px-4">
+    <div class="text-center max-w-md space-y-4">
+      <div class="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-primary">
+          <rect width="20" height="16" x="2" y="4" rx="2" />
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold">{{ $t('nav.mail') }}</h2>
+      <p class="text-muted-foreground text-sm leading-relaxed">{{ $t('demo.mailDescription') }}</p>
+      <div class="border rounded-lg p-4 text-left text-sm space-y-2 bg-card">
+        <div class="flex items-center gap-2"><span class="text-primary">&#10003;</span> {{ $t('demo.mailFeature1') }}</div>
+        <div class="flex items-center gap-2"><span class="text-primary">&#10003;</span> {{ $t('demo.mailFeature2') }}</div>
+        <div class="flex items-center gap-2"><span class="text-primary">&#10003;</span> {{ $t('demo.mailFeature3') }}</div>
+        <div class="flex items-center gap-2"><span class="text-primary">&#10003;</span> {{ $t('demo.mailFeature4') }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="flex h-full overflow-hidden relative">
     <!-- Mobile sidebar overlay -->
     <div
       v-if="showMobileSidebar"

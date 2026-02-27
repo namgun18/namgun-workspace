@@ -1073,6 +1073,17 @@
       "day": "Day"
     }
   },
+  "demo": {
+    "mailDescription": "Provides @domain email via a built-in mail server. In the demo environment, the mail server is not connected — only a preview is available.",
+    "mailFeature1": "Custom domain mail (user@namgun.or.kr)",
+    "mailFeature2": "IMAP/SMTP external client support",
+    "mailFeature3": "Signature management & multiple accounts",
+    "mailFeature4": "SPF/DKIM/DMARC configured",
+    "meetingsDescription": "Video conferencing powered by LiveKit. In the demo environment, the media server is not connected — only a preview is available.",
+    "meetingsFeature1": "WebRTC-based real-time video/audio",
+    "meetingsFeature2": "Screen sharing & chat",
+    "meetingsFeature3": "Invite links & waiting room"
+  },
   "tasks": {
     "title": "Tasks",
     "subtitle": "Manage your tasks",
