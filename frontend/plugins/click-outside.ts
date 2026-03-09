@@ -6,7 +6,10 @@ export default defineNuxtPlugin((nuxtApp) => {
           binding.value(e)
         }
       }
-      document.addEventListener('click', el._clickOutside)
+      // Delay to avoid catching the same click that triggered mount
+      requestAnimationFrame(() => {
+        document.addEventListener('click', el._clickOutside)
+      })
     },
     unmounted(el) {
       document.removeEventListener('click', el._clickOutside)

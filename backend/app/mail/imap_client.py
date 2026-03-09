@@ -418,7 +418,7 @@ async def fetch_message(account: MailAccount, mailbox: str, uid: str) -> dict | 
     imap = await _connect(account)
     try:
         await imap.select(mailbox)
-        fetch_resp = await imap.fetch(uid, "(UID FLAGS BODY[])")
+        fetch_resp = await imap.uid("fetch", uid, "(UID FLAGS BODY[])")
         if fetch_resp.result != "OK":
             return None
 
@@ -452,7 +452,7 @@ async def fetch_message(account: MailAccount, mailbox: str, uid: str) -> dict | 
 
         # Mark as read
         if is_unread:
-            await imap.store(uid, "+FLAGS", "(\\Seen)")
+            await imap.uid("store", uid, "+FLAGS", "(\\Seen)")
 
         # MDN: extract Disposition-Notification-To and $MDNSent flag
         dnt = msg.get("Disposition-Notification-To")
@@ -508,10 +508,10 @@ async def update_flags(
         await imap.select(mailbox)
         if add_flags:
             flags_str = " ".join(add_flags)
-            await imap.store(uid, "+FLAGS", f"({flags_str})")
+            await imap.uid("store", uid, "+FLAGS", f"({flags_str})")
         if remove_flags:
             flags_str = " ".join(remove_flags)
-            await imap.store(uid, "-FLAGS", f"({flags_str})")
+            await imap.uid("store", uid, "-FLAGS", f"({flags_str})")
         return True
     except Exception:
         return False
@@ -533,15 +533,15 @@ async def delete_message(
         if trash_mailbox and mailbox.lower() != trash_mailbox.lower():
             # Move to trash
             try:
-                await imap.copy(uid, trash_mailbox)
-                await imap.store(uid, "+FLAGS", "(\\Deleted)")
+                await imap.uid("copy", uid, trash_mailbox)
+                await imap.uid("store", uid, "+FLAGS", "(\\Deleted)")
                 await imap.expunge()
                 return {"ok": True, "permanent": False}
             except Exception:
                 pass
 
         # Permanent delete
-        await imap.store(uid, "+FLAGS", "(\\Deleted)")
+        await imap.uid("store", uid, "+FLAGS", "(\\Deleted)")
         await imap.expunge()
         return {"ok": True, "permanent": True}
     finally:
@@ -558,8 +558,8 @@ async def move_message(
     imap = await _connect(account)
     try:
         await imap.select(mailbox)
-        await imap.copy(uid, target_mailbox)
-        await imap.store(uid, "+FLAGS", "(\\Deleted)")
+        await imap.uid("copy", uid, target_mailbox)
+        await imap.uid("store", uid, "+FLAGS", "(\\Deleted)")
         await imap.expunge()
         return True
     except Exception:
@@ -578,7 +578,7 @@ async def download_attachment(
     imap = await _connect(account)
     try:
         await imap.select(mailbox)
-        fetch_resp = await imap.fetch(uid, "(BODY[])")
+        fetch_resp = await imap.uid("fetch", uid, "(BODY[])")
         if fetch_resp.result != "OK":
             return None
 
@@ -656,7 +656,7 @@ async def fetch_raw_headers(account: MailAccount, mailbox: str, uid: str) -> str
     imap = await _connect(account)
     try:
         await imap.select(mailbox)
-        fetch_resp = await imap.fetch(uid, "(BODY.PEEK[HEADER])")
+        fetch_resp = await imap.uid("fetch", uid, "(BODY.PEEK[HEADER])")
         if fetch_resp.result != "OK":
             return None
 
