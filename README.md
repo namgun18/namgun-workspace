@@ -125,6 +125,7 @@ docker compose up -d
 
 | 버전 | 날짜 | 내용 |
 |------|------|------|
+| v4.0.2 | 2026-03-09 | Phase 9 완료 — `update.sh` 무중단 업데이트 (순차 재빌드+헬스체크+롤백), `health.sh` 서비스 자가진단 (Docker/DB/Redis/API/디스크/NFS/SSL, --json 모니터링 연동), ROADMAP Phase 6~9 상태 갱신 |
 | v4.0.1 | 2026-03-09 | 버그 수정 — IMAP UID/시퀀스번호 혼동 수정 (메일 클릭 시 다른 메일 열리는 버그), SSR 글로벌 비활성화 (hydration mismatch 근본 해결), v-click-outside 디렉티브 타이밍 수정 (파일 +버튼 무반응 해결) |
 | v4.0.0 | 2026-02-27 | Phase 8: 전수조사+보안강화+기능확장 — TOTP 2FA, 할일관리(Tasks), 통합검색, 감사로그, 파일휴지통, 메일임시저장, vCard 가져오기/내보내기, 채팅파일첨부, 비밀번호복잡도, nginx rate limiting, DAV If-Match 충돌방지, OAuth Redis 저장, LiveKit 크리덴셜 보안, Docker non-root, .dockerignore, restore.sh |
 | v3.5.0 | 2026-02-27 | Phase 7: CalDAV/CardDAV 동기화 서버 — .well-known 자동 디스커버리, PROPFIND/REPORT/GET/PUT/DELETE, Thunderbird·iOS·DAVx5 양방향 동기화, HTTP Basic Auth, iCalendar/vCard 직렬화 |
