@@ -34,6 +34,7 @@ from app.tasks.router import router as tasks_router
 from app.search.router import router as search_router
 from app.dav.router import dav_app
 from app.plugins.router import router as plugins_router
+from app.push.router import router as push_router
 
 settings = get_settings()
 _health_task = None
@@ -154,6 +155,7 @@ app.include_router(board_router)
 app.include_router(tasks_router)
 app.include_router(search_router)
 app.include_router(plugins_router)
+app.include_router(push_router)
 
 
 # ── .well-known CalDAV/CardDAV discovery ──

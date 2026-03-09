@@ -2,8 +2,10 @@
 const { fetchAppConfig, brandColor, defaultTheme, favicon } = useAppConfig()
 const { addToast } = useToast()
 const { t } = useI18n()
+const { init: initPwa } = usePwa()
 
 fetchAppConfig()
+onMounted(() => initPwa())
 
 onErrorCaptured((err: Error) => {
   console.error('[Global Error Boundary]', err)

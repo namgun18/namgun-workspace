@@ -1162,5 +1162,14 @@
   "plugins": {
     "placeholder": "This plugin page will be available after rebuild",
     "rebuildHint": "Please rebuild the frontend after installing the plugin"
+  },
+  "pwa": {
+    "installTitle": "Install App",
+    "installDescription": "Add to home screen for an app-like experience",
+    "install": "Install",
+    "pushEnable": "Enable push notifications",
+    "pushDisable": "Disable push notifications",
+    "offline": "You are offline",
+    "dismiss": "Dismiss"
   }
 }

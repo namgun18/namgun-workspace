@@ -84,11 +84,16 @@ FastAPI WebSocket + Redis Pub/Sub. 채널, DM, 스레드, 멘션, 리액션, 검
 - `health.sh` — 서비스 자가진단 (Docker/DB/Redis/API/디스크/NFS/SSL, JSON 출력 지원)
 - 감사 로그 (로그인, 설정 변경 기록) (v4.0.0)
 
-## Phase 10: PWA + 모바일
+## Phase 10: PWA + 모바일 — Done (v4.1.0)
 
-- manifest.json, Service Worker, 푸시 알림
-- 모바일 반응형 UI 최적화
-- 오프라인 캐시
+- @vite-pwa/nuxt 통합: manifest 자동 생성, Service Worker 자동 등록
+- Web App Manifest: standalone 모드, SVG 아이콘, 테마 컬러 연동
+- Service Worker: Workbox 기반 런타임 캐싱 (API: NetworkFirst, 정적 에셋: CacheFirst)
+- 오프라인 fallback 페이지 (offline.html)
+- 앱 설치 프롬프트 배너 (InstallBanner 컴포넌트)
+- 푸시 알림 기반: VAPID 키 생성, 구독/해지 API, pywebpush 연동
+- iOS/Android/Windows 메타 태그 완비 (apple-mobile-web-app-capable 등)
+- usePwa 컴포저블: 설치 감지, 푸시 구독 관리
 
 ## Phase 11: 오픈코어 모델
 
@@ -111,5 +116,5 @@ FastAPI WebSocket + Redis Pub/Sub. 채널, DM, 스레드, 멘션, 리액션, 검
 | Phase 7 | CalDAV/CardDAV 동기화 | Done (v3.5) |
 | Phase 8 | 전수조사 + 보안강화 + 플러그인 | Done (v4.0) |
 | Phase 9 | 운영 도구 | Done (v4.0.2) |
-| Phase 10 | PWA + 모바일 | Planned |
+| Phase 10 | PWA + 모바일 | Done (v4.1.0) |
 | Phase 11 | 오픈코어 모델 | Planned |
