@@ -9,6 +9,8 @@ from app.db.models import (  # noqa: F401 — ensure all models registered
     SystemSetting, MailAccount, MailDraft, CalendarDB, CalendarEventDB, CalendarShareDB,
     AddressBookDB, ContactDB, TaskDB,
     Board, Post, PostComment, PostReaction, PostBookmark, PostReadLog,
+    PushSubscription,
+    WikiSpace, WikiPage, WikiPageVersion, WikiSpaceMember,
 )
 
 settings = get_settings()

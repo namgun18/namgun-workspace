@@ -5,9 +5,12 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user
-from app.db.models import User
+from app.db.models import PushSubscription as PushSubModel, User
+from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +23,6 @@ class PushSubscription(BaseModel):
     expirationTime: float | None = None
 
 
-# ─── In-memory subscription store (production: use DB) ───
-_subscriptions: dict[str, list[dict]] = {}  # user_id -> [subscription_json]
-
-
 def _get_vapid_keys() -> tuple[str, str]:
     """Get or generate VAPID keys."""
     from app.config import get_settings
@@ -33,7 +32,6 @@ def _get_vapid_keys() -> tuple[str, str]:
     priv = getattr(settings, "vapid_private_key", None) or ""
 
     if not pub or not priv:
-        # Auto-generate if not configured
         try:
             from py_vapid import Vapid
             vapid = Vapid()
@@ -61,19 +59,29 @@ async def get_vapid_key():
 async def subscribe(
     sub: PushSubscription,
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """Store push subscription for the current user."""
     user_id = str(user.id)
-    sub_data = sub.model_dump()
-
-    if user_id not in _subscriptions:
-        _subscriptions[user_id] = []
 
     # Avoid duplicates
-    existing_endpoints = {s["endpoint"] for s in _subscriptions[user_id]}
-    if sub_data["endpoint"] not in existing_endpoints:
-        _subscriptions[user_id].append(sub_data)
+    existing = await db.execute(
+        select(PushSubModel).where(
+            PushSubModel.user_id == user_id,
+            PushSubModel.endpoint == sub.endpoint,
+        )
+    )
+    if existing.scalar_one_or_none():
+        return {"ok": True}
 
+    row = PushSubModel(
+        user_id=user_id,
+        endpoint=sub.endpoint,
+        keys_json=json.dumps(sub.keys),
+        expiration_time=sub.expirationTime,
+    )
+    db.add(row)
+    await db.commit()
     logger.info("Push subscription added for user %s", user_id)
     return {"ok": True}
 
@@ -82,20 +90,29 @@ async def subscribe(
 async def unsubscribe(
     sub: PushSubscription,
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """Remove push subscription for the current user."""
-    user_id = str(user.id)
-    if user_id in _subscriptions:
-        _subscriptions[user_id] = [
-            s for s in _subscriptions[user_id]
-            if s["endpoint"] != sub.endpoint
-        ]
+    await db.execute(
+        delete(PushSubModel).where(
+            PushSubModel.user_id == str(user.id),
+            PushSubModel.endpoint == sub.endpoint,
+        )
+    )
+    await db.commit()
     return {"ok": True}
 
 
 async def send_push(user_id: str, title: str, body: str, url: str | None = None):
     """Send push notification to all subscriptions of a user."""
-    subs = _subscriptions.get(user_id, [])
+    from app.db.session import async_session
+
+    async with async_session() as db:
+        result = await db.execute(
+            select(PushSubModel).where(PushSubModel.user_id == user_id)
+        )
+        subs = result.scalars().all()
+
     if not subs:
         return
 
@@ -104,7 +121,7 @@ async def send_push(user_id: str, title: str, body: str, url: str | None = None)
         return
 
     try:
-        from pywebpush import webpush, WebPushException
+        from pywebpush import webpush
     except ImportError:
         logger.warning("pywebpush not installed — cannot send push")
         return
@@ -119,22 +136,24 @@ async def send_push(user_id: str, title: str, body: str, url: str | None = None)
         "url": url or "/",
     })
 
-    dead_subs = []
+    dead_ids = []
     for sub in subs:
+        sub_info = {"endpoint": sub.endpoint, "keys": json.loads(sub.keys_json)}
         try:
             webpush(
-                subscription_info=sub,
+                subscription_info=sub_info,
                 data=payload,
                 vapid_private_key=priv,
                 vapid_claims=claims,
             )
         except Exception as e:
-            logger.debug("Push send failed for %s: %s", sub.get("endpoint", "?")[:50], e)
-            dead_subs.append(sub["endpoint"])
+            logger.debug("Push send failed for %s: %s", sub.endpoint[:50], e)
+            dead_ids.append(sub.id)
 
-    # Clean up expired subscriptions
-    if dead_subs:
-        _subscriptions[user_id] = [
-            s for s in _subscriptions[user_id]
-            if s["endpoint"] not in dead_subs
-        ]
+    # Clean up expired/dead subscriptions
+    if dead_ids:
+        async with async_session() as db:
+            await db.execute(
+                delete(PushSubModel).where(PushSubModel.id.in_(dead_ids))
+            )
+            await db.commit()
