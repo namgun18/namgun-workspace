@@ -1083,7 +1083,7 @@
   },
   "demo": {
     "mailDescription": "Provides domain email via a built-in mail server. In the demo environment, the mail server is not connected — only a preview is available.",
-    "mailFeature1": "Custom domain mail (user{'@'}namgun.or.kr)",
+    "mailFeature1": "Custom domain mail (user{'@'}namgun.it.kr)",
     "mailFeature2": "IMAP/SMTP external client support",
     "mailFeature3": "Signature management & multiple accounts",
     "mailFeature4": "SPF/DKIM/DMARC configured",
@@ -1162,6 +1162,33 @@
   "plugins": {
     "placeholder": "This plugin page will be available after rebuild",
     "rebuildHint": "Please rebuild the frontend after installing the plugin"
+  },
+  "wiki": {
+    "title": "Wiki",
+    "spaces": "Spaces",
+    "pages": "Pages",
+    "createSpace": "Create Space",
+    "createPage": "New Page",
+    "spaceName": "Space Name",
+    "pageTitle": "Page Title",
+    "slug": "Slug",
+    "edit": "Edit",
+    "saved": "Saved",
+    "history": "History",
+    "versionHistory": "Version History",
+    "restored": "restored",
+    "selectSpace": "Select a space",
+    "selectPage": "Select a page",
+    "noPages": "No pages yet",
+    "searchPages": "Search pages...",
+    "confirmDelete": "Delete this page?",
+    "confirmDeleteSpace": "Delete this space and all its pages?",
+    "pageDeleted": "Page deleted",
+    "author": "Author",
+    "lastUpdated": "Last updated",
+    "contentPlaceholder": "Write in markdown...",
+    "connected": "Connected",
+    "disconnected": "Disconnected"
   },
   "pwa": {
     "installTitle": "Install App",

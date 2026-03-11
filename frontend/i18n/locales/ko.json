@@ -1083,7 +1083,7 @@
   },
   "demo": {
     "mailDescription": "자체 메일 서버를 통해 도메인 이메일을 제공합니다. 데모 환경에서는 메일 서버가 연결되어 있지 않아 미리보기만 제공합니다.",
-    "mailFeature1": "개인 도메인 메일 (user{'@'}namgun.or.kr)",
+    "mailFeature1": "개인 도메인 메일 (user{'@'}namgun.it.kr)",
     "mailFeature2": "IMAP/SMTP 외부 클라이언트 지원",
     "mailFeature3": "서명 관리 및 다중 계정",
     "mailFeature4": "SPF/DKIM/DMARC 완비",
@@ -1162,6 +1162,33 @@
   "plugins": {
     "placeholder": "이 플러그인 페이지는 재빌드 후 사용 가능합니다",
     "rebuildHint": "플러그인 설치 후 프론트엔드를 재빌드해주세요"
+  },
+  "wiki": {
+    "title": "위키",
+    "spaces": "스페이스",
+    "pages": "페이지",
+    "createSpace": "스페이스 만들기",
+    "createPage": "새 페이지",
+    "spaceName": "스페이스 이름",
+    "pageTitle": "페이지 제목",
+    "slug": "슬러그",
+    "edit": "편집",
+    "saved": "저장되었습니다",
+    "history": "수정 이력",
+    "versionHistory": "버전 이력",
+    "restored": "으로 복원됨",
+    "selectSpace": "스페이스를 선택하세요",
+    "selectPage": "페이지를 선택하세요",
+    "noPages": "페이지가 없습니다",
+    "searchPages": "페이지 검색...",
+    "confirmDelete": "이 페이지를 삭제하시겠습니까?",
+    "confirmDeleteSpace": "이 스페이스와 모든 페이지를 삭제하시겠습니까?",
+    "pageDeleted": "페이지가 삭제되었습니다",
+    "author": "작성자",
+    "lastUpdated": "최종 수정",
+    "contentPlaceholder": "마크다운으로 작성하세요...",
+    "connected": "연결됨",
+    "disconnected": "연결 끊김"
   },
   "pwa": {
     "installTitle": "앱 설치",
