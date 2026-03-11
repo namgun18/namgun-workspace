@@ -8,3 +8,8 @@ mailserver/config/postfix-accounts.cf
 mailserver/config/rspamd/dkim/*.private.txt
 mailserver/config/postfix-accounts.cf
 mailserver/config/dovecot-masters.cf
+frontend/.nuxt/
+frontend/.output/
+frontend/node_modules/
+cookie.txt
+.env.bak

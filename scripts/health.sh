@@ -215,7 +215,7 @@ fi
 
 # ─── 8. SSL 인증서 만료 ───
 section "SSL"
-DOMAIN=$(grep '^DOMAIN=' .env 2>/dev/null | cut -d= -f2 || echo "namgun.or.kr")
+DOMAIN=$(grep '^DOMAIN=' .env 2>/dev/null | cut -d= -f2 || echo "namgun.it.kr")
 if command -v openssl >/dev/null 2>&1; then
   CERT_EXPIRY=$(echo | openssl s_client -servername "$DOMAIN" -connect "$DOMAIN":443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 || echo "")
   if [[ -n "$CERT_EXPIRY" ]]; then
