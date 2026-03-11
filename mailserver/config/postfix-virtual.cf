@@ -1,0 +1,6 @@
+# namgun.or.kr → namgun.it.kr 수신 포워딩
+# 구 도메인 만료(~2027-05) 시 삭제
+namgun18@namgun.or.kr namgun18@namgun.it.kr
+noreply@namgun.or.kr noreply@namgun.it.kr
+postmaster@namgun.or.kr postmaster@namgun.it.kr
+@namgun.or.kr @namgun.it.kr
