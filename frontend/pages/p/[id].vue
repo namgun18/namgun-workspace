@@ -17,11 +17,18 @@ watch([pluginId, loaded], () => {
 }, { immediate: true })
 
 useHead({ title: computed(() => `${pluginId.value} | ${appName.value}`) })
+
+// Dynamic plugin component loading
+const pluginComponent = computed(() => usePluginPage(pluginId.value))
 </script>
 
 <template>
-  <div v-if="user" class="h-full overflow-auto px-4 sm:px-6 lg:px-8 py-6">
-    <div class="text-center py-20 text-muted-foreground">
+  <div v-if="user" class="h-full overflow-auto">
+    <!-- Dynamic plugin UI -->
+    <component v-if="pluginComponent" :is="pluginComponent" />
+
+    <!-- Fallback: plugin has no frontend -->
+    <div v-else class="text-center py-20 text-muted-foreground px-4 sm:px-6 lg:px-8">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
            class="h-16 w-16 mx-auto mb-4 opacity-40">

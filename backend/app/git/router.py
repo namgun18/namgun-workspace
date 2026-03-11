@@ -5,6 +5,7 @@ import logging
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from app.auth.deps import get_current_user
 from app.db.models import User
@@ -460,3 +461,58 @@ async def get_pull(
         created_at=data.get("created_at", ""),
         updated_at=data.get("updated_at", ""),
     )
+
+
+# ─── PR Merge & Review ───
+
+
+class MergePRRequest(BaseModel):
+    merge_style: str = "merge"  # merge, rebase, squash
+    title: str = ""
+    message: str = ""
+
+
+class ReviewRequest(BaseModel):
+    body: str
+    event: str = "COMMENT"  # COMMENT, APPROVED, REQUEST_CHANGES
+
+
+@router.post("/repos/{owner}/{repo}/pulls/{index}/merge")
+async def merge_pull(
+    owner: str,
+    repo: str,
+    index: int,
+    body: MergePRRequest = MergePRRequest(),
+    user: User = Depends(get_current_user),
+):
+    try:
+        result = await gitea.merge_pull(
+            owner, repo, index,
+            merge_style=body.merge_style,
+            title=body.title,
+            message=body.message,
+        )
+    except Exception as e:
+        logger.warning("Failed to merge PR %s/%s#%d: %s", owner, repo, index, e)
+        raise HTTPException(status_code=400, detail=str(e))
+    return result
+
+
+@router.post("/repos/{owner}/{repo}/pulls/{index}/reviews")
+async def create_review(
+    owner: str,
+    repo: str,
+    index: int,
+    body: ReviewRequest,
+    user: User = Depends(get_current_user),
+):
+    try:
+        result = await gitea.create_pr_review(
+            owner, repo, index,
+            body=body.body,
+            event=body.event,
+        )
+    except Exception as e:
+        logger.warning("Failed to create review %s/%s#%d: %s", owner, repo, index, e)
+        raise HTTPException(status_code=400, detail=str(e))
+    return result

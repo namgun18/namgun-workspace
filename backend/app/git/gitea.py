@@ -186,3 +186,27 @@ async def get_pulls(
 
 async def get_pull(owner: str, repo: str, index: int) -> dict:
     return await _get(f"/repos/{owner}/{repo}/pulls/{index}")
+
+
+async def merge_pull(
+    owner: str, repo: str, index: int,
+    merge_style: str = "merge",
+    title: str = "",
+    message: str = "",
+) -> dict:
+    body: dict = {"Do": merge_style}
+    if title:
+        body["merge_message_field"] = title
+    if message:
+        body["merge_commit_id"] = message
+    return await _post(f"/repos/{owner}/{repo}/pulls/{index}/merge", json=body)
+
+
+async def create_pr_review(
+    owner: str, repo: str, index: int,
+    body: str, event: str = "COMMENT",
+) -> dict:
+    return await _post(
+        f"/repos/{owner}/{repo}/pulls/{index}/reviews",
+        json={"body": body, "event": event},
+    )
