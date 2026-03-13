@@ -5,12 +5,13 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import Response
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user
 from app.config import get_settings
-from app.db.models import MailAccount, MailDraft, MailSignature, User
+from app.db.models import MailAccount, MailDraft, MailFilterRule, MailSignature, User
 from app.db.session import get_db
 from app.mail import imap_client, smtp_client
 from app.mail.crypto import encrypt_password
@@ -775,11 +776,13 @@ async def download_attachment(
     data, content_type, filename = result
     safe_name = filename.replace('"', '').replace('\n', '').replace('\r', '')
     encoded_name = quote(safe_name, safe='')
+    # ASCII fallback for filename (non-ASCII chars replaced with _)
+    ascii_name = safe_name.encode('ascii', 'replace').decode('ascii').replace('?', '_')
     return Response(
         content=data,
         media_type=content_type,
         headers={
-            "Content-Disposition": f"attachment; filename=\"{safe_name}\"; filename*=UTF-8''{encoded_name}",
+            "Content-Disposition": f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{encoded_name}",
         },
     )
 
@@ -1022,3 +1025,222 @@ async def delete_draft(
     await db.delete(draft)
     await db.commit()
     return {"ok": True}
+
+
+# ─── Mail Filter Rules ───
+
+
+class FilterRuleCreate(BaseModel):
+    name: str
+    field: str  # from, to, subject, any
+    match_type: str = "contains"  # contains, equals, starts_with
+    value: str
+    action: str = "move"
+    target_folder: str
+    account_id: str | None = None
+    priority: int = 0
+
+
+class FilterRuleUpdate(BaseModel):
+    name: str | None = None
+    field: str | None = None
+    match_type: str | None = None
+    value: str | None = None
+    target_folder: str | None = None
+    priority: int | None = None
+    is_active: bool | None = None
+
+
+@router.get("/filters")
+@require_module("mail")
+async def list_filter_rules(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all mail filter rules for the current user."""
+    result = await db.execute(
+        select(MailFilterRule)
+        .where(MailFilterRule.user_id == user.id)
+        .order_by(MailFilterRule.priority, MailFilterRule.created_at)
+    )
+    rules = result.scalars().all()
+    return {
+        "rules": [
+            {
+                "id": r.id,
+                "name": r.name,
+                "field": r.field,
+                "match_type": r.match_type,
+                "value": r.value,
+                "action": r.action,
+                "target_folder": r.target_folder,
+                "account_id": r.account_id,
+                "priority": r.priority,
+                "is_active": r.is_active,
+            }
+            for r in rules
+        ]
+    }
+
+
+@router.post("/filters")
+@require_module("mail")
+async def create_filter_rule(
+    body: FilterRuleCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new mail filter rule."""
+    if body.field not in ("from", "to", "subject", "any"):
+        raise HTTPException(status_code=400, detail="유효하지 않은 필드: from, to, subject, any 중 선택")
+    if body.match_type not in ("contains", "equals", "starts_with"):
+        raise HTTPException(status_code=400, detail="유효하지 않은 매칭 유형")
+    if not body.value.strip():
+        raise HTTPException(status_code=400, detail="필터 값을 입력해주세요")
+
+    rule = MailFilterRule(
+        user_id=user.id,
+        account_id=body.account_id,
+        name=body.name,
+        field=body.field,
+        match_type=body.match_type,
+        value=body.value.strip(),
+        action=body.action,
+        target_folder=body.target_folder,
+        priority=body.priority,
+    )
+    db.add(rule)
+    await db.commit()
+    await db.refresh(rule)
+    return {
+        "id": rule.id,
+        "name": rule.name,
+        "field": rule.field,
+        "match_type": rule.match_type,
+        "value": rule.value,
+        "action": rule.action,
+        "target_folder": rule.target_folder,
+        "priority": rule.priority,
+        "is_active": rule.is_active,
+    }
+
+
+@router.patch("/filters/{rule_id}")
+@require_module("mail")
+async def update_filter_rule(
+    rule_id: str,
+    body: FilterRuleUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a mail filter rule."""
+    rule = await db.get(MailFilterRule, rule_id)
+    if not rule or rule.user_id != user.id:
+        raise HTTPException(status_code=404, detail="필터 규칙을 찾을 수 없습니다")
+
+    if body.name is not None:
+        rule.name = body.name
+    if body.field is not None:
+        if body.field not in ("from", "to", "subject", "any"):
+            raise HTTPException(status_code=400, detail="유효하지 않은 필드")
+        rule.field = body.field
+    if body.match_type is not None:
+        rule.match_type = body.match_type
+    if body.value is not None:
+        rule.value = body.value.strip()
+    if body.target_folder is not None:
+        rule.target_folder = body.target_folder
+    if body.priority is not None:
+        rule.priority = body.priority
+    if body.is_active is not None:
+        rule.is_active = body.is_active
+
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/filters/{rule_id}")
+@require_module("mail")
+async def delete_filter_rule(
+    rule_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a mail filter rule."""
+    rule = await db.get(MailFilterRule, rule_id)
+    if not rule or rule.user_id != user.id:
+        raise HTTPException(status_code=404, detail="필터 규칙을 찾을 수 없습니다")
+    await db.delete(rule)
+    await db.commit()
+    return {"ok": True}
+
+
+def _match_rule(rule: MailFilterRule, msg: dict) -> bool:
+    """Check if a message matches a filter rule."""
+    val = rule.value.lower()
+    targets = []
+    from_addrs = msg.get("from_") or msg.get("from") or []
+    to_addrs = msg.get("to") or []
+    if rule.field == "from":
+        targets = [a.get("email", "").lower() + " " + (a.get("name") or "").lower()
+                    for a in from_addrs]
+    elif rule.field == "to":
+        targets = [a.get("email", "").lower() + " " + (a.get("name") or "").lower()
+                    for a in to_addrs]
+    elif rule.field == "subject":
+        targets = [(msg.get("subject") or "").lower()]
+    elif rule.field == "any":
+        targets = [
+            *[a.get("email", "").lower() + " " + (a.get("name") or "").lower()
+              for a in from_addrs],
+            *[a.get("email", "").lower() + " " + (a.get("name") or "").lower()
+              for a in to_addrs],
+            (msg.get("subject") or "").lower(),
+        ]
+
+    for t in targets:
+        if rule.match_type == "contains" and val in t:
+            return True
+        if rule.match_type == "equals" and val == t.strip():
+            return True
+        if rule.match_type == "starts_with" and t.strip().startswith(val):
+            return True
+    return False
+
+
+@router.post("/filters/apply")
+@require_module("mail")
+async def apply_filter_rules(
+    account_id: str | None = Query(None),
+    mailbox_id: str = Query("INBOX"),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Apply all active filter rules to messages in the specified mailbox."""
+    account = await _get_account(db, user, account_id)
+
+    # Fetch active rules
+    result = await db.execute(
+        select(MailFilterRule)
+        .where(MailFilterRule.user_id == user.id, MailFilterRule.is_active == True)
+        .order_by(MailFilterRule.priority)
+    )
+    rules = result.scalars().all()
+    if not rules:
+        return {"ok": True, "moved": 0}
+
+    # Fetch all messages from mailbox (up to 500)
+    messages, total = await imap_client.fetch_messages(account, mailbox_id, page=0, limit=500)
+
+    moved = 0
+    for msg in messages:
+        for rule in rules:
+            if _match_rule(rule, msg):
+                uid = msg.get("uid") or msg.get("id", "").split(":")[0]
+                if uid:
+                    ok = await imap_client.move_message(account, mailbox_id, uid, rule.target_folder)
+                    if ok:
+                        moved += 1
+                break  # First matching rule wins
+
+    return {"ok": True, "moved": moved}

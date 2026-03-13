@@ -509,6 +509,31 @@
     "sidebar": {
       "title": "Mail"
     },
+    "filters": {
+      "title": "Mail Filters",
+      "empty": "No filter rules configured",
+      "add": "Add filter",
+      "edit": "Edit filter",
+      "ruleName": "Rule name",
+      "ruleNamePlaceholder": "e.g., Auto-sort company mail",
+      "condition": "Condition field",
+      "matchType": "Match type",
+      "value": "Search term",
+      "valuePlaceholder": "e.g., {'@'}company.com",
+      "targetFolder": "Move to folder",
+      "selectFolder": "Select folder",
+      "fieldFrom": "From",
+      "fieldTo": "To",
+      "fieldSubject": "Subject",
+      "fieldAny": "Any field",
+      "matchContains": "Contains",
+      "matchEquals": "Equals",
+      "matchStartsWith": "Starts with",
+      "applyNow": "Apply now",
+      "applyResult": "{count} messages moved",
+      "applyNone": "No messages to move",
+      "deleteConfirm": "Delete this filter rule?"
+    },
     "view": {
       "deleteConfirm": "Delete this email?",
       "reply": "Reply",

@@ -509,6 +509,31 @@
     "sidebar": {
       "title": "메일"
     },
+    "filters": {
+      "title": "메일 필터",
+      "empty": "설정된 필터 규칙이 없습니다",
+      "add": "필터 추가",
+      "edit": "필터 수정",
+      "ruleName": "규칙 이름",
+      "ruleNamePlaceholder": "예: 회사 메일 자동 분류",
+      "condition": "조건 필드",
+      "matchType": "매칭 방식",
+      "value": "검색어",
+      "valuePlaceholder": "예: {'@'}company.com",
+      "targetFolder": "이동할 편지함",
+      "selectFolder": "편지함 선택",
+      "fieldFrom": "발신자",
+      "fieldTo": "수신자",
+      "fieldSubject": "제목",
+      "fieldAny": "전체",
+      "matchContains": "포함",
+      "matchEquals": "일치",
+      "matchStartsWith": "시작",
+      "applyNow": "지금 적용",
+      "applyResult": "{count}개 메일이 이동되었습니다",
+      "applyNone": "이동할 메일이 없습니다",
+      "deleteConfirm": "이 필터 규칙을 삭제하시겠습니까?"
+    },
     "view": {
       "deleteConfirm": "이 메일을 삭제하시겠습니까?",
       "reply": "답장",

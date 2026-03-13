@@ -9,7 +9,7 @@ from app.db.models import (  # noqa: F401 — ensure all models registered
     SystemSetting, MailAccount, MailDraft, CalendarDB, CalendarEventDB, CalendarShareDB,
     AddressBookDB, ContactDB, TaskDB,
     Board, Post, PostComment, PostReaction, PostBookmark, PostReadLog,
-    PushSubscription,
+    PushSubscription, MailFilterRule,
     WikiSpace, WikiPage, WikiPageVersion, WikiSpaceMember,
 )
 

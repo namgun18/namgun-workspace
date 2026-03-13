@@ -74,6 +74,16 @@ def _has_attachments(msg: EmailMessage) -> bool:
     return False
 
 
+def _is_binary_type(content_type: str) -> bool:
+    """Check if content type is binary (not text/html body)."""
+    if content_type.startswith("text/"):
+        return False
+    if content_type in ("multipart/alternative", "multipart/mixed", "multipart/related",
+                        "multipart/report", "message/rfc822"):
+        return False
+    return True
+
+
 def _extract_body(msg: EmailMessage) -> tuple[str | None, str | None]:
     """Extract text and HTML body from email message."""
     text_body = None
@@ -84,6 +94,9 @@ def _extract_body(msg: EmailMessage) -> tuple[str | None, str | None]:
             ct = part.get_content_type()
             disposition = part.get_content_disposition()
             if disposition == "attachment":
+                continue
+            # Skip binary content types (ZIP, images, etc.) even without disposition
+            if _is_binary_type(ct):
                 continue
             try:
                 payload = part.get_payload(decode=True)
@@ -100,17 +113,19 @@ def _extract_body(msg: EmailMessage) -> tuple[str | None, str | None]:
                 continue
     else:
         ct = msg.get_content_type()
-        try:
-            payload = msg.get_payload(decode=True)
-            if payload:
-                charset = msg.get_content_charset() or "utf-8"
-                decoded = payload.decode(charset, errors="replace")
-                if ct == "text/html":
-                    html_body = decoded
-                else:
-                    text_body = decoded
-        except (LookupError, UnicodeDecodeError, TypeError) as e:
-            logger.debug("Failed to decode single-part body (type=%s): %s", ct, e)
+        # Skip binary single-part messages (e.g. DMARC reports: application/zip)
+        if not _is_binary_type(ct):
+            try:
+                payload = msg.get_payload(decode=True)
+                if payload:
+                    charset = msg.get_content_charset() or "utf-8"
+                    decoded = payload.decode(charset, errors="replace")
+                    if ct == "text/html":
+                        html_body = decoded
+                    else:
+                        text_body = decoded
+            except (LookupError, UnicodeDecodeError, TypeError) as e:
+                logger.debug("Failed to decode single-part body (type=%s): %s", ct, e)
 
     return text_body, html_body
 
@@ -118,22 +133,42 @@ def _extract_body(msg: EmailMessage) -> tuple[str | None, str | None]:
 def _extract_attachments(msg: EmailMessage) -> list[dict]:
     """Extract attachment metadata from email message."""
     attachments = []
+
+    # Handle single-part binary messages (e.g. DMARC: entire message is application/zip)
     if not msg.is_multipart():
+        ct = msg.get_content_type()
+        if _is_binary_type(ct):
+            filename = msg.get_filename()
+            if filename:
+                filename = _decode_header(filename)
+            payload_data = msg.get_payload(decode=True) or b""
+            attachments.append({
+                "part_index": 0,
+                "name": filename or f"attachment_0.{ct.split('/')[-1]}",
+                "type": ct,
+                "size": len(payload_data),
+            })
         return attachments
 
     for i, part in enumerate(msg.walk()):
         disposition = part.get_content_disposition()
         ct = part.get_content_type()
-        if disposition == "attachment" or (
-            disposition == "inline" and ct not in ("text/plain", "text/html")
-        ):
+        # Explicit attachment disposition
+        is_attachment = disposition == "attachment"
+        # Inline non-text (images etc.)
+        is_inline_binary = disposition == "inline" and ct not in ("text/plain", "text/html")
+        # No disposition but binary content type (e.g. DMARC reports: application/zip, application/gzip)
+        is_undeclared_binary = disposition is None and _is_binary_type(ct)
+
+        if is_attachment or is_inline_binary or is_undeclared_binary:
             filename = part.get_filename()
             if filename:
                 filename = _decode_header(filename)
-            size = len(part.get_payload(decode=True) or b"")
+            payload_data = part.get_payload(decode=True) or b""
+            size = len(payload_data)
             attachments.append({
                 "part_index": i,
-                "name": filename or f"attachment_{i}",
+                "name": filename or f"attachment_{i}.{ct.split('/')[-1]}",
                 "type": ct,
                 "size": size,
             })
