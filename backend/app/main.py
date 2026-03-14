@@ -174,6 +174,25 @@ async def well_known_carddav():
     return RedirectResponse(url="/dav/", status_code=301)
 
 
+@app.get("/.well-known/workspace.json")
+async def well_known_workspace(db: AsyncSession = Depends(get_db)):
+    """Client auto-discovery endpoint — returns server connection info."""
+    from app.admin.settings import get_settings_by_prefix
+
+    db_vals = await get_settings_by_prefix(db, "branding.")
+    site_name = db_vals.get("branding.site_name") or settings.app_name
+    logo = db_vals.get("branding.logo_url") or settings.brand_logo
+
+    return {
+        "api": f"{settings.app_url}/api",
+        "ws": f"{settings.app_url.replace('http', 'ws')}/ws",
+        "name": site_name,
+        "logo": f"{settings.app_url}{logo}" if logo and not logo.startswith("http") else logo,
+        "domain": settings.domain,
+        "version": "4.1.0",
+    }
+
+
 @app.get("/api/health")
 async def health_check(db: AsyncSession = Depends(get_db)):
     from app.admin.settings import get_settings_by_prefix
